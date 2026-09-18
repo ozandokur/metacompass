@@ -1,7 +1,8 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 5 · Son güncelleme: 2026-09-19 · Son kapı: Faz 4 (canlı adım hariç) geçti (2026-09-19)
+Aktif faz: 5 — **kontrol noktasında, Ozan bekleniyor** · Son güncelleme: 2026-09-19 · Son kapı:
+Faz 5 geçti (2026-09-19, 412 test) · Faz 4 canlı adımı H1–H3 bekliyor
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: v1 (hash `config`/`prompts.PROMPT_HASHES`'te sabit) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
@@ -134,11 +135,58 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   `test_live_smoke.py` (görev 7) H1 gelince yazılacak; sağlayıcının güncel resmi dokümanına
   bakılması gerekiyor (§8.1).
 
+- [Faz 5] `eval/gold.py` tamamı: §9.4'ün 8 tipi, D24 broadcast kuralı (7301f05) · mini fixture'da elle
+  hesaplanan değerler + gerçek veride çapraz kontrol: resolve_owner (370 varlık), lineage BFS (tüm
+  düğümler × derinlik 1/2/3/6), impact_analysis (80 tablo) — **uyuşmazlık yok** (de305a5)
+- [Faz 5] `eval/scoring.py` + tablo tabanlı testler (4cff9a4)
+- [Faz 5] Şablonlar (kategori başına ≥ 4) + 60 talep kümesi için parafraz havuzu + `question_sets.py`
+  builder + doğrulamalar (fe82370) · `dev_set.json` (30), `test_set.json` (100) (e2fde88)
+- [Faz 5] `eval/configs.py` (A0–A5; test setinde 1.030 koşum) + `eval/run_eval.py` (bütçe koruması,
+  `--llm fake`) (6f62278) · `eval/agent_report.py` + `report.py` ajan bölümleri (62873c6)
+- [Faz 5] Kuru koşum (görev 11): `run_eval.py --set dev --llm fake` (gerçek bge-small embedder) →
+  30 cevap; "hep abstain" sahte model L6'da 6/6, geneli 0,20 · `report.py --results-dir
+  eval/results/scratch --set dev` tüm ajan bölümlerini doldurdu, "not run" kalmadı. Çıktılar
+  scratch'te, commit edilmedi. Ablation tablosunda bir sütun kayması bu koşumda yakalandı ve
+  testle düzeltildi.
+- [Faz 5] `eval/review_sample.md` üretildi (her kategoriden 3 test sorusu, gold isimleriyle; commit edilmez)
+- [Faz 5] Öğrenme notu: `docs/learn/09_eval_design.md`
+- [Faz 5] Kabul: gold bağımsızlık (mimari testi) ✅ · çapraz kontrolde uyuşmazlık yok ✅ · setler §9.2
+  dağılımıyla birebir ✅ · kuru koşum uçtan uca ✅ · `review_sample.md` ✅
+
 ## Devam eden
-- Görev: Faz 5 — eval setleri, bağımsız gold, puanlama · Yaklaşım: §9.2–§9.6 ve D24'ün L5/MX
-  kuralları; builder doğrulamaları test önce; LLM gerekmiyor.
+- Görev: Faz 5 kontrol noktası · Ozan'dan: `eval/review_sample.md` okuması (özellikle L6 ve MX),
+  aşağıdaki Q-F5-1…4 ve H1–H3.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-19 · **Geçici kararlar (Faz 5, spec'te yok):**
+  - Dev alt dağılımları: L1 = exact 1 · paraphrase 2 · disambiguation 1; L3 = metrik 1 · rapor 2 ·
+    staging 1; L6 = maaş 1 · 2027 bütçe 1 · yakın-ıska 2 · hiç yapılmamış 1 · gelecek 1; MX = metrik 1 ·
+    deprecated 1 · talep 2 (Q-F5-3).
+  - Boş formüllü metrik yalnızca 3 tane; üçü de test setine gidiyor, dev setinde boş formül sorusu yok
+    (örtüşmesizlik kuralı).
+  - L1 exact test: 2 rapor ID + 1 rapor adı + 1 tablo adı + 1 metrik kısaltması.
+  - L3 gold büyüklüğü 2–15 ID; derinlik buna göre seçiliyor (rapor 2/3, staging 2/3/4, metrik 3) ·
+    D24 mantığı: 15'ten fazla ID lineage'ı değil kopyalamayı ölçer.
+  - L5 broadcast hedefleri, etkilenen departmanların tüm departmanların alt kümesi olduğu tablolar
+    (33 broadcast tablonun 22'sinde gold 7 başkanın tamamı; o sorularda "herkese duyur" tahmini
+    okumadan doğru olurdu) (Q-F5-2).
+  - L5 individual katman karışımı: test 4 mart + 3 intermediate/staging, dev 1 + 1.
+  - Birincil hedef tekliği hem setler arasında hem set içinde (aynı rapor iki kategoride sorulmuyor).
+    Seçim sırası kıt hedefler önce: L2, L6, L1, MX, L3, L5, L4.
+  - MX metrik zincirinde "kaynak tablolar" = metriğin doğrudan kaynakları (derinlik 1); kaynakların
+    hepsi individual modda (D24). MX talep zinciri yalnızca tek bir aktif sonuç raporu olan kümelerden.
+  - L6 "hiç yapılmamış" konuları `reserved_near_miss.json`'daki 8 konudan (veri bütünlüğü testiyle
+    korunuyor); yakın-ıska isimleri retrieval setinde kullanılmamış isimlerden, her parça bir kez.
+  - Soru ID'leri: test `L2-007`, dev `dev-L2-01`.
+  - Gold `current_contact_for_asset` birden çok varlık alabiliyor (`asset_ids`); MX metrik zinciri için.
+  - Pilot = spend_log'daki en son dev A0 koşusu; test koşusunun maliyet tahmini ondan. Pilot yokken
+    test koşusu reddediliyor. Dev koşuları ve kuru koşumlar `eval/results/scratch/`'e yazılıyor.
+  - `--llm fake` her soruya abstain eden bir model; spend_log'a yazmıyor.
+  - Rapor: ± std en az 2 tekrar ister (1 tekrarda "(1 repeat)"); CI soruları yeniden örnekliyor
+    (1.000, seed 0); tool hata oranına BUDGET sayılmıyor (durma nedenlerinde görünüyor); uydurma ID
+    oranı = `stripped_ids` dolu cevap / tüm cevaplar.
+  - Ortak sızıntı kuralları `eval/set_rules.py`'ye taşındı (refactor; retrieval seti birebir aynı
+    üretiliyor).
 - 2026-09-19 · **Geçici kararlar (Faz 4, spec'te yok):**
   - `PROMPT_VERSION` `config.py`'de; `prompts.py` onu kullanıyor · `AgentConfig` config'te,
     agent paketini import etmesin (katman döngüsü olmasın).
@@ -339,6 +387,16 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Q-F5-1 (kontrol noktası):** `eval/review_sample.md`: L6 soruları gerçekten cevaplanabilir
+  *görünüyor* mu, MX soruları gerçek bir kullanıcının soracağı gibi mi? Şablon düzeltmesi gerekirse
+  setler yeniden üretilir (gold değişmez).
+- [ ] **Q-F5-2 — geçici karar: ayırt edici broadcast hedefleri.** 33 broadcast tablonun 22'sinde gold
+  7 departman başkanının tamamı. Builder L5 broadcast sorularını kalan 11 tablodan (3–6 başkan)
+  seçiyor. Alternatif: bütün hub'lara izin verip `min_mentioned_count`'u da puanlamak (metin
+  puanlaması, spec'in "metin puanlanmaz" ilkesine dokunur). Bedel: örneklem daha küçük hub'lara kayıyor.
+- [ ] **Q-F5-3 — geçici karar:** dev setinin kategori içi dağılımı (yukarıda).
+- [ ] **Q-F5-4 — geçici karar:** L3 gold 2–15 ID sınırı (D24'ün kopyalama argümanının lineage'a
+  uygulanması).
 - [x] **Q-F3-1 — kapandı 2026-09-18, Ozan (d) seçeneğini seçti → D24.** Aşağıdaki kayıt tarihçe
   olarak duruyor. (DUR-VE-SOR: bir test assertion'ını değiştirme ihtiyacı.) §7.7'de iki kural
   çelişiyor: "çıktı ≤ 4.000 karakter" ve "`notify` kırpılmaz". Seed 42, 80 tablo: 49 tablonun tam
