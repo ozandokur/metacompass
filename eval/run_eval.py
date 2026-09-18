@@ -93,8 +93,14 @@ def guard(*, set_name, dry_run, confirm, know_cost, estimate, spend, budget) -> 
         )
 
 
-def run_items(agent, items, *, set_name, code, repeat, budget_left) -> tuple[list[dict], float]:
-    """Answer and score every question; after the money runs out, write them as incomplete."""
+def run_items(
+    agent, items, *, set_name, code, repeat, budget_left, run_info=None
+) -> tuple[list[dict], float]:
+    """Answer and score every question; after the money runs out, write them as incomplete.
+
+    `run_info` (model, prompt version, git SHA, date) is copied into every line, so the
+    report can say exactly what produced each number.
+    """
     lines, spent = [], 0.0
     for item in items:
         line = {
@@ -104,6 +110,7 @@ def run_items(agent, items, *, set_name, code, repeat, budget_left) -> tuple[lis
             "item_id": item["id"],
             "category": item["category"],
             "subtype": item["subtype"],
+            **(run_info or {}),
         }
         if budget_left is not None and spent >= budget_left:
             lines.append({**line, "incomplete": True})
@@ -192,9 +199,16 @@ def main(argv: list[str] | None = None) -> int:
             llm = CachedLLM(inner, args.data / "cache" / "llm", cache_salt=salt)
         agent = Agent(llm, registry, prices=prices)
         budget_left = None if dry_run else settings.eval_budget_usd - spend["total_usd"]
+        run_info = {
+            "model": "fake" if dry_run else settings.llm_model,
+            "prompt_version": CONFIGS[code].prompt_version,
+            "git_sha": sha,
+            "date": date.today().isoformat(),
+        }
         lines, spent = run_items(
-            agent, items, set_name=args.set, code=code, repeat=repeat, budget_left=budget_left
-        )
+            agent, items, set_name=args.set, code=code, repeat=repeat,
+            budget_left=budget_left, run_info=run_info,
+        )  # fmt: skip
         path = out_dir / f"{args.set}_{code}_r{repeat}_{sha}.jsonl"
         path.write_text("".join(json.dumps(line) + "\n" for line in lines), encoding="utf-8")
         done = [line for line in lines if not line["incomplete"]]

@@ -126,6 +126,8 @@ def test_dry_run_goes_end_to_end_without_network_or_money(generated_dir, tmp_pat
     lines = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 3
     for line in lines:
+        assert (line["model"], line["prompt_version"]) == ("fake", "v1")
+        assert line["git_sha"] and line["date"]
         assert line["result"]["stopped_reason"] == "final"
         assert isinstance(line["score"]["correct"], bool)
         assert line["result"]["cost_usd"] == 0.0
