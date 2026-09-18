@@ -1,0 +1,37 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Secrets
+.env
+.streamlit/secrets.toml
+
+# Generated data and caches.
+# SPEC-DEVIATION: spec Ek C.1 lists "data/", which would also ignore src/metacompass/data/.
+# The leading slash anchors the pattern to the repo root.
+/data/
+*.pkl
+*.npy
+
+# Private planning and learning notes (never committed)
+docs/plan/
+docs/learn/
+
+# Eval scratch output (final runs under eval/results/ are committed)
+eval/review_sample.md
+eval/results/scratch/
+
+# OS noise
+.DS_Store
+Thumbs.db

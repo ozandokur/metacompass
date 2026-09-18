@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.env
+data
+docs/plan
+docs/learn
+eval/results
+**/__pycache__
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
