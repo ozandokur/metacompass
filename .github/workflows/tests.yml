@@ -1,0 +1,31 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # SPEC-DEVIATION: spec §12.5 says Python 3.11, but the pinned numpy/scipy need >= 3.12.
+      # CI matches the interpreter the pins were frozen on.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      # requirements.txt carries the CPU-only torch index, so torch never pulls CUDA wheels.
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e . --no-deps
+
+      - name: Quality gate
+        run: python scripts/check_all.py
