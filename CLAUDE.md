@@ -36,6 +36,21 @@ implement → green → python scripts/check_all.py → update PROGRESS → loca
 - Before blaming the spec for a property of the data or code, check whether the spec
   really forces it or whether it is my own design choice.
 
+## Decision authority (Ozan, 2026-09-18) — replaces the stop list of spec §13.3
+Decide and act without asking: generator, vocab, builder, templates, validations and test
+fixes; regenerating eval sets (gold recomputed); adding diagnostic metrics, table layout,
+report layout; refactors, naming, file splits; prompt iterations on the dev set (max 3
+versions); following a library API when it differs from the spec. When two rules clash,
+take the option that keeps measurement honest, scope small and runs deterministic.
+
+Stop and ask only for: money (any live run except the dev pilot; 80% of budget); push,
+remote, deploy, secrets; scope expansion (anything in spec §2.2); feeling the need to weaken
+a test; phase-end checkpoints 3, 5, 6, 8, 9 (phase 7's report merges into 8).
+
+Question batching: any question that does not block the flow goes to PROGRESS.md "Açık
+sorular" with a provisional decision (marked "geçici karar") taken by the rule above; keep
+working. Do not wait for Ozan in the middle of a phase.
+
 ## Style
 - Talk to me in Turkish. Code, identifiers, commits, README in English.
 - Explicit, readable code over clever abstractions. I must be able to defend every line.

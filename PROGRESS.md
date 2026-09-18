@@ -1,11 +1,11 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 2 (kapı geçti, 🧑 insan kontrol noktası bekleniyor) · Son güncelleme: 2026-09-18 ·
-Son kapı: Faz 2 geçti (2026-09-18; `check_all.py --slow` dahil)
+Aktif faz: 3 · Son güncelleme: 2026-09-18 · Son kapı: Faz 2 düzeltmeleri geçti (2026-09-18)
 
 ## Dondurulmuş değerler
-PROMPT_VERSION: — · τ: 0.65 (Faz 2 seçimi, kontrol noktasında gözden geçirilecek; test koşumundan önce dondurulacak) · Embedding: all-MiniLM-L6-v2 · Model: — · Data seed: 42
+PROMPT_VERSION: — · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
+yedek) · LLM: — · Data seed: 42 · Hepsi test koşumundan önce dondurulacak.
 
 ## Harcama
 Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
@@ -78,11 +78,52 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
     F1-maksimum τ = 0.65'te negatiflerin 15/15'i weak ama P'lerin de 15/15'i weak; strong olan
     pozitiflerin hepsi exact_match sayesinde.
 
+- [Faz 2 düzeltmeleri — Ozan'ın 2026-09-18 kararları]
+  - I07 gevşetme + I18 ≤ %18 (3053480): aktif raporların ayrılmış sahip oranı %21,3 → %13,6 (taban);
+    departman eşleşmesi %84; 17 seed × 63 invariant yeşil.
+  - Builder doğrulamaları + parafraz havuzu (001b915): P açıklama örtüşmesi ≤ %20 (işlev kelimeleri ve
+    şablon kelimeleri hariç), hedef tekliği; havuz tüm üretici kelimelerinden arındırıldı. v1'de ortalama
+    %23 örtüşme ve 15'te 6 sorgu sınır üstündeydi; v2'de 0.
+  - Göreli sinyal + yeni metrikler (7665139): `MatchSignal.dense_z`, `topic_hit@5`, `pair_coverage@5`,
+    iki sinyal taraması, ön kayıtlı model A/B kuralı.
+  - Yeniden koşum (35edadd): v1 seti eski üreticiyle (7cdffa2) yeniden üretilen veride yeniden puanlandı
+    (orijinal sayıları birebir tekrarladı); v2 seti MiniLM + bge-small. Kural bge-small'u seçti
+    (hibrit MRR 0,580 vs 0,541). Sinyal z ≥ 4,25 (F1 0,749; kosinüs 0,704). Tam eşleşme dışında
+    15 P'den 1'i strong, 15 N'den 0'ı. `results.md` eski ve yeni tabloları + iki paragrafı içeriyor.
+  - **Spec güncellendi** (`docs/plan/13_METACOMPASS_MASTER.md`): §4.4.2, §4.7 (I07, I18–I20),
+    §5.5, §5.7, §5.8, §9.2, Ek C.2. `CLAUDE.md`'ye yeni karar yetkisi bölümü eklendi.
+
 ## Devam eden
-- Görev: Faz 2 insan kontrol noktası · Ozan benchmark tablosunu, τ gerekçesini ve öğrenme
-  notları 02–05'i inceleyecek; aşağıdaki açık sorulara karar verecek.
+- Görev: Faz 3 — altı tool ve sahiplik çözümü · Yaklaşım: mini fixture hazır (Faz 2); önce
+  `tools/schemas.py`, sonra `test_owner_resolution.py` (12 test, kırmızı) → `ownership.py`, sonra
+  diğer tool'lar test önce, en son registry. Faz 3 sonunda `ownership.py` satır satır anlatılacak.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-18 · **Ozan'ın Faz 2 kararları (nihai):** (1) parafraz havuzu düzeltilsin (eksik builder
+  doğrulaması); (2) sinyal tanımı değişsin, mutlak ve göreli (z) taransın, iyi olan sabitlensin;
+  (3) hibritte ID yönlendirmesi yok, RRF özelliği olarak yazılsın; (4) retrieval setinin hedefleri
+  dev/test L1 sorularında kullanılmasın (L2/L3/L5 serbest) — Faz 5'te uygulanacak; (5) I07: S1/S2
+  ≥1, C ≥2 rapor, I18 ≤ %18; (6) D için başlık metrik pair_coverage@5, doğru üyeyi seçmek agent'ın
+  işi (L1); (7) sızıntı düzeldikten sonra tek A/B: MiniLM vs bge-small; (8) bağlayıcılar kullanılmıyor.
+  Çalışma biçimi: bkz. `CLAUDE.md` "Decision authority".
+- 2026-09-18 · Açıklama örtüşmesi ölçüsü: sorgunun içerik kelimelerinin (spec stop-word'leri, açık
+  İngilizce işlev kelimesi listesi ve parafraz şablonunun sabit kelimeleri çıkarıldıktan sonra)
+  hedefin açıklama+etiketlerinde geçen payı · Şablon kelimeleri her sorguda aynı olduğu için hedefi
+  işaret edemez; paydanın sorgu tarafında olması en sert seçenek · Not: önceki raporda geçen "9/15
+  sorgu ≥2 ortak kelime" daha kaba bir ölçüydü (işlev kelimeleri dahil); resmi ölçüyle v1: ortalama
+  %23, 6/15 sınır üstü.
+- 2026-09-18 · τ_z ızgarası 0,5–6,0 (adım 0,25) veriye bakmadan sabitlendi; sinyal varyantı eşitlikte
+  mutlakta kalır · Model A/B kuralı koşumlardan önce koda yazıldı (7665139, `choose_model`).
+- 2026-09-18 · v1 karşılaştırması için eski üretici (7cdffa2) bir git worktree'de çalıştırılıp veri
+  geçici klasöre üretildi; v1 seti bu veride yeniden puanlandı · Eski ve yeni set aynı kod ve modelle
+  karşılaştırılabilsin. Orijinal v1 JSON'u (`retrieval_bench_v1.json`) değiştirilmeden saklandı.
+- 2026-09-18 · `tests/test_config_matches_bench.py`: config'teki model ve sinyal, commit edilmiş
+  benchmark sonuçlarından kuralla seçilenle aynı olmak zorunda · config sonuçlardan kaymasın.
+- 2026-09-18 · bge-small sorgularına talimat öneki eklenmedi · İki model aynı boru hattında
+  karşılaştırılsın; v1.5 model kartı önekin şart olmadığını söylüyor.
+- 2026-09-18 · **Protokol hatası (2.):** gcommit yardımcısında `git add` başarısız olunca yalnızca
+  dosya taşımasını içeren bir commit oluştu; yerelde geri alınıp (push edilmemişti) doğru içerikle
+  7665139 olarak yeniden atıldı. Yardımcı artık `git add` başarısız olursa duruyor.
 - 2026-09-18 · BM25 aday ölçütü "skor > 0" değil "en az bir ortak token" · Okapi idf yarıdan
   fazla belgede geçen terimlerde negatif/tabanda (ör. her rapor ID'sindeki `rpt`); bir test yakaladı.
 - 2026-09-18 · MatchSignal her modda aynı hesaplanıyor (bm25 modunda da dense kosinüs) · A1/A2
@@ -178,8 +219,8 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
 - 2026-09-18 · `_meta.json`'a spec örneğinde olmayan alanlar eklendi: `near_duplicate_variants`,
   `report_subjects`, `report_qualifiers`, `vague_description_reports` · Eval builder'ın parafraz
   ve D-sorgusu üretmesi için gerekli. 7 tablonun şeması değişmedi (§2.3 kapsam değişikliği değil).
-- 2026-09-18 · Ayrılmış sahipli rapor oranı ~%40 kabul edildi · Spec 120 kişiden 38'inin
-  ayrılmasını istiyor; oranı yapay düşürmek yerine data card'da "Known limits" altında yazılı.
+- ~~2026-09-18 · Ayrılmış sahipli rapor oranı ~%40 kabul edildi~~ · Geçersiz: gerekçe yanlıştı
+  (spec dayatmıyordu); önce taban %21,3'e, sonra I07 gevşetmesiyle %13,6'ya indirildi.
 
 ## Spec sapmaları
 - **Python sürümü (§11.1, §12.5) — ONAYLANDI 2026-09-18:** Spec CI/Docker için 3.11 diyor.
@@ -198,28 +239,9 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
-- [ ] **Faz 2 — şablon sızıntısı:** P parafraz havuzu (`eval/templates.json`) hedef açıklamalarıyla
-  kelime paylaşıyor (9/15). Öneri: havuzu açıklama/etiket kelimelerinden de arındırıp builder'a
-  "açıklama+etiketlerle ≤%30" kontrolü eklemek, sonra benchmark'ı yeniden koşmak. Spec (§14 Faz 2)
-  bu durumda önce sormamı istiyor — onaylıyor musun?
-- [ ] **Faz 2 — τ:** 0.65'te sinyal fiilen yalnızca tam isim/ID dedektörü (P'lerin hepsi weak).
-  Seçenekler: (a) spec kuralına sadık kal, 0.65 (bedeli A4'te ölçülür); (b) 0.55 (F1 0.722, N'lerin
-  %13'ü strong); (c) sinyal tanımını değiştirmek (ör. top-1/top-2 kosinüs farkı) — spec değişikliği.
-  Öneri: (a), çünkü (b) F1'i düşürüp keyfi olur, (c) kapsam kararı. Şablon sızıntısı düzeltilirse
-  τ yeniden seçilmeli.
-- [ ] **Faz 2 — hibritte ID sorguları:** Sorgu korpustaki bir kaydın ID'sini içeriyorsa o kaydı 1.
-  sıraya koymak (exact-ID yönlendirmesi) hibritin E kaybını kapatır; spec'te yok. Öneri: yapma;
-  agent ID'yi zaten `get_record` ile doğrudan açabilir, retrieval ölçümü dürüst kalsın.
-- [ ] **Faz 5 notu:** Test setinin hedefleri retrieval setinin hedefleriyle örtüşmesin mi? (τ
-  retrieval setinde seçildi; aynı varlıkları hedefleyen test soruları hafif bir sızıntı olur.)
-  Öneri: builder test/dev hedeflerinden retrieval-set hedeflerini dışlasın.
-- [ ] **%15–20 ayrılmış sahip bandı I07 ile birlikte tutturulamıyor.** Zincir başı sayısı 22
-  değil 25 (S1 12 + S2 6 + C2 3 + C3 2 + C4 2); I07 gereği 25 × 2 = 50 aktif rapor ayrılmış
-  kişilere ait olmak zorunda → taban 50/235 = %21,3. Geçici karar: oran tam tabanda (başka hiçbir
-  aktif raporun sahibi ayrılmış değil); I18 `share ≤ max(0,20, taban)` olarak yazıldı
-  (SPEC-DEVIATION yorumu testte). %20'nin altına inmek istersen spesifikasyon değişikliği gerekir,
-  ör. S1 başları için I07'yi ≥1 rapora indirmek (taban 38/235 = %16,2) — senin kararın.
-- [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) — Faz 4'ten önce gerekli.
+- [x] Faz 2 soruları (sızıntı, τ, ID yönlendirmesi, retrieval/test örtüşmesi, I07 bandı) — Ozan
+  2026-09-18'de karara bağladı, yukarıda "Kararlar"da.
+- [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) — Faz 4'ün canlı adımından önce gerekli.
 - [ ] H5: `docs/plan/forbidden_terms.txt` (Ozan hazırlıyor); push'tan önce tarama tüm dosyalar
   ve commit geçmişi için tekrar koşulacak.
 - [ ] H6: `.env` ve GitHub remote (Ozan hazırlıyor). O zamana kadar push yok.
