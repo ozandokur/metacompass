@@ -1,0 +1,99 @@
+{
+  "_comment": "Question templates and paraphrase pools for eval/build_sets.py. Paraphrases never reuse the words of a subject's name stems, so a paraphrase query can only be answered by meaning, not by word overlap (spec §9.5); the builder still checks the overlap for every generated query. Phase 2 uses the retrieval part; later phases add the agent question templates.",
+  "subject_paraphrases": {
+    "dealer_sales_performance": ["how many cars each franchise point sells compared with its target", "whether outlets hit their volume goals"],
+    "new_vehicle_sales": ["factory-fresh units handed over to buyers", "first-owner units invoiced to private buyers"],
+    "used_vehicle_sales": ["second-hand stock we resell and the profit on it", "trade-ins sold on to new buyers"],
+    "sales_pipeline": ["negotiations that have not closed yet and when they might", "prospects still being worked on by the showroom teams"],
+    "lead_conversion": ["how many interested prospects end up buying a car", "the share of people who ask about a car and then sign"],
+    "fleet_sales": ["bulk purchases by rental firms and company car schemes", "cars bought in large batches by companies"],
+    "pricing_discounts": ["how far below sticker cars really go", "money given away to close each purchase"],
+    "order_bank": ["cars customers have bought but not yet received", "signed purchases still waiting for the factory or the truck"],
+    "service_retention": ["owners who keep bringing their car back to us for maintenance", "how many buyers come back for scheduled check-ups"],
+    "workshop_productivity": ["how much mechanic time gets billed to customers", "billable time versus available bay time in the garages"],
+    "repair_order_revenue": ["what customers pay when their car is fixed", "labour and parts income from each garage job"],
+    "warranty_claims": ["repairs the manufacturer pays for under guarantee", "guarantee repair bills submitted by the garages"],
+    "recall_campaigns": ["cars called back for a defect fix and how many are done", "defect fixes the regulator made us offer and their uptake"],
+    "first_time_fix": ["jobs done right on the initial visit", "vehicles coming back with the same fault again"],
+    "customer_satisfaction": ["how happy people are after buying or getting their car looked after", "feedback scores after a garage appointment"],
+    "service_bookings": ["reserved garage slots and people who did not turn up", "how drivers schedule maintenance online or by phone"],
+    "parts_fill_rate": ["how often a component order ships complete straight away", "order lines we can serve entirely from what we hold"],
+    "parts_inventory": ["components gathering dust on the shelves and what they are worth", "ageing spares held in the depots"],
+    "parts_sales": ["income from selling spares and accessories to garages", "money made on components sold to the trade"],
+    "backorders": ["component requests we cannot ship because the item is missing", "spares waiting on the supplier before they can go out"],
+    "supplier_performance": ["how punctual the companies we buy components from are", "late or short shipments from the firms that supply us"],
+    "vehicle_logistics": ["how long new cars take to travel from the ship to the showroom", "cars arriving late at retail sites"],
+    "returns": ["components garages send back to us and why", "items dealers hand back and the refunds they get"],
+    "gross_margin": ["what is left after paying for the goods we sell", "earnings after cost of sales across cars, spares and repairs"],
+    "pnl": ["the monthly accounts from turnover down to operating result", "the company's earnings and costs for each cost centre"],
+    "budget_vs_actual": ["whether each department is over or under what was approved for the year", "real figures compared with the approved targets for 2026"],
+    "opex": ["what each team pays to keep the lights on", "running expenditure by department"],
+    "dealer_profitability": ["which franchise points actually make money after incentives", "earnings of each retail partner once support payments are deducted"],
+    "cash_collections": ["money customers still owe us and how late they pay", "unpaid bills and chasing late payers"],
+    "revenue_summary": ["total income across cars, spares and repairs", "how much money the whole group brings in"],
+    "campaign_performance": ["what our advertising delivers in clicks and enquiries for the money", "ad flights and the prospects they generate"],
+    "web_traffic": ["how many people browse our site and use the car builder", "sessions on the brand site and forms sent from it"],
+    "brand_nps": ["how likely buyers are to suggest us to friends", "fans versus critics among our customers"],
+    "marketing_roi": ["car revenue credited to advertising money", "how much each advertising channel earns back"],
+    "customer_segments": ["groups of people who purchase from us by age and what they drive", "who our purchasers are and what they tend to choose"],
+    "event_leads": ["prospects collected face to face at exhibitions and open days", "contacts gathered at trade fairs rather than on the web"],
+    "executive_kpis": ["the headline company numbers for top management", "one page of the most important figures for the directors"],
+    "dealer_network": ["new franchise points and sites we shut down", "how many retail partners we have and how that is changing"],
+    "vehicle_stock": ["cars waiting at retailers and in the compound and how long they have sat there", "how many new cars nobody has bought yet"],
+    "daily_operations": ["what went wrong yesterday across selling, repairs and transport", "the morning list of problems that need attention"],
+    "data_quality": ["whether the numbers behind our dashboards can be trusted today", "checks on late or broken warehouse loads"],
+    "customer_360": ["everything we know about one buyer across purchases, repairs and contacts", "a complete picture of each car owner"],
+    "dealer_benchmark": ["ranking franchise points against similar-sized ones", "how each retail site stacks up against the others"],
+    "forecast_inputs": ["the numbers the prediction model uses to estimate future car volumes", "historic volumes prepared for predicting next season"]
+  },
+  "qualifier_paraphrases": {
+    "none": [""],
+    "region": [" broken down geographically", " for each area of the country"],
+    "dealer": [" for every showroom", " site by site"],
+    "model": [" for each car line", " line by line across the range"],
+    "segment": [" per buyer group", " for each type of buyer"],
+    "category": [" per product group", " for each group of components"],
+    "warehouse": [" per depot", " for each distribution centre"],
+    "supplier": [" per vendor", " vendor by vendor"],
+    "campaign": [" per advertising push", " for each ad flight"],
+    "weekly": [" week by week", " every seven days"],
+    "monthly": [" per calendar month", " for each month"],
+    "yoy": [" against last year", " compared with the prior year"],
+    "mtd": [" so far this month", " since the start of the month"],
+    "exec": [" condensed for senior management", " as a one-page brief for the directors"],
+    "trend": [" as a line over the last year", " showing how it moved over thirteen months"]
+  },
+  "near_duplicate_cues": {
+    "regional": ["the one with a page per region", "the regional cut"],
+    "detail": ["the version with one row per transaction", "the record-level one for exporting"],
+    "extended": ["the edition with history back to 2019", "the one with the longer history"],
+    "area_managers": ["the cut-down one for area managers", "the version limited to my territory"],
+    "drilldown": ["the one where I can click into single dealers", "the drill-down companion"]
+  },
+  "near_miss_prefixes": ["Dealer", "Parts", "Service", "Fleet", "Warranty", "Sales", "Customer", "Regional"],
+  "near_miss_formats": ["", " Dashboard", " Report"],
+  "retrieval": {
+    "exact_table": ["{name}", "What is in {name}?", "Describe the table {name}."],
+    "exact_metric_alias": ["{alias}", "What is the {alias} metric?", "How is {alias} defined?"],
+    "exact_id": ["{record_id}", "What is {record_id}?", "Who looks after {record_id}?"],
+    "paraphrase": [
+      "Is there a dashboard that shows {topic}{dimension}?",
+      "Looking for something on {topic}{dimension}.",
+      "Where can I see {topic}{dimension}?",
+      "We need numbers on {topic}{dimension}. Does that exist?"
+    ],
+    "deprecated_current": [
+      "I need the current version of the {name} report.",
+      "Which {name} should I use now?"
+    ],
+    "near_duplicate": [
+      "I am looking for {name}, {cue}.",
+      "{name}: {cue}, please."
+    ],
+    "negative": [
+      "Who owns the {name}?",
+      "Where can I find the {name}?",
+      "Is the {name} still maintained?"
+    ]
+  }
+}

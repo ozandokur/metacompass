@@ -45,7 +45,7 @@ ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["scripts"]
+pythonpath = ["scripts", "eval"]
 markers = ["slow: downloads models", "live: calls a paid LLM API"]
 addopts = "-m 'not slow and not live'"
 
