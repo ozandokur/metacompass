@@ -40,6 +40,8 @@ src = ["src", "scripts", "tests", "eval", "app"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+# The formatter owns line length; it never splits long strings, so E501 would only flag prose.
+ignore = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

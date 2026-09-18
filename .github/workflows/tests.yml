@@ -27,5 +27,9 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e . --no-deps
 
+      # Tests generate their own copy in a temp folder; data/ is for scripts and later phases.
+      - name: Generate synthetic data
+        run: python -m metacompass.data.generate --seed 42 --out data/
+
       - name: Quality gate
         run: python scripts/check_all.py
