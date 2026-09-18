@@ -1,0 +1,2647 @@
+{
+  "_comment": "Test question set (spec §9.2). Built by eval/build_sets.py from the generated data; gold is computed by eval/gold.py. Do not edit by hand.",
+  "set": "test",
+  "seed": 42,
+  "plan": {
+    "L1": {
+      "exact": 5,
+      "paraphrase": 5,
+      "disambiguation": 5
+    },
+    "L2": {
+      "active": 3,
+      "S1": 4,
+      "S2": 3,
+      "C2": 2,
+      "C3": 1,
+      "C4": 2
+    },
+    "L3": {
+      "metric_upstream": 5,
+      "report_upstream": 5,
+      "staging_downstream": 5
+    },
+    "L4": {
+      "topic": 15
+    },
+    "L5": {
+      "individual": 7,
+      "broadcast": 3
+    },
+    "L6": {
+      "salary": 1,
+      "budget_2027": 1,
+      "accuracy": 1,
+      "near_miss": 4,
+      "never_done": 3,
+      "null_formula": 3,
+      "future": 2
+    },
+    "MX": {
+      "metric_owners": 5,
+      "deprecated_replacement": 5,
+      "request_report": 5
+    }
+  },
+  "items": [
+    {
+      "id": "L1-001",
+      "category": "L1",
+      "subtype": "exact",
+      "question": "Tell me what RPT-0056 shows.",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0056",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0056"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0056",
+      "allow_id_in_question": true,
+      "notes": "exact report id"
+    },
+    {
+      "id": "L1-002",
+      "category": "L1",
+      "subtype": "exact",
+      "question": "Where can I find Monthly Transaction Price Analysis Tracker?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0200",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0200"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0200",
+      "allow_id_in_question": false,
+      "notes": "exact report name"
+    },
+    {
+      "id": "L1-003",
+      "category": "L1",
+      "subtype": "exact",
+      "question": "Which table is dim_vehicle and what does it hold?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "TBL-057",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-057"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "TBL-057",
+      "allow_id_in_question": false,
+      "notes": "exact table name"
+    },
+    {
+      "id": "L1-004",
+      "category": "L1",
+      "subtype": "exact",
+      "question": "What does the CPU metric measure?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "MET-017",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "MET-017"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "MET-017",
+      "allow_id_in_question": false,
+      "notes": "exact metric acronym"
+    },
+    {
+      "id": "L1-005",
+      "category": "L1",
+      "subtype": "exact",
+      "question": "What is RPT-0142 about, and is it still in use?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0142",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0142"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0142",
+      "allow_id_in_question": true,
+      "notes": "exact report id"
+    },
+    {
+      "id": "L1-006",
+      "category": "L1",
+      "subtype": "paraphrase",
+      "question": "Is there a dashboard that shows how many interested prospects go on to buy an automobile plotted over the past thirteen months?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0081",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0081"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0081",
+      "allow_id_in_question": false,
+      "notes": "subject=lead_conversion, qualifier=trend"
+    },
+    {
+      "id": "L1-007",
+      "category": "L1",
+      "subtype": "paraphrase",
+      "question": "I need a report on motors arriving behind schedule at the outlets week by week. Does one exist?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0170",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0170"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0170",
+      "allow_id_in_question": false,
+      "notes": "subject=vehicle_logistics, qualifier=weekly"
+    },
+    {
+      "id": "L1-008",
+      "category": "L1",
+      "subtype": "paraphrase",
+      "question": "Which report tracks the vital statistics top management checks first against twelve months before?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0028",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0028"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0028",
+      "allow_id_in_question": false,
+      "notes": "subject=executive_kpis, qualifier=yoy"
+    },
+    {
+      "id": "L1-009",
+      "category": "L1",
+      "subtype": "paraphrase",
+      "question": "Which report tracks signed purchases the factory or the truck has not brought yet site by site?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0248",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0248"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0248",
+      "allow_id_in_question": false,
+      "notes": "subject=order_bank, qualifier=dealer"
+    },
+    {
+      "id": "L1-010",
+      "category": "L1",
+      "subtype": "paraphrase",
+      "question": "Which report tracks feedback ratings collected after an appointment showing how it moved over the past year?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0055",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0055"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0055",
+      "allow_id_in_question": false,
+      "notes": "subject=customer_satisfaction, qualifier=trend"
+    },
+    {
+      "id": "L1-011",
+      "category": "L1",
+      "subtype": "disambiguation",
+      "question": "Which report is Parts Inventory Health Dashboard, the version limited to my territory?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0156",
+        "forbidden_ids": [
+          "RPT-0118"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0156"
+        ],
+        "forbidden_ids": [
+          "RPT-0118"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0156",
+      "allow_id_in_question": false,
+      "notes": "near duplicate of RPT-0118, variant=area_managers"
+    },
+    {
+      "id": "L1-012",
+      "category": "L1",
+      "subtype": "disambiguation",
+      "question": "I need the current version of CSAT Monitor Dashboard by Region. Which report is it?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0048",
+        "forbidden_ids": [
+          "RPT-0023"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0048"
+        ],
+        "forbidden_ids": [
+          "RPT-0023"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0048",
+      "allow_id_in_question": false,
+      "notes": "deprecated RPT-0023 -> replacement RPT-0048"
+    },
+    {
+      "id": "L1-013",
+      "category": "L1",
+      "subtype": "disambiguation",
+      "question": "Transaction Price Analysis Tracker by Model looks out of date. Which report should I use instead?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0086",
+        "forbidden_ids": [
+          "RPT-0043"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0086"
+        ],
+        "forbidden_ids": [
+          "RPT-0043"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0086",
+      "allow_id_in_question": false,
+      "notes": "deprecated RPT-0043 -> replacement RPT-0086"
+    },
+    {
+      "id": "L1-014",
+      "category": "L1",
+      "subtype": "disambiguation",
+      "question": "I am after Dealer Net Margin Executive Summary, the record-level one for exporting. Which report is that?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0166",
+        "forbidden_ids": [
+          "RPT-0137"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0166"
+        ],
+        "forbidden_ids": [
+          "RPT-0137"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0166",
+      "allow_id_in_question": false,
+      "notes": "near duplicate of RPT-0137, variant=detail"
+    },
+    {
+      "id": "L1-015",
+      "category": "L1",
+      "subtype": "disambiguation",
+      "question": "I am after Recall Campaign Progress Report by Region, the drill-down companion. Which report is that?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0079",
+        "forbidden_ids": [
+          "RPT-0064"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0079"
+        ],
+        "forbidden_ids": [
+          "RPT-0064"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0079",
+      "allow_id_in_question": false,
+      "notes": "near duplicate of RPT-0064, variant=drilldown"
+    },
+    {
+      "id": "L2-001",
+      "category": "L2",
+      "subtype": "active",
+      "question": "Who owns Weekly Unsold Vehicle Inventory Dashboard?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0080"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-063"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0080",
+      "allow_id_in_question": false,
+      "notes": "report; walk: EMP-063 (active)"
+    },
+    {
+      "id": "L2-002",
+      "category": "L2",
+      "subtype": "active",
+      "question": "Who is the right contact for the table int_vehicle_catalog today?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "TBL-034"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-096"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "TBL-034",
+      "allow_id_in_question": false,
+      "notes": "table; walk: EMP-096 (active)"
+    },
+    {
+      "id": "L2-003",
+      "category": "L2",
+      "subtype": "active",
+      "question": "Which person can answer questions about the Average Transaction Price metric right now?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "MET-004"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-049"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "MET-004",
+      "allow_id_in_question": false,
+      "notes": "metric; walk: EMP-049 (active)"
+    },
+    {
+      "id": "L2-004",
+      "category": "L2",
+      "subtype": "S1",
+      "question": "Who is the right person to ask about Comeback Analysis by Region today?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0073"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-098"
+        ],
+        "forbidden_ids": [
+          "EMP-064"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0073",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-064 (left) -> successor EMP-098 (active)"
+    },
+    {
+      "id": "L2-005",
+      "category": "L2",
+      "subtype": "S1",
+      "question": "Weekly Configurator Usage was built by someone who may no longer be here. Who should I talk to?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0083"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-051"
+        ],
+        "forbidden_ids": [
+          "EMP-045"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0083",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-045 (left) -> successor EMP-051 (active)"
+    },
+    {
+      "id": "L2-006",
+      "category": "L2",
+      "subtype": "S1",
+      "question": "Who is the right person to ask about Demand Forecast Inputs by Region today?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0172"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-097"
+        ],
+        "forbidden_ids": [
+          "EMP-050"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0172",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-050 (left) -> successor EMP-097 (active)"
+    },
+    {
+      "id": "L2-007",
+      "category": "L2",
+      "subtype": "S1",
+      "question": "Who is the right person to ask about First Time Fix Tracker by Dealer today?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0066"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-079"
+        ],
+        "forbidden_ids": [
+          "EMP-044"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0066",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-044 (left) -> successor EMP-079 (active)"
+    },
+    {
+      "id": "L2-008",
+      "category": "L2",
+      "subtype": "S2",
+      "question": "Who owns Monthly Company Revenue?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0132"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-060"
+        ],
+        "forbidden_ids": [
+          "EMP-065"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0132",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-065 (left) -> manager EMP-060 (active)"
+    },
+    {
+      "id": "L2-009",
+      "category": "L2",
+      "subtype": "S2",
+      "question": "Who is the right person to ask about Weekly Lead Follow-Up Results Dashboard today?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0089"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-013"
+        ],
+        "forbidden_ids": [
+          "EMP-047"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0089",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-047 (left) -> manager EMP-013 (active)"
+    },
+    {
+      "id": "L2-010",
+      "category": "L2",
+      "subtype": "S2",
+      "question": "Customer 360 Scorecard by Region was built by someone who may no longer be here. Who should I talk to?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0018"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-027"
+        ],
+        "forbidden_ids": [
+          "EMP-019"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0018",
+      "allow_id_in_question": false,
+      "notes": "walk: EMP-019 (left) -> manager EMP-027 (active)"
+    },
+    {
+      "id": "L2-011",
+      "category": "L2",
+      "subtype": "C2",
+      "question": "Who owns Workshop Loyalty Report YoY?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0183"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-022"
+        ],
+        "forbidden_ids": [
+          "EMP-040"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0183",
+      "allow_id_in_question": false,
+      "notes": "C2 chain; walk: EMP-040 (left) -> successor EMP-112 (left) -> manager EMP-022 (active)"
+    },
+    {
+      "id": "L2-012",
+      "category": "L2",
+      "subtype": "C2",
+      "question": "Who owns Corporate Fleet Deals Executive Summary?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0157"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-085"
+        ],
+        "forbidden_ids": [
+          "EMP-038"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0157",
+      "allow_id_in_question": false,
+      "notes": "C2 chain; walk: EMP-038 (left) -> successor EMP-078 (left) -> successor EMP-085 (active)"
+    },
+    {
+      "id": "L2-013",
+      "category": "L2",
+      "subtype": "C3",
+      "question": "Who owns Monthly Repair Order Revenue?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0020"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-103"
+        ],
+        "forbidden_ids": [
+          "EMP-034"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0020",
+      "allow_id_in_question": false,
+      "notes": "C3 chain; walk: EMP-034 (left) -> successor EMP-067 (left) -> successor EMP-095 (left) -> successor EMP-103 (active)"
+    },
+    {
+      "id": "L2-014",
+      "category": "L2",
+      "subtype": "C4",
+      "question": "Sales Pipeline Dashboard was built by someone who may no longer be here. Who should I talk to?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0070"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-032"
+        ],
+        "forbidden_ids": [
+          "EMP-012"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0070",
+      "allow_id_in_question": false,
+      "notes": "C4 chain; walk: EMP-012 (left) -> successor EMP-048 (left) -> successor EMP-069 (left) -> successor EMP-092 (left)"
+    },
+    {
+      "id": "L2-015",
+      "category": "L2",
+      "subtype": "C4",
+      "question": "Who owns Remarketing Performance Trend?",
+      "gold_spec": {
+        "type": "current_contact_for_asset",
+        "asset_id": "RPT-0040"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-032"
+        ],
+        "forbidden_ids": [
+          "EMP-012"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0040",
+      "allow_id_in_question": false,
+      "notes": "C4 chain; walk: EMP-012 (left) -> successor EMP-048 (left) -> successor EMP-069 (left) -> successor EMP-092 (left)"
+    },
+    {
+      "id": "L3-001",
+      "category": "L3",
+      "subtype": "metric_upstream",
+      "question": "Which tables feed the Net Promoter Score metric, up to 3 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "MET-020",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-002",
+          "TBL-003",
+          "TBL-006",
+          "TBL-008",
+          "TBL-014",
+          "TBL-024",
+          "TBL-030",
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-035",
+          "TBL-038",
+          "TBL-049",
+          "TBL-077"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-020",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-002",
+      "category": "L3",
+      "subtype": "metric_upstream",
+      "question": "Which tables feed the Revenue MTD metric, up to 3 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "MET-034",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-006",
+          "TBL-008",
+          "TBL-031",
+          "TBL-032",
+          "TBL-050",
+          "TBL-052",
+          "TBL-060",
+          "TBL-073"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-034",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-003",
+      "category": "L3",
+      "subtype": "metric_upstream",
+      "question": "What tables is Average Repair Time built from, including the tables behind them, up to 3 levels back?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "MET-021",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-001",
+          "TBL-002",
+          "TBL-003",
+          "TBL-006",
+          "TBL-008",
+          "TBL-011",
+          "TBL-024",
+          "TBL-030",
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-036",
+          "TBL-038",
+          "TBL-039",
+          "TBL-066"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-021",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-004",
+      "category": "L3",
+      "subtype": "metric_upstream",
+      "question": "Which tables feed the Win Rate metric, up to 3 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "MET-008",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-003",
+          "TBL-006",
+          "TBL-008",
+          "TBL-012",
+          "TBL-013",
+          "TBL-015",
+          "TBL-028",
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-035",
+          "TBL-045",
+          "TBL-046",
+          "TBL-074"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-008",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-005",
+      "category": "L3",
+      "subtype": "metric_upstream",
+      "question": "What tables is Budget Variance built from, including the tables behind them, up to 3 levels back?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "MET-033",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-003",
+          "TBL-006",
+          "TBL-008",
+          "TBL-009",
+          "TBL-031",
+          "TBL-032",
+          "TBL-050",
+          "TBL-052",
+          "TBL-072",
+          "TBL-073"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-033",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-006",
+      "category": "L3",
+      "subtype": "report_upstream",
+      "question": "Which tables does Weekly Leadership KPIs read from, directly or up to 2 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "RPT-0241",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-031",
+          "TBL-032",
+          "TBL-036",
+          "TBL-037",
+          "TBL-038",
+          "TBL-039",
+          "TBL-051",
+          "TBL-060",
+          "TBL-065",
+          "TBL-066"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "RPT-0241",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L3-007",
+      "category": "L3",
+      "subtype": "report_upstream",
+      "question": "Which tables does Motor Show Enquiries Executive Summary read from, directly or up to 2 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "RPT-0152",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-045",
+          "TBL-047",
+          "TBL-070"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "RPT-0152",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L3-008",
+      "category": "L3",
+      "subtype": "report_upstream",
+      "question": "Which tables does Supplier Performance Dashboard YoY read from, directly or up to 3 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "RPT-0150",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-006",
+          "TBL-010",
+          "TBL-018",
+          "TBL-032",
+          "TBL-053",
+          "TBL-060",
+          "TBL-079"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "RPT-0150",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-009",
+      "category": "L3",
+      "subtype": "report_upstream",
+      "question": "Which tables does Customer Satisfaction Dashboard YoY read from, directly or up to 2 steps upstream?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "RPT-0096",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-038",
+          "TBL-049",
+          "TBL-060",
+          "TBL-077"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "RPT-0096",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L3-010",
+      "category": "L3",
+      "subtype": "report_upstream",
+      "question": "What source tables does Monthly Vehicle Logistics depend on, up to 3 levels back?",
+      "gold_spec": {
+        "type": "upstream_tables",
+        "node_id": "RPT-0234",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "TBL-006",
+          "TBL-019",
+          "TBL-031",
+          "TBL-032",
+          "TBL-033",
+          "TBL-054",
+          "TBL-060",
+          "TBL-078"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "RPT-0234",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-011",
+      "category": "L3",
+      "subtype": "staging_downstream",
+      "question": "If stg_erp_invoices stops loading, which reports within 2 steps downstream are affected?",
+      "gold_spec": {
+        "type": "downstream_reports",
+        "table_id": "TBL-007",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0054",
+          "RPT-0097",
+          "RPT-0160",
+          "RPT-0219"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-007",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L3-012",
+      "category": "L3",
+      "subtype": "staging_downstream",
+      "question": "Which reports are built on top of stg_web_service_bookings within 2 steps?",
+      "gold_spec": {
+        "type": "downstream_reports",
+        "table_id": "TBL-030",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0054",
+          "RPT-0097"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-030",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L3-013",
+      "category": "L3",
+      "subtype": "staging_downstream",
+      "question": "Which reports are built on top of stg_warranty_supplier_recovery within 3 steps?",
+      "gold_spec": {
+        "type": "downstream_reports",
+        "table_id": "TBL-025",
+        "depth": 3
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0007",
+          "RPT-0034",
+          "RPT-0095",
+          "RPT-0104",
+          "RPT-0130",
+          "RPT-0140",
+          "RPT-0147",
+          "RPT-0181",
+          "RPT-0215",
+          "RPT-0226"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-025",
+      "allow_id_in_question": false,
+      "notes": "depth 3"
+    },
+    {
+      "id": "L3-014",
+      "category": "L3",
+      "subtype": "staging_downstream",
+      "question": "Which reports are built on top of stg_warranty_repairs within 4 steps?",
+      "gold_spec": {
+        "type": "downstream_reports",
+        "table_id": "TBL-022",
+        "depth": 4
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0007",
+          "RPT-0034",
+          "RPT-0095",
+          "RPT-0104",
+          "RPT-0130",
+          "RPT-0140",
+          "RPT-0147",
+          "RPT-0181",
+          "RPT-0215",
+          "RPT-0226"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-022",
+      "allow_id_in_question": false,
+      "notes": "depth 4"
+    },
+    {
+      "id": "L3-015",
+      "category": "L3",
+      "subtype": "staging_downstream",
+      "question": "If stg_web_form_submissions stops loading, which reports within 2 steps downstream are affected?",
+      "gold_spec": {
+        "type": "downstream_reports",
+        "table_id": "TBL-028",
+        "depth": 2
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0033",
+          "RPT-0097",
+          "RPT-0109",
+          "RPT-0219"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-028",
+      "allow_id_in_question": false,
+      "notes": "depth 2"
+    },
+    {
+      "id": "L4-001",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: prospects met in person at exhibitions and open days, and whether they buy.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "event_lead_quality"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0009",
+          "REQ-0108",
+          "REQ-0118",
+          "REQ-0127",
+          "REQ-0135"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:event_lead_quality",
+      "allow_id_in_question": false,
+      "notes": "cluster event_lead_quality, 5 requests"
+    },
+    {
+      "id": "L4-002",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: what buyers really pay compared with the official sticker.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "price_realisation"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0078",
+          "REQ-0094",
+          "REQ-0110",
+          "REQ-0126",
+          "REQ-0132",
+          "REQ-0161",
+          "REQ-0162",
+          "REQ-0205"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:price_realisation",
+      "allow_id_in_question": false,
+      "notes": "cluster price_realisation, 8 requests"
+    },
+    {
+      "id": "L4-003",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Before I start: was there a previous request about BI screens gathering dust that we could retire?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "unused_reports"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0169",
+          "REQ-0198",
+          "REQ-0219"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:unused_reports",
+      "allow_id_in_question": false,
+      "notes": "cluster unused_reports, 3 requests"
+    },
+    {
+      "id": "L4-004",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Before I start: was there a previous request about whether people reply to the polls we send after a purchase?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "survey_response_rates"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0037",
+          "REQ-0124",
+          "REQ-0225",
+          "REQ-0295"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:survey_response_rates",
+      "allow_id_in_question": false,
+      "notes": "cluster survey_response_rates, 4 requests"
+    },
+    {
+      "id": "L4-005",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Did the data team ever build something for a complete picture of each car owner across purchases and repairs?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "single_customer_view"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0041",
+          "REQ-0061",
+          "REQ-0074",
+          "REQ-0123",
+          "REQ-0134",
+          "REQ-0236",
+          "REQ-0284"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:single_customer_view",
+      "allow_id_in_question": false,
+      "notes": "cluster single_customer_view, 7 requests"
+    },
+    {
+      "id": "L4-006",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Before I start: was there a previous request about how far we have got with regulator-ordered fixes?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "recall_completion"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0044",
+          "REQ-0057",
+          "REQ-0096",
+          "REQ-0098",
+          "REQ-0106",
+          "REQ-0145",
+          "REQ-0171",
+          "REQ-0176"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:recall_completion",
+      "allow_id_in_question": false,
+      "notes": "cluster recall_completion, 8 requests"
+    },
+    {
+      "id": "L4-007",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: a periodic summary of what we earned and spent for top management.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "month_end_pnl_pack"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0243",
+          "REQ-0244",
+          "REQ-0254"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:month_end_pnl_pack",
+      "allow_id_in_question": false,
+      "notes": "cluster month_end_pnl_pack, 3 requests"
+    },
+    {
+      "id": "L4-008",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Did the data team ever build something for what each function pays just to keep the lights on?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "opex_by_cost_center"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0097",
+          "REQ-0115",
+          "REQ-0242"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:opex_by_cost_center",
+      "allow_id_in_question": false,
+      "notes": "cluster opex_by_cost_center, 3 requests"
+    },
+    {
+      "id": "L4-009",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: problems that came up in the previous twenty-four hours.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "daily_exceptions"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0024",
+          "REQ-0076",
+          "REQ-0182",
+          "REQ-0262",
+          "REQ-0271",
+          "REQ-0275"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:daily_exceptions",
+      "allow_id_in_question": false,
+      "notes": "cluster daily_exceptions, 6 requests"
+    },
+    {
+      "id": "L4-010",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: harm to new motors while they are being shipped.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "transport_damage"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0090",
+          "REQ-0239"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:transport_damage",
+      "allow_id_in_question": false,
+      "notes": "cluster transport_damage, 2 requests"
+    },
+    {
+      "id": "L4-011",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Before I start: was there a previous request about how often a spares request leaves in full in one go, per storage site?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "fill_rate_by_depot"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0049",
+          "REQ-0151",
+          "REQ-0155",
+          "REQ-0207",
+          "REQ-0211"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:fill_rate_by_depot",
+      "allow_id_in_question": false,
+      "notes": "cluster fill_rate_by_depot, 5 requests"
+    },
+    {
+      "id": "L4-012",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Has anyone already looked into projecting upcoming car volumes so the factory can plan?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "demand_forecast"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0083",
+          "REQ-0117",
+          "REQ-0129",
+          "REQ-0142",
+          "REQ-0221",
+          "REQ-0229"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:demand_forecast",
+      "allow_id_in_question": false,
+      "notes": "cluster demand_forecast, 6 requests"
+    },
+    {
+      "id": "L4-013",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Has anyone already looked into how much cash sits in the spares on our shelves?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "inventory_valuation"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0018",
+          "REQ-0026",
+          "REQ-0050",
+          "REQ-0058",
+          "REQ-0059",
+          "REQ-0062",
+          "REQ-0075",
+          "REQ-0102"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:inventory_valuation",
+      "allow_id_in_question": false,
+      "notes": "cluster inventory_valuation, 8 requests"
+    },
+    {
+      "id": "L4-014",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Find earlier analysis requests similar to this: how much more money each division takes in than in the previous annual period.",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "revenue_growth_yoy"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0001",
+          "REQ-0157"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:revenue_growth_yoy",
+      "allow_id_in_question": false,
+      "notes": "cluster revenue_growth_yoy, 2 requests"
+    },
+    {
+      "id": "L4-015",
+      "category": "L4",
+      "subtype": "topic",
+      "question": "Did the data team ever build something for jobs that had to be redone by the mechanics?",
+      "gold_spec": {
+        "type": "similar_requests",
+        "topic_key": "repeat_repairs"
+      },
+      "gold": {
+        "answer_ids": [
+          "REQ-0025",
+          "REQ-0067",
+          "REQ-0086",
+          "REQ-0172",
+          "REQ-0261",
+          "REQ-0283"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_any",
+      "primary_target": "topic:repeat_repairs",
+      "allow_id_in_question": false,
+      "notes": "cluster repeat_repairs, 6 requests"
+    },
+    {
+      "id": "L5-001",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "What is the blast radius of modifying TBL-056?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-056"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-005",
+          "EMP-006",
+          "EMP-008",
+          "EMP-020",
+          "EMP-025",
+          "EMP-042",
+          "EMP-055",
+          "EMP-101",
+          "EMP-106",
+          "EMP-120"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-056",
+      "allow_id_in_question": false,
+      "notes": "10 people to notify (individual); layer mart"
+    },
+    {
+      "id": "L5-002",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "If I change the schema of fct_parts_sales, which reports break and who needs to know?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-067"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-002",
+          "EMP-011",
+          "EMP-022",
+          "EMP-023",
+          "EMP-028",
+          "EMP-029",
+          "EMP-030",
+          "EMP-039",
+          "EMP-052",
+          "EMP-058",
+          "EMP-079",
+          "EMP-088",
+          "EMP-090",
+          "EMP-110"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-067",
+      "allow_id_in_question": false,
+      "notes": "15 people to notify (individual); layer mart"
+    },
+    {
+      "id": "L5-003",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "What is the blast radius of modifying TBL-063?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-063"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-028",
+          "EMP-030",
+          "EMP-039",
+          "EMP-061"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-063",
+      "allow_id_in_question": false,
+      "notes": "4 people to notify (individual); layer mart"
+    },
+    {
+      "id": "L5-004",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "We are deprecating fct_shipments. Who should I notify?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-078"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-002",
+          "EMP-011",
+          "EMP-015",
+          "EMP-016",
+          "EMP-023",
+          "EMP-030",
+          "EMP-063",
+          "EMP-109"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-078",
+      "allow_id_in_question": false,
+      "notes": "9 people to notify (individual); layer mart"
+    },
+    {
+      "id": "L5-005",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "What is the blast radius of modifying TBL-053?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-053"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-008",
+          "EMP-011",
+          "EMP-017",
+          "EMP-023",
+          "EMP-028",
+          "EMP-029",
+          "EMP-030",
+          "EMP-039",
+          "EMP-052",
+          "EMP-057",
+          "EMP-058",
+          "EMP-061",
+          "EMP-066",
+          "EMP-079",
+          "EMP-088",
+          "EMP-090",
+          "EMP-110"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-053",
+      "allow_id_in_question": false,
+      "notes": "17 people to notify (individual); layer intermediate"
+    },
+    {
+      "id": "L5-006",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "If I change the schema of int_parts_movements, which reports break and who needs to know?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-040"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-011",
+          "EMP-027",
+          "EMP-028",
+          "EMP-030",
+          "EMP-039",
+          "EMP-057",
+          "EMP-061",
+          "EMP-063",
+          "EMP-072",
+          "EMP-087",
+          "EMP-090",
+          "EMP-097",
+          "EMP-110"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-040",
+      "allow_id_in_question": false,
+      "notes": "14 people to notify (individual); layer intermediate"
+    },
+    {
+      "id": "L5-007",
+      "category": "L5",
+      "subtype": "individual",
+      "question": "If I change the schema of int_shipments_tracked, which reports break and who needs to know?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-054"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-002",
+          "EMP-011",
+          "EMP-015",
+          "EMP-016",
+          "EMP-023",
+          "EMP-028",
+          "EMP-030",
+          "EMP-039",
+          "EMP-061",
+          "EMP-063",
+          "EMP-109"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "TBL-054",
+      "allow_id_in_question": false,
+      "notes": "12 people to notify (individual); layer intermediate"
+    },
+    {
+      "id": "L5-008",
+      "category": "L5",
+      "subtype": "broadcast",
+      "question": "We are deprecating int_parts_sales_lines. Who should I notify?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-041"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-005",
+          "EMP-031",
+          "EMP-057"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false,
+        "min_mentioned_count": 21
+      },
+      "scoring": "contains_all",
+      "primary_target": "TBL-041",
+      "allow_id_in_question": false,
+      "notes": "21 people to notify (broadcast); layer intermediate"
+    },
+    {
+      "id": "L5-009",
+      "category": "L5",
+      "subtype": "broadcast",
+      "question": "We are deprecating stg_wms_parts_catalog. Who should I notify?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-018"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-005",
+          "EMP-031",
+          "EMP-057"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false,
+        "min_mentioned_count": 22
+      },
+      "scoring": "contains_all",
+      "primary_target": "TBL-018",
+      "allow_id_in_question": false,
+      "notes": "22 people to notify (broadcast); layer staging"
+    },
+    {
+      "id": "L5-010",
+      "category": "L5",
+      "subtype": "broadcast",
+      "question": "int_service_orders_enriched is going to be rebuilt. Whom do I have to warn?",
+      "gold_spec": {
+        "type": "impact_notify",
+        "table_id": "TBL-038"
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-001",
+          "EMP-005",
+          "EMP-031",
+          "EMP-041",
+          "EMP-053",
+          "EMP-057"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false,
+        "min_mentioned_count": 28
+      },
+      "scoring": "contains_all",
+      "primary_target": "TBL-038",
+      "allow_id_in_question": false,
+      "notes": "28 people to notify (broadcast); layer intermediate"
+    },
+    {
+      "id": "L6-001",
+      "category": "L6",
+      "subtype": "salary",
+      "question": "What is Joseph Davidson's salary?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "salary"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "EMP-075",
+      "allow_id_in_question": false,
+      "notes": "salaries are not in the metadata"
+    },
+    {
+      "id": "L6-002",
+      "category": "L6",
+      "subtype": "budget_2027",
+      "question": "How much budget does the South region have for 2027?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "budget_2027"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "region:South",
+      "allow_id_in_question": false,
+      "notes": "fct_budget_2026 covers 2026 only"
+    },
+    {
+      "id": "L6-003",
+      "category": "L6",
+      "subtype": "accuracy",
+      "question": "How accurate is Marketing Payback Report by Campaign?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "accuracy"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "RPT-0213",
+      "allow_id_in_question": false,
+      "notes": "no accuracy measure exists"
+    },
+    {
+      "id": "L6-004",
+      "category": "L6",
+      "subtype": "near_miss",
+      "question": "Where can I find the Regional Conquest Tracker Dashboard?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "near_miss"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "name:Regional Conquest Tracker Dashboard",
+      "allow_id_in_question": false,
+      "notes": "fragment=Conquest Tracker; no such report"
+    },
+    {
+      "id": "L6-005",
+      "category": "L6",
+      "subtype": "near_miss",
+      "question": "Is the Fleet Churn Radar Report still maintained?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "near_miss"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "name:Fleet Churn Radar Report",
+      "allow_id_in_question": false,
+      "notes": "fragment=Churn Radar; no such report"
+    },
+    {
+      "id": "L6-006",
+      "category": "L6",
+      "subtype": "near_miss",
+      "question": "Is the Fleet Telematics Dashboard still maintained?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "near_miss"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "name:Fleet Telematics Dashboard",
+      "allow_id_in_question": false,
+      "notes": "fragment=Telematics; no such report"
+    },
+    {
+      "id": "L6-007",
+      "category": "L6",
+      "subtype": "near_miss",
+      "question": "Is the Parts Share of Wallet Dashboard still maintained?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "near_miss"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "name:Parts Share of Wallet Dashboard",
+      "allow_id_in_question": false,
+      "notes": "fragment=Share of Wallet; no such report"
+    },
+    {
+      "id": "L6-008",
+      "category": "L6",
+      "subtype": "never_done",
+      "question": "Was there ever a request about telematics-based driver scoring?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "never_done"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "topic:telematics-based driver scoring",
+      "allow_id_in_question": false,
+      "notes": "no request cluster covers this"
+    },
+    {
+      "id": "L6-009",
+      "category": "L6",
+      "subtype": "never_done",
+      "question": "Was there ever a request about electric vehicle charging behaviour at home?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "never_done"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "topic:electric vehicle charging behaviour at home",
+      "allow_id_in_question": false,
+      "notes": "no request cluster covers this"
+    },
+    {
+      "id": "L6-010",
+      "category": "L6",
+      "subtype": "never_done",
+      "question": "Was there ever a request about insurance claims after road accidents?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "never_done"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "topic:insurance claims after road accidents",
+      "allow_id_in_question": false,
+      "notes": "no request cluster covers this"
+    },
+    {
+      "id": "L6-011",
+      "category": "L6",
+      "subtype": "null_formula",
+      "question": "How exactly is Dealer Profitability Index calculated?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "null_formula"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "MET-035",
+      "allow_id_in_question": false,
+      "notes": "formula is null"
+    },
+    {
+      "id": "L6-012",
+      "category": "L6",
+      "subtype": "null_formula",
+      "question": "What is the exact formula for Customer Lifetime Value?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "null_formula"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "MET-040",
+      "allow_id_in_question": false,
+      "notes": "formula is null"
+    },
+    {
+      "id": "L6-013",
+      "category": "L6",
+      "subtype": "null_formula",
+      "question": "What is the exact formula for Market Share?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "null_formula"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "MET-010",
+      "allow_id_in_question": false,
+      "notes": "formula is null"
+    },
+    {
+      "id": "L6-014",
+      "category": "L6",
+      "subtype": "future",
+      "question": "Who will own Dealer Profitability next year?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "future"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "RPT-0217",
+      "allow_id_in_question": false,
+      "notes": "future ownership is unknown"
+    },
+    {
+      "id": "L6-015",
+      "category": "L6",
+      "subtype": "future",
+      "question": "Who will own Retail Deliveries by Model next year?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "future"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "RPT-0030",
+      "allow_id_in_question": false,
+      "notes": "future ownership is unknown"
+    },
+    {
+      "id": "MX-001",
+      "category": "MX",
+      "subtype": "metric_owners",
+      "question": "The Test Drive Conversion numbers look wrong. Who owns the tables it is built from?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "upstream_tables",
+            "node_id": "MET-009",
+            "depth": 1
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_ids": [
+              "TBL-070"
+            ]
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-102"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-009",
+      "allow_id_in_question": false,
+      "notes": "source tables TBL-070"
+    },
+    {
+      "id": "MX-002",
+      "category": "MX",
+      "subtype": "metric_owners",
+      "question": "I want to question the source data behind Backorder Rate. Who are the current owners of its source tables?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "upstream_tables",
+            "node_id": "MET-027",
+            "depth": 1
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_ids": [
+              "TBL-067",
+              "TBL-079"
+            ]
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-005",
+          "EMP-039"
+        ],
+        "forbidden_ids": [
+          "EMP-026"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-027",
+      "allow_id_in_question": false,
+      "notes": "source tables TBL-067, TBL-079"
+    },
+    {
+      "id": "MX-003",
+      "category": "MX",
+      "subtype": "metric_owners",
+      "question": "I want to question the source data behind Return Rate. Who are the current owners of its source tables?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "upstream_tables",
+            "node_id": "MET-029",
+            "depth": 1
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_ids": [
+              "TBL-067",
+              "TBL-069"
+            ]
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-002",
+          "EMP-005"
+        ],
+        "forbidden_ids": [
+          "EMP-026"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-029",
+      "allow_id_in_question": false,
+      "notes": "source tables TBL-067, TBL-069"
+    },
+    {
+      "id": "MX-004",
+      "category": "MX",
+      "subtype": "metric_owners",
+      "question": "I want to question the source data behind Supplier Lead Time. Who are the current owners of its source tables?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "upstream_tables",
+            "node_id": "MET-028",
+            "depth": 1
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_ids": [
+              "TBL-064",
+              "TBL-079"
+            ]
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-039",
+          "EMP-087"
+        ],
+        "forbidden_ids": [
+          "EMP-056"
+        ],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-028",
+      "allow_id_in_question": false,
+      "notes": "source tables TBL-064, TBL-079"
+    },
+    {
+      "id": "MX-005",
+      "category": "MX",
+      "subtype": "metric_owners",
+      "question": "I want to question the source data behind On-Time Delivery. Who are the current owners of its source tables?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "upstream_tables",
+            "node_id": "MET-026",
+            "depth": 1
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_ids": [
+              "TBL-078"
+            ]
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-027"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "set_f1",
+      "primary_target": "MET-026",
+      "allow_id_in_question": false,
+      "notes": "source tables TBL-078"
+    },
+    {
+      "id": "MX-006",
+      "category": "MX",
+      "subtype": "deprecated_replacement",
+      "question": "Budget vs Actual Scorecard seems abandoned. Which report took over, and who looks after it now?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "asset_by_description",
+            "target_id": "RPT-0124",
+            "forbidden_ids": [
+              "RPT-0058"
+            ]
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0124"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-075"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0058",
+      "allow_id_in_question": false,
+      "notes": "RPT-0058 replaced by RPT-0124; walk: EMP-075 (active)"
+    },
+    {
+      "id": "MX-007",
+      "category": "MX",
+      "subtype": "deprecated_replacement",
+      "question": "Monthly Business Customer Volume stopped refreshing. What replaced it and who owns the replacement?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "asset_by_description",
+            "target_id": "RPT-0144",
+            "forbidden_ids": [
+              "RPT-0114"
+            ]
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0144"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-006"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0114",
+      "allow_id_in_question": false,
+      "notes": "RPT-0114 replaced by RPT-0144; walk: EMP-006 (active)"
+    },
+    {
+      "id": "MX-008",
+      "category": "MX",
+      "subtype": "deprecated_replacement",
+      "question": "Weekly Unfilled Parts Orders stopped refreshing. What replaced it and who owns the replacement?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "asset_by_description",
+            "target_id": "RPT-0175",
+            "forbidden_ids": [
+              "RPT-0146"
+            ]
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0175"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-017"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0146",
+      "allow_id_in_question": false,
+      "notes": "RPT-0146 replaced by RPT-0175; walk: EMP-017 (active)"
+    },
+    {
+      "id": "MX-009",
+      "category": "MX",
+      "subtype": "deprecated_replacement",
+      "question": "Delivery Delays by Dealer stopped refreshing. What replaced it and who owns the replacement?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "asset_by_description",
+            "target_id": "RPT-0136",
+            "forbidden_ids": [
+              "RPT-0105"
+            ]
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0136"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-030"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0105",
+      "allow_id_in_question": false,
+      "notes": "RPT-0105 replaced by RPT-0136; walk: EMP-030 (active)"
+    },
+    {
+      "id": "MX-010",
+      "category": "MX",
+      "subtype": "deprecated_replacement",
+      "question": "Vehicle Stock by Dealer stopped refreshing. What replaced it and who owns the replacement?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "asset_by_description",
+            "target_id": "RPT-0110",
+            "forbidden_ids": [
+              "RPT-0065"
+            ]
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0110"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-063"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "RPT-0065",
+      "allow_id_in_question": false,
+      "notes": "RPT-0065 replaced by RPT-0110; walk: EMP-063 (active)"
+    },
+    {
+      "id": "MX-011",
+      "category": "MX",
+      "subtype": "request_report",
+      "question": "Someone once requested how many spares get handed back in each territory. Which report came out of it, and who maintains it now?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "similar_requests",
+            "topic_key": "returns_by_region"
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0232"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-057"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "topic:returns_by_region",
+      "allow_id_in_question": false,
+      "notes": "cluster returns_by_region produced RPT-0232; walk: EMP-057 (active)"
+    },
+    {
+      "id": "MX-012",
+      "category": "MX",
+      "subtype": "request_report",
+      "question": "Someone once requested negotiations still under way and when they might be won. Which report came out of it, and who maintains it now?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "similar_requests",
+            "topic_key": "pipeline_forecast"
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0193"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-043"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "topic:pipeline_forecast",
+      "allow_id_in_question": false,
+      "notes": "cluster pipeline_forecast produced RPT-0193; walk: EMP-043 (active)"
+    },
+    {
+      "id": "MX-013",
+      "category": "MX",
+      "subtype": "request_report",
+      "question": "There was a past request about what garages pay us for spares, franchise by franchise. Which report did it produce and who owns that report today?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "similar_requests",
+            "topic_key": "parts_revenue_by_dealer"
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0184"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-090"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "topic:parts_revenue_by_dealer",
+      "allow_id_in_question": false,
+      "notes": "cluster parts_revenue_by_dealer produced RPT-0184; walk: EMP-090 (active)"
+    },
+    {
+      "id": "MX-014",
+      "category": "MX",
+      "subtype": "request_report",
+      "question": "There was a past request about real outcomes set beside the signed-off targets for each function. Which report did it produce and who owns that report today?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "similar_requests",
+            "topic_key": "budget_variance"
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0124"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-075"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "topic:budget_variance",
+      "allow_id_in_question": false,
+      "notes": "cluster budget_variance produced RPT-0124; walk: EMP-075 (active)"
+    },
+    {
+      "id": "MX-015",
+      "category": "MX",
+      "subtype": "request_report",
+      "question": "Someone once requested ranking retail sites alongside ones of the same scale. Which report came out of it, and who maintains it now?",
+      "gold_spec": {
+        "type": "chain",
+        "use_last": true,
+        "steps": [
+          {
+            "type": "similar_requests",
+            "topic_key": "dealer_league_table"
+          },
+          {
+            "type": "current_contact_for_asset",
+            "asset_id": "RPT-0230"
+          }
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "EMP-102"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "scoring": "contains_all",
+      "primary_target": "topic:dealer_league_table",
+      "allow_id_in_question": false,
+      "notes": "cluster dealer_league_table produced RPT-0230; walk: EMP-102 (active)"
+    }
+  ]
+}
