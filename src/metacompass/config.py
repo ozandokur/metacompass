@@ -2,16 +2,18 @@
 
 Constants here are fixed by the specification (reference date, ownership depth limit,
 RRF parameters). Settings come from `.env` and the process environment; the process
-environment wins so hosted deployments can inject secrets without a file.
-AgentConfig joins this module in Phase 4, once the prompt and tool registry exist.
+environment wins so hosted deployments can inject secrets without a file. AgentConfig
+describes one agent variant (the full agent or an ablation); `prompt_version` joins it in
+Phase 4 together with the prompt.
 """
 
 import os
 from datetime import date
 from pathlib import Path
+from typing import Literal
 
 from dotenv import dotenv_values
-from pydantic import BaseModel, SecretStr
+from pydantic import BaseModel, SecretStr, field_validator
 
 # Repo root when running from a source checkout (editable install), which is how the
 # project, tests, CI and the Docker image run it.
@@ -41,6 +43,22 @@ RRF_CANDIDATES = 50
 TAU = 0.70
 TAU_Z = 4.25
 MATCH_SIGNAL = "z"  # "cosine" (absolute, TAU) or "z" (relative, TAU_Z)
+
+# Tool output caps in characters of JSON (spec §7.1; per tool since D24). impact_analysis
+# gets more room so that its notify rows and department rollup always fit whole.
+DEFAULT_OUTPUT_CHAR_CAP = 4000
+OUTPUT_CHAR_CAPS = {"impact_analysis": 6000}
+
+# impact_analysis notify modes (spec §7.7, D24). Up to NOTIFY_DETAIL_MAX people are listed
+# one by one. Above that, telling each person separately stops being a useful answer: the
+# tool lists the NOTIFY_BROADCAST_TOP people with the most affected usage and counts
+# everyone in a per-department rollup.
+NOTIFY_DETAIL_MAX = 20
+NOTIFY_BROADCAST_TOP = 10
+
+
+def output_char_cap(tool_name: str) -> int:
+    return OUTPUT_CHAR_CAPS.get(tool_name, DEFAULT_OUTPUT_CHAR_CAP)
 
 
 class Settings(BaseModel):
@@ -82,3 +100,35 @@ def load_settings(env_file: Path | None = None, environ: dict[str, str] | None =
         if raw is not None and raw.strip():
             values[field] = raw.strip()
     return Settings(**values)
+
+
+# The six tools, in the order the LLM sees them (spec §7).
+ALL_SIX_TOOLS = (
+    "search_assets",
+    "get_record",
+    "resolve_owner",
+    "trace_lineage",
+    "find_similar_past_work",
+    "impact_analysis",
+)
+
+
+class AgentConfig(BaseModel):
+    """One agent variant: the full agent, or an ablation that switches a part off (spec §8.2)."""
+
+    name: str = "full"
+    retrieval_mode: Literal["hybrid", "bm25", "dense"] = "hybrid"
+    tools_enabled: list[str] = list(ALL_SIX_TOOLS)
+    abstain_instructions: bool = True
+    show_match_quality: bool = True
+    max_tool_calls: int = 8
+    max_llm_turns: int = 10
+
+    @field_validator("tools_enabled")
+    @classmethod
+    def _known_tools(cls, tools: list[str]) -> list[str]:
+        # Not in the spec: a misspelt name would quietly switch a tool off in an ablation.
+        unknown = sorted(set(tools) - set(ALL_SIX_TOOLS))
+        if unknown:
+            raise ValueError(f"unknown tools: {unknown}")
+        return tools

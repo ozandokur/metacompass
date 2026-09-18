@@ -3,20 +3,20 @@
 Every tool takes a validated input model and returns an output model; the JSON schemas the
 LLM sees are generated from the input models, never written by hand (decision D19).
 Errors are ToolError(code, message) with a message fit to show a user: no stack traces.
-All outputs are capped at 4,000 characters of JSON by trimming lists (fit_to_limit).
+Outputs are capped in characters of JSON by trimming lists (fit_to_limit); the cap is set
+per tool in config.OUTPUT_CHAR_CAPS.
 """
 
 from dataclasses import dataclass
 from typing import Literal
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from metacompass.data.schema import Department
 from metacompass.data.store import MetadataStore
 from metacompass.retrieval.hybrid import HybridRetriever, MatchSignal
 
-MAX_OUTPUT_CHARS = 4000
 ErrorCode = Literal["NOT_FOUND", "INVALID_ARGUMENT", "INTERNAL"]
 
 
@@ -43,10 +43,25 @@ class _Model(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class _Input(_Model):
+    # "   " must count as empty, so whitespace is stripped before the length checks.
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+
+def parse_args(model: type[BaseModel], **kwargs):
+    """Validate tool arguments; a bad one becomes INVALID_ARGUMENT naming the field."""
+    try:
+        return model(**kwargs)
+    except ValidationError as exc:
+        first = exc.errors()[0]
+        field = ".".join(str(part) for part in first["loc"]) or "arguments"
+        raise ToolError("INVALID_ARGUMENT", f"invalid argument '{field}': {first['msg']}") from None
+
+
 # ------------------------------------------------------------------------------ inputs
 
 
-class SearchAssetsInput(_Model):
+class SearchAssetsInput(_Input):
     query: str = Field(min_length=1, max_length=300, description="What the user is looking for.")
     asset_type: Literal["report", "table", "metric", "any"] = Field(
         "any", description="Restrict the search to one kind of asset."
@@ -56,17 +71,17 @@ class SearchAssetsInput(_Model):
     top_k: int = Field(5, ge=1, le=10, description="Number of hits to return.")
 
 
-class GetRecordInput(_Model):
+class GetRecordInput(_Input):
     record_id: str = Field(
         description="A record ID such as RPT-0001, TBL-001, MET-001, EMP-001, REQ-0001."
     )
 
 
-class ResolveOwnerInput(_Model):
+class ResolveOwnerInput(_Input):
     asset_id: str = Field(description="A report, table or metric ID (RPT-, TBL- or MET-).")
 
 
-class TraceLineageInput(_Model):
+class TraceLineageInput(_Input):
     node_id: str = Field(description="A table, report or metric ID.")
     direction: Literal["upstream", "downstream"] = Field(
         description="upstream = where the data comes from; downstream = what uses it."
@@ -74,13 +89,13 @@ class TraceLineageInput(_Model):
     depth: int = Field(3, ge=1, le=6, description="How many steps to follow.")
 
 
-class FindSimilarPastWorkInput(_Model):
+class FindSimilarPastWorkInput(_Input):
     description: str = Field(min_length=1, max_length=300, description="The analysis to look for.")
     department: Department | None = Field(None, description="Only requests from this department.")
     top_k: int = Field(5, ge=1, le=10, description="Number of requests to return.")
 
 
-class ImpactAnalysisInput(_Model):
+class ImpactAnalysisInput(_Input):
     table_id: str = Field(description="The ID of the table that would change (TBL-).")
 
 
@@ -270,12 +285,28 @@ class NotifyEntry(_Model):
     via_fallback: bool  # True if at least one asset reached them as department-head fallback
 
 
+class NotifyRollup(_Model):
+    department: str
+    head_employee_id: str
+    people_count: int  # everyone to notify in this department, listed in `notify` or not
+    report_count: int  # affected active reports those people own
+
+
 class ImpactOutput(_Model):
     table_id: str
+    # "individual": `notify` lists everyone. "broadcast" (more than NOTIFY_DETAIL_MAX
+    # people): `notify` holds the top NOTIFY_BROADCAST_TOP and `notify_rollup` counts all.
+    notify_mode: Literal["individual", "broadcast"]
+    notify_total_count: int
+    notify_omitted_count: int
+    # The counts are always exact, even when the lists below are cut to the output cap.
+    affected_report_count: int
+    affected_metric_count: int
     affected_tables: list[str]
     affected_reports: list[AffectedReport]  # usage_30d descending, then ID
     affected_metrics: list[str]
     notify: list[NotifyEntry]  # total_usage_30d descending, then employee ID
+    notify_rollup: list[NotifyRollup]  # people_count descending, then department
     unresolved_asset_ids: list[str]
     truncated: bool = False
 
@@ -287,11 +318,12 @@ def output_size(model: BaseModel) -> int:
     return len(model.model_dump_json())
 
 
-def fit_to_limit(model: BaseModel, trim_order: list[str], limit: int = MAX_OUTPUT_CHARS):
-    """Drop items from the end of the listed fields, in order, until the JSON fits.
+def fit_to_limit(model: BaseModel, trim_order: list[str], limit: int):
+    """Drop items from the end of the listed fields, in order, until the JSON fits `limit`.
 
     The first field is emptied before the second is touched, so the most important lists go
-    last in trim_order (impact_analysis never lists `notify`, so it is never cut).
+    last in trim_order. Fields that are not listed are never cut (impact_analysis leaves out
+    `notify` and `notify_rollup`).
     """
     if output_size(model) <= limit:
         return model

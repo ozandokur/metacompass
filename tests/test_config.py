@@ -2,8 +2,11 @@
 
 from datetime import date
 
+import pytest
+from pydantic import ValidationError
+
 from metacompass import config
-from metacompass.config import Settings, load_settings
+from metacompass.config import ALL_SIX_TOOLS, AgentConfig, Settings, load_settings
 
 
 def test_reference_constants_match_spec():
@@ -75,3 +78,30 @@ def test_api_key_is_not_leaked_in_repr():
 def test_project_paths_point_at_repo_root():
     assert (config.PROJECT_ROOT / "pyproject.toml").is_file()
     assert config.DATA_DIR == config.PROJECT_ROOT / "data"
+
+
+def test_agent_config_defaults_match_spec():
+    cfg = AgentConfig()
+    assert cfg.name == "full"
+    assert cfg.retrieval_mode == "hybrid"
+    assert cfg.tools_enabled == list(ALL_SIX_TOOLS)
+    assert len(ALL_SIX_TOOLS) == 6
+    assert (cfg.abstain_instructions, cfg.show_match_quality) == (True, True)
+    assert (cfg.max_tool_calls, cfg.max_llm_turns) == (8, 10)
+
+
+def test_agent_config_rejects_unknown_tools_and_modes():
+    # A typo in an ablation config would otherwise switch a tool off without anyone noticing.
+    with pytest.raises(ValidationError):
+        AgentConfig(tools_enabled=["search_assets", "resolve_owners"])
+    with pytest.raises(ValidationError):
+        AgentConfig(retrieval_mode="vector")
+
+
+def test_output_caps_are_per_tool():
+    # Spec §7.1 and D24: impact_analysis gets more room for its notify list and rollup.
+    assert config.output_char_cap("impact_analysis") == 6000
+    for tool in ALL_SIX_TOOLS:
+        if tool != "impact_analysis":
+            assert config.output_char_cap(tool) == 4000
+    assert (config.NOTIFY_DETAIL_MAX, config.NOTIFY_BROADCAST_TOP) == (20, 10)
