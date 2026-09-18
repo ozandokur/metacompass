@@ -44,7 +44,7 @@ def asset_documents(store: MetadataStore) -> list[RetrievalDoc]:
                     r.workspace,
                     r.department,
                     r.description,
-                ),  # fmt: skip
+                ),
                 dense_text=_sentence(r.name, r.description, "Tags: " + ", ".join(tags)),
                 department=r.department,
                 status=r.status,
@@ -65,7 +65,7 @@ def asset_documents(store: MetadataStore) -> list[RetrievalDoc]:
                     t.source_system,
                     columns,
                     t.description,
-                ),  # fmt: skip
+                ),
                 dense_text=_sentence(t.name, t.description),
                 department=store.employee(t.owner_id).department,
                 exact_names=(t.name,),
@@ -83,7 +83,7 @@ def asset_documents(store: MetadataStore) -> list[RetrievalDoc]:
                     *[" ".join(aliases)] * 3,
                     m.business_definition,
                     m.formula or "",
-                ),  # fmt: skip
+                ),
                 dense_text=_sentence(m.name, m.business_definition, "Tags: " + ", ".join(aliases)),
                 department=store.employee(m.owner_id).department,
                 exact_names=(m.name, *[a for a in aliases if _is_distinctive(a)]),

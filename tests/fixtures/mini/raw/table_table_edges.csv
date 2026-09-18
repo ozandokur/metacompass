@@ -1,0 +1,8 @@
+parent_table_id,child_table_id,transform_type
+TBL-001,TBL-003,clean
+TBL-001,TBL-007,clean
+TBL-002,TBL-004,join
+TBL-003,TBL-004,join
+TBL-003,TBL-005,aggregate
+TBL-004,TBL-005,join
+TBL-004,TBL-006,aggregate

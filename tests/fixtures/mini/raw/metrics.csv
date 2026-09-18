@@ -1,0 +1,4 @@
+metric_id,name,aliases,business_definition,formula,source_table_ids,owner_id
+MET-001,Units Sold,units|vehicle units,Vehicles invoiced in the period.,SUM(fct_sales.units),"[""TBL-005""]",EMP-004
+MET-002,Regional Margin %,RM%|regional margin,Margin share by region.,SUM(margin) / SUM(net_revenue),"[""TBL-005"", ""TBL-006""]",EMP-005
+MET-003,Return Rate,returns %|RMA rate,Returned share of shipped parts.,,"[""TBL-007""]",EMP-007

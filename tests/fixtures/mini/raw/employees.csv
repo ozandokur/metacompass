@@ -1,0 +1,15 @@
+employee_id,full_name,department,title,is_department_head,status,manager_id,successor_id,start_date,left_date
+EMP-001,Avery Stone,Operations,Chief Operating Officer,true,active,,,2016-01-04,
+EMP-002,Blake Rivers,Sales,Head of Sales,true,active,EMP-001,,2016-03-01,
+EMP-003,Casey Moore,Data & Analytics,Head of Data & Analytics,true,active,EMP-001,,2016-05-01,
+EMP-004,Devon Hale,Sales,Sales Analyst,false,active,EMP-002,,2019-02-01,
+EMP-005,Emery Lane,Sales,Area Sales Manager,false,left,EMP-002,EMP-006,2017-01-01,2020-06-30
+EMP-006,Finley Ross,Sales,Sales Analyst,false,left,EMP-002,EMP-007,2018-01-01,2021-06-30
+EMP-007,Gray Wells,Sales,Pricing Analyst,false,left,EMP-002,EMP-008,2019-01-01,2022-06-30
+EMP-008,Harper Cole,Sales,Sales Analyst,false,left,EMP-002,EMP-004,2020-01-01,2023-06-30
+EMP-009,Indy Park,Data & Analytics,Data Engineer,false,left,EMP-003,EMP-010,2018-01-01,2021-01-31
+EMP-010,Jordan Pike,Data & Analytics,BI Developer,false,left,EMP-003,,2019-01-01,2022-01-31
+EMP-011,Kai Reed,Sales,Sales Analyst,false,left,EMP-002,EMP-012,2018-01-01,2021-03-31
+EMP-012,Lane Fox,Sales,Sales Analyst,false,left,EMP-002,EMP-011,2018-02-01,2021-04-30
+EMP-013,Morgan Shaw,Data & Analytics,Data Analyst,false,left,,,2017-01-01,2020-01-31
+EMP-014,Noel Grant,Operations,Operations Analyst,false,active,EMP-001,,2018-06-01,

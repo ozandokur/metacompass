@@ -1,0 +1,7 @@
+request_id,title,description,requester_id,assignee_id,department,created_date,closed_date,status,resulting_report_id,duplicate_of_request_id
+REQ-0001,Dealer sales dashboard,"Units and revenue per dealer, please.",EMP-004,EMP-003,Sales,2022-12-01,2023-01-15,done,RPT-0001,
+REQ-0002,Returns by region,Need parts returns split by region.,EMP-004,EMP-003,Sales,2023-01-01,2023-02-01,done,RPT-0003,
+REQ-0003,Analysis of returned parts per region,Returned parts across the regions.,EMP-014,EMP-003,Operations,2023-03-01,2023-03-05,duplicate,,REQ-0002
+REQ-0004,Margin on vehicle deals,A margin view for the sales team.,EMP-004,EMP-003,Sales,2024-01-01,,open,,
+REQ-0005,Data freshness checks,Which warehouse tables load late?,EMP-003,EMP-013,Data & Analytics,2019-02-01,2019-02-20,rejected,,
+REQ-0006,Customer survey scores,Satisfaction scores per dealer.,EMP-014,EMP-003,Operations,2025-05-01,,in_progress,,

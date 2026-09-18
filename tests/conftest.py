@@ -45,3 +45,12 @@ def raw(generated_dir) -> dict[str, pd.DataFrame]:
 @pytest.fixture(scope="session")
 def meta(generated_dir) -> dict:
     return json.loads((generated_dir / "_meta.json").read_text(encoding="utf-8"))
+
+
+MINI_DIR = Path(__file__).parent / "fixtures" / "mini"
+
+
+@pytest.fixture(scope="session")
+def mini_dir() -> Path:
+    """Hand-written fixture data; see tests/fixtures/mini/README.md for its cases."""
+    return MINI_DIR

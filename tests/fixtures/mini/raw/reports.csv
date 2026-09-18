@@ -1,0 +1,9 @@
+report_id,name,workspace,owner_id,department,description,created_date,last_refresh,refresh_status,tags,usage_30d,status,replaced_by_report_id
+RPT-0001,Dealer Sales Dashboard,Sales Performance,EMP-004,Sales,Units and revenue for each dealer.,2023-01-10,2026-08-31,success,sales|dealers,120,active,
+RPT-0002,Weekly Sales Summary,Sales Performance,EMP-008,Sales,Weekly vehicle sales totals.,2021-05-02,2026-08-31,success,sales|weekly,40,active,
+RPT-0003,Parts Returns Tracker,Supply Chain & Parts,EMP-010,Supply Chain,Returned parts and the reasons.,2020-03-15,2026-08-30,failed,returns|parts,15,active,
+RPT-0004,Regional Sales Legacy,Sales Performance,EMP-014,Sales,Old regional view of sales.,2019-01-05,2024-02-01,disabled,sales|region,1,deprecated,RPT-0005
+RPT-0005,Regional Sales Overview,Sales Performance,EMP-009,Sales,Sales split by region.,2020-06-01,2026-08-31,success,sales|region,60,active,
+RPT-0006,Sales Margin Report,Finance Reporting,EMP-006,Sales,Margin on vehicle sales.,2019-04-01,2026-08-31,success,margin|GM,30,active,
+RPT-0007,Dealer Sales Quality Monitor,Data Platform Monitoring,EMP-005,Data & Analytics,Failed checks on the dealer sales tables.,2018-02-01,2026-08-31,success,data quality,5,active,
+RPT-0008,Returns by Dealer,Supply Chain & Parts,EMP-011,Supply Chain,Returns per dealer.,2019-09-01,2026-08-31,success,returns|dealer,0,active,
