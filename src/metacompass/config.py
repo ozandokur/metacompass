@@ -3,8 +3,7 @@
 Constants here are fixed by the specification (reference date, ownership depth limit,
 RRF parameters). Settings come from `.env` and the process environment; the process
 environment wins so hosted deployments can inject secrets without a file. AgentConfig
-describes one agent variant (the full agent or an ablation); `prompt_version` joins it in
-Phase 4 together with the prompt.
+describes one agent variant (the full agent or an ablation).
 """
 
 import os
@@ -102,6 +101,11 @@ def load_settings(env_file: Path | None = None, environ: dict[str, str] | None =
     return Settings(**values)
 
 
+# Bumped with every wording change of the system prompt (spec §8.4), and changed only on
+# dev-set results. It lives here rather than in agent/prompts.py so that AgentConfig does
+# not make the config module depend on the agent package.
+PROMPT_VERSION = "v1"
+
 # The six tools, in the order the LLM sees them (spec §7).
 ALL_SIX_TOOLS = (
     "search_assets",
@@ -123,6 +127,7 @@ class AgentConfig(BaseModel):
     show_match_quality: bool = True
     max_tool_calls: int = 8
     max_llm_turns: int = 10
+    prompt_version: str = PROMPT_VERSION
 
     @field_validator("tools_enabled")
     @classmethod
