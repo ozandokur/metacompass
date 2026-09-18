@@ -37,9 +37,8 @@ def test_tokenize(text, expected):
 
 
 def test_stopword_list_is_the_spec_list():
-    assert STOPWORDS == frozenset(
-        "the a an of for to in on and or is are which what who by with".split()
-    )
+    spec_list = "the a an of for to in on and or is are which what who by with"
+    assert frozenset(spec_list.split(" ")) == STOPWORDS
 
 
 def test_tokenize_is_deterministic_and_keeps_duplicates():

@@ -7,7 +7,12 @@ There is deliberately no stemming (decision D06): "returns" and "returned" stay 
 
 import re
 
-STOPWORDS = frozenset("the a an of for to in on and or is are which what who by with".split())
+STOPWORDS = frozenset(
+    [
+        "the", "a", "an", "of", "for", "to", "in", "on", "and",
+        "or", "is", "are", "which", "what", "who", "by", "with",
+    ]
+)  # fmt: skip
 
 # A token is a run of word characters, "-" and "%". "_" is already a word character.
 _TOKEN = re.compile(r"[\w%-]+")
