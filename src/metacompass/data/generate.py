@@ -84,8 +84,10 @@ EVAL_SPLIT = {"C2": ["test", "test", "dev"], "C3": ["test", "dev"], "C4": ["test
 N_DEPRECATED = 15
 N_NEAR_DUPLICATES = 20
 N_VAGUE = 25
+NAME_JACCARD_LIMIT = 0.6  # max token overlap between two unrelated report names (I19)
 FAILED_SHARE = 0.08
 ZERO_USAGE_SHARE = 0.20
+DEPARTED_OWNER_SHARE = 0.175  # tables and metrics owned by a former employee (target 15-20%)
 SAME_DEPT_OWNER_SHARE = 0.81  # with the forced same-department chain-head reports: ~85% overall
 REQUEST_STATUS_COUNTS = {
     "done": 165,
@@ -128,10 +130,32 @@ def _capitalize(text: str) -> str:
     return text[0].upper() + text[1:]
 
 
+def _words_all(text: str) -> set[str]:
+    """Every lower-cased word token; the same tokens the integrity tests compare."""
+    return set(re.findall(r"[a-z0-9]+", text.lower()))
+
+
 def _words(text: str) -> set[str]:
     """Lower-cased content words, ignoring a few function words."""
     stop = {"the", "a", "an", "of", "for", "to", "and", "by", "with", "in", "on"}
     return set(re.findall(r"[a-z0-9]+", text.lower())) - stop
+
+
+class _Deck:
+    """Deals items in shuffled rounds, so over many draws every item is used equally often.
+
+    Used for text templates: a plain random choice lets one opening drift above the others,
+    and then a paraphrase query matches the template instead of the topic (I20).
+    """
+
+    def __init__(self, rng: random.Random, items: list) -> None:
+        self._rng, self._items, self._pile = rng, list(items), []
+
+    def draw(self):
+        if not self._pile:
+            self._pile = list(self._items)
+            self._rng.shuffle(self._pile)
+        return self._pile.pop()
 
 
 def load_vocab() -> dict[str, dict]:
@@ -280,6 +304,23 @@ def _assign_employee_ids(people: list[Person]) -> None:
 # ---------------------------------------------------------------------------- tables
 
 
+def _departed_slots(rng: random.Random, n: int) -> set[int]:
+    """Which of n assets get a former employee as owner (an exact count, not a coin flip)."""
+    return set(rng.sample(range(n), round(DEPARTED_OWNER_SHARE * n)))
+
+
+def _pick_asset_owner(
+    rng: random.Random, people: list[Person], dept: str, departed: bool
+) -> Person:
+    """Owner for a table or metric; these have no dates, so only the status matters."""
+    pool = [
+        p
+        for p in people
+        if p.department == dept and not p.is_head and (p.status == "left") == departed
+    ]
+    return rng.choice(pool)
+
+
 def _column_type(name: str) -> str:
     """Infer a warehouse column type from naming conventions (keeps vocab to names only)."""
     if name.startswith(("is_", "has_")) or name.endswith("_flag"):
@@ -335,17 +376,13 @@ def _build_tables(
 ) -> tuple[list[TableRow], list[TableTableEdgeRow], dict[str, str]]:
     specs = vocab["tables"]["tables"]
     domains = vocab["tables"]["mart_domains"]
-    owners_by_dept: dict[str, list[Person]] = {}
-    for person in people:
-        if not person.is_head:
-            owners_by_dept.setdefault(person.department, []).append(person)
-
+    departed = _departed_slots(rng, len(specs))
     name_to_id = {spec["name"]: table_id(i) for i, spec in enumerate(specs, start=1)}
     layers = {spec["name"]: spec["layer"] for spec in specs}
     rows, edges = [], []
-    for spec in specs:
+    for i, spec in enumerate(specs):
         name, layer = spec["name"], spec["layer"]
-        owner = rng.choice(owners_by_dept[spec.get("owner_department", DNA)])
+        owner = _pick_asset_owner(rng, people, spec.get("owner_department", DNA), i in departed)
         if layer == "staging":
             schema_name, source = "staging", spec["source_system"]
         elif layer == "intermediate":
@@ -389,9 +426,11 @@ def _build_tables(
 def _build_metrics(
     rng: random.Random, vocab: dict, people: list[Person], name_to_id: dict[str, str]
 ) -> tuple[list[MetricRow], list[str]]:
+    specs = vocab["metrics"]["metrics"]
+    departed = _departed_slots(rng, len(specs))
     rows, null_formula = [], []
-    for n, spec in enumerate(vocab["metrics"]["metrics"], start=1):
-        candidates = [p for p in people if p.department == spec["department"] and not p.is_head]
+    for n, spec in enumerate(specs, start=1):
+        owner = _pick_asset_owner(rng, people, spec["department"], n - 1 in departed)
         mid = metric_id(n)
         if spec["formula"] is None:
             null_formula.append(mid)
@@ -403,7 +442,7 @@ def _build_metrics(
                 business_definition=spec["definition"],
                 formula=spec["formula"],
                 source_table_ids=json.dumps([name_to_id[t] for t in spec["sources"]]),
-                owner_id=rng.choice(candidates).employee_id,
+                owner_id=owner.employee_id,
             )
         )
     return rows, null_formula
@@ -440,19 +479,81 @@ def _weighted(rng: random.Random, items: list, weights: list[float]):
     return rng.choices(items, weights=weights, k=1)[0]
 
 
-def _base_specs(rng: random.Random, rs: dict) -> list[ReportSpec]:
-    formats = [f["text"] for f in rs["formats"]]
-    format_weights = [f["weight"] for f in rs["formats"]]
+class _NameRegistry:
+    """Report names taken so far; refuses a name too similar to an unrelated one (I19).
+
+    Only the designed noise pairs (near duplicates, deprecated -> replacement) may look
+    alike. Any other lookalike would give a lookup question two equally good answers.
+    """
+
+    def __init__(self) -> None:
+        self._taken: list[tuple[set[str], object]] = []
+
+    def fits(self, name: str, exempt: object = None) -> bool:
+        tokens = _words_all(name)
+        for other, owner in self._taken:
+            if owner is exempt:
+                continue
+            if len(tokens & other) / len(tokens | other) > NAME_JACCARD_LIMIT:
+                return False
+        return True
+
+    def add(self, name: str, owner: object) -> None:
+        self._taken.append((_words_all(name), owner))
+
+
+def _weighted_order(rng: random.Random, items: list, weights: list[float]) -> list:
+    """A random permutation where heavier items tend to come first."""
+    items, weights, order = list(items), list(weights), []
+    while items:
+        i = rng.choices(range(len(items)), weights=weights, k=1)[0]
+        order.append(items.pop(i))
+        weights.pop(i)
+    return order
+
+
+def _fresh_name(
+    rng: random.Random, rs: dict, subject: dict, qkey: str, registry: _NameRegistry
+) -> str | None:
+    """First (stem, format) combination whose name is distinct enough, or None."""
+    qualifier = rs["qualifiers"][qkey]
+    if subject.get("no_format") or qualifier.get("no_format"):
+        formats = [""]
+    else:
+        formats = _weighted_order(
+            rng, [f["text"] for f in rs["formats"]], [f["weight"] for f in rs["formats"]]
+        )
+    stems = list(subject["names"])
+    if qkey == "none":
+        stems = stems[:1] + rng.sample(stems[1:], len(stems) - 1)  # flagship: canonical name
+    else:
+        rng.shuffle(stems)
+    for stem in stems:
+        for fmt in formats:
+            name = qualifier["pattern"].format(base=stem + fmt)
+            if registry.fits(name):
+                return name
+    return None
+
+
+def _base_specs(rng: random.Random, rs: dict, registry: _NameRegistry) -> list[ReportSpec]:
     specs = []
     for subject in rs["subjects"]:
         options = [q for q in subject["qualifiers"] if q != "none"]
-        chosen = ["none"] + rng.sample(options, subject["n_reports"] - 1)
-        for qkey in chosen:
-            qualifier = rs["qualifiers"][qkey]
-            no_format = subject.get("no_format") or qualifier.get("no_format")
-            fmt = "" if no_format else _weighted(rng, formats, format_weights)
-            name = qualifier["pattern"].format(base=subject["name"] + fmt)
-            specs.append(ReportSpec(subject, qkey, name, "base"))
+        rng.shuffle(options)
+        made: list[ReportSpec] = []
+        for qkey in ["none", *options]:
+            if len(made) == subject["n_reports"]:
+                break
+            name = _fresh_name(rng, rs, subject, qkey, registry)
+            if name is None:
+                continue  # every stem/format clashes; try the next qualifier instead
+            spec = ReportSpec(subject, qkey, name, "base")
+            registry.add(name, spec)
+            made.append(spec)
+        if len(made) < subject["n_reports"]:
+            raise ValueError(f"not enough distinct report names for subject {subject['key']}")
+        specs.extend(made)
     return specs
 
 
@@ -494,10 +595,12 @@ def _report_tags(rng: random.Random, subject: dict, qualifier: dict, extra: list
     return tags[:5]
 
 
-def _describe(rng: random.Random, rs: dict, subject: dict, qualifier: dict) -> str:
+def _describe(
+    rng: random.Random, rs: dict, subject: dict, qualifier: dict, templates: _Deck
+) -> str:
     measure = rng.choice(subject["measures"])
     fillers = rs["template_fillers"]
-    return rng.choice(rs["description_templates"]).format(
+    return templates.draw().format(
         measure=measure,
         Measure=_capitalize(measure),
         q=f" {qualifier['phrase']}" if qualifier["phrase"] else "",
@@ -509,17 +612,28 @@ def _describe(rng: random.Random, rs: dict, subject: dict, qualifier: dict) -> s
     )
 
 
-def _pick_owner(rng: random.Random, people: list[Person], dept: str, day: date) -> Person:
-    """Report owner employed on `day`: usually from the report's department (spec §4.3.2)."""
+def _pick_owner(
+    rng: random.Random, people: list[Person], dept: str, day: date, still_here: bool
+) -> Person:
+    """Report owner employed on `day`: usually from the report's department (spec §4.3.2).
+
+    still_here=True limits the choice to people who are still employed today. Active
+    reports use it, so the only active reports with a departed owner are the ones the chain
+    heads must own (I07); that keeps the departed-owner share at its floor (I18).
+    """
     if rng.random() < SAME_DEPT_OWNER_SHARE:
         owner_dept = dept
     elif dept != DNA and rng.random() < 0.6:
         owner_dept = DNA  # analysts often build reports for the business
     else:
         owner_dept = rng.choice([d.value for d in Department if d.value != dept])
-    pool = [p for p in people if p.department == owner_dept and p.employed_on(day)]
+
+    def eligible(p: Person) -> bool:
+        return p.employed_on(day) and (p.status == "active" or not still_here)
+
+    pool = [p for p in people if p.department == owner_dept and eligible(p)]
     if not pool:
-        pool = [p for p in people if p.employed_on(day)]
+        pool = [p for p in people if eligible(p)]
     return _weighted(rng, pool, [0.3 if p.is_head else 1.0 for p in pool])
 
 
@@ -529,52 +643,78 @@ def _build_reports(
     rs = vocab["report_subjects"]
     org = vocab["org"]
     qualifiers = rs["qualifiers"]
-    specs = _base_specs(rng, rs)
+    registry = _NameRegistry()
+    specs = _base_specs(rng, rs, registry)
     assert len(specs) == 215, len(specs)
 
     # Noise pairs (N1, N2): at most one per subject so they are spread over the catalog.
+    # A derived name may resemble its own origin but no other report (I19).
     by_subject: dict[str, list[ReportSpec]] = {}
     for spec in specs:
         by_subject.setdefault(spec.subject["key"], []).append(spec)
     subject_keys = list(by_subject)
     rng.shuffle(subject_keys)
-    deprecated = [rng.choice(by_subject[k]) for k in subject_keys[:N_DEPRECATED]]
+    suffixes = rs["replacement_suffixes"]
     variants = rs["near_duplicate_variants"]
     variant_use = {v["key"]: 0 for v in variants}
-    near_dup_bases: list[tuple[ReportSpec, dict]] = []
-    for key in subject_keys[N_DEPRECATED : N_DEPRECATED + N_NEAR_DUPLICATES]:
-        base = rng.choice(by_subject[key])
-        usable = [v for v in variants if base.qualifier_key not in v.get("exclude_qualifiers", [])]
-        variant = min(usable, key=lambda v: variant_use[v["key"]])  # keep variants balanced
-        variant_use[variant["key"]] += 1
-        near_dup_bases.append((base, variant))
-
     extra: list[ReportSpec] = []
-    for i, dep in enumerate(deprecated):
-        dep.deprecated = True
-        suffix = rs["replacement_suffixes"][i % len(rs["replacement_suffixes"])]
-        replacement = ReportSpec(dep.subject, dep.qualifier_key, dep.name + suffix, "replacement")
-        replacement.origin = dep
-        dep.replaced_by = replacement
-        extra.append(replacement)
-    for base, variant in near_dup_bases:
-        partner = ReportSpec(
-            base.subject, base.qualifier_key, base.name + variant["suffix"], "near_duplicate"
-        )
-        partner.origin, partner.variant = base, variant
-        extra.append(partner)
+    deprecated: list[ReportSpec] = []
+    near_dup_bases: list[ReportSpec] = []
+    for key in subject_keys:
+        want_deprecated = len(deprecated) < N_DEPRECATED
+        if not want_deprecated and len(near_dup_bases) == N_NEAR_DUPLICATES:
+            break
+        for origin in rng.sample(by_subject[key], len(by_subject[key])):
+            origin_words = _words_all(origin.name)
+            if want_deprecated:
+                start = len(deprecated)
+                options = [suffixes[(start + i) % len(suffixes)] for i in range(len(suffixes))]
+                # "(New)" on "New Vehicle Sales" would repeat a word; skip such suffixes.
+                options = [o for o in options if not _words_all(o) & origin_words]
+                kind, variant = "replacement", None
+            else:
+                # A "Regional" copy means the same as a sibling "by Region" report, so the
+                # exclusion looks at every report of the subject, not only the origin.
+                subject_qualifiers = {spec.qualifier_key for spec in by_subject[key]}
+                usable = [
+                    v
+                    for v in variants
+                    if not set(v.get("exclude_qualifiers", [])) & subject_qualifiers
+                ]
+                usable.sort(key=lambda v: variant_use[v["key"]])  # keep variants balanced
+                options = [v["suffix"] for v in usable]
+                kind = "near_duplicate"
+            chosen = next(
+                (o for o in options if registry.fits(origin.name + o, exempt=origin)), None
+            )
+            if chosen is None:
+                continue
+            derived = ReportSpec(origin.subject, origin.qualifier_key, origin.name + chosen, kind)
+            derived.origin = origin
+            registry.add(derived.name, origin)  # a later name may not resemble the pair either
+            extra.append(derived)
+            if kind == "replacement":
+                origin.deprecated, origin.replaced_by = True, derived
+                deprecated.append(origin)
+            else:
+                variant = next(v for v in usable if v["suffix"] == chosen)
+                variant_use[variant["key"]] += 1
+                derived.variant = variant
+                near_dup_bases.append(origin)
+            break
+    assert len(deprecated) == N_DEPRECATED and len(near_dup_bases) == N_NEAR_DUPLICATES
 
-    # Chain heads own 2-3 active reports each (I07), created while they were employed.
-    noisy = {id(s) for s in deprecated} | {id(b) for b, _ in near_dup_bases}
+    # Chain heads own exactly two active reports each: I07 needs two, and every extra one
+    # would raise the departed-owner share above its floor (I18).
+    noisy = {id(s) for s in deprecated} | {id(b) for b in near_dup_bases}
     free = [s for s in specs if id(s) not in noisy]
     for head in chain_heads:
-        k = 2 if rng.random() < 0.8 else 3
         pool = [
             s for s in free if s.forced_owner is None and s.subject["department"] == head.department
         ]
-        if len(pool) < k:
+        if len(pool) < 2:
             pool = [s for s in free if s.forced_owner is None]
-        for spec in rng.sample(pool, k):
+        for spec in rng.sample(pool, 2):
             spec.forced_owner = head
 
     # Dates and owners: base reports first, then the reports derived from them.
@@ -588,13 +728,18 @@ def _build_reports(
         else:
             latest = date(2024, 6, 30) if spec.deprecated else REFERENCE_DATE - _days(21)
             spec.created = _recent_date(rng, FIRST_REPORT, latest)
-            spec.owner = _pick_owner(rng, people, dept, spec.created)
-    for spec in extra:
+            spec.owner = _pick_owner(
+                rng, people, dept, spec.created, still_here=not spec.deprecated
+            )
+    for spec in extra:  # replacements and near duplicates are all active
         gap = rng.randint(200, 900) if spec.kind == "replacement" else rng.randint(30, 500)
         spec.created = min(spec.origin.created + _days(gap), REFERENCE_DATE - _days(14))
-        spec.owner = _pick_owner(rng, people, spec.subject["department"], spec.created)
+        spec.owner = _pick_owner(
+            rng, people, spec.subject["department"], spec.created, still_here=True
+        )
 
     all_specs = specs + extra
+    templates = _Deck(rng, rs["description_templates"])
     # Content: tables, tags, workspace, description.
     for spec in all_specs:
         subject, qualifier = spec.subject, qualifiers[spec.qualifier_key]
@@ -617,7 +762,7 @@ def _build_reports(
         else:
             spec.tables = _report_tables(rng, subject, qualifier)
             spec.tags = _report_tags(rng, subject, qualifier, [])
-            spec.description = _describe(rng, rs, subject, qualifier)
+            spec.description = _describe(rng, rs, subject, qualifier, templates)
         dept_spaces = next(
             d["workspaces"] for d in org["departments"] if d["name"] == subject["department"]
         )
@@ -791,22 +936,35 @@ def _build_requests(
             rng, people, assignee_dept, spec.created, exclude=spec.requester
         )
 
+    title_frames = _Deck(rng, rt["title_frames"])
+    description_frames = _Deck(rng, rt["description_frames"])
+    # Titles may resemble titles of the same cluster (they are paraphrases of one topic) but
+    # not titles of other clusters, where shared frame words would outweigh the topic (I19).
+    titles = _NameRegistry()
     used_titles: dict[int, set[str]] = {}
     for spec in specs:
         cluster = spec.cluster
         taken = used_titles.setdefault(spec.cluster_index, set())
-        for _ in range(20):
-            subject = rng.choice(cluster["subjects"])
-            scope = rng.choice(cluster["scopes"])
-            title = rng.choice(rt["title_frames"]).format(
-                Subject=_capitalize(subject), subject=subject, scope=scope
-            )
-            if title not in taken:
+        wordings = [(sub, scope) for sub in cluster["subjects"] for scope in cluster["scopes"]]
+        title = None
+        for _ in range(3):  # a frame is dropped only if no wording at all fits it
+            frame = title_frames.draw()
+            rng.shuffle(wordings)
+            for subject, scope in wordings:
+                candidate = frame.format(Subject=_capitalize(subject), subject=subject, scope=scope)
+                if candidate not in taken and titles.fits(candidate, exempt=spec.cluster_index):
+                    title = candidate
+                    break
+            if title is not None:
                 break
+        if title is None:
+            raise ValueError(f"no distinct request title for cluster {cluster['key']}")
         taken.add(title)
+        titles.add(title, spec.cluster_index)
         spec.title = title
-        spec.description = rng.choice(rt["description_frames"]).format(
+        spec.description = description_frames.draw().format(
             department=spec.requester.department,
+            Subject=_capitalize(subject),
             subject=subject,
             scope=scope,
             purpose=rng.choice(cluster["purposes"]),

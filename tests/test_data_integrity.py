@@ -634,3 +634,112 @@ def test_X_titles_vary_within_request_clusters(requests_, meta):
         by_topic.setdefault(key, []).append(requests_[qid]["title"])
     for key, titles in by_topic.items():
         assert len(set(titles)) >= min(len(titles), 2), key
+
+
+# ------------------------------------------------------------------ I18 departed owners
+
+
+def _chain_heads(meta) -> list[str]:
+    chains = meta["chains"]
+    return (
+        list(chains["S1"])
+        + list(chains["S2"])
+        + [chain[0] for code in ("C2", "C3", "C4") for chain in chains[code]]
+    )
+
+
+def test_I18_departed_owner_share_of_active_reports(raw, emp, meta):
+    # Target band 15-20%. I07 forces every chain head to own >= 2 active reports, so the
+    # share can never drop below 2 * heads / active reports. SPEC-DEVIATION: with 25 heads
+    # and 235 active reports that floor is 21.3%, above the band; the generator then has to
+    # sit exactly on the floor (no departed owner beyond the guaranteed reports).
+    active = raw["reports"][raw["reports"]["status"] == "active"]
+    departed = active["owner_id"].map(lambda o: emp[o]["status"] == "left")
+    share = departed.mean()
+    floor = 2 * len(_chain_heads(meta)) / len(active)
+    assert share >= 0.15
+    assert share <= max(0.20, floor) + 1e-9, (share, floor)
+
+
+@pytest.mark.parametrize("table", ["tables", "metrics"])
+def test_X_departed_owner_share_of_tables_and_metrics(raw, emp, table):
+    departed = raw[table]["owner_id"].map(lambda o: emp[o]["status"] == "left")
+    assert 0.15 <= departed.mean() <= 0.20
+
+
+# ------------------------------------------------------------------ I19 accidental near duplicates
+
+ACCIDENTAL_JACCARD_LIMIT = 0.6
+
+
+def _similar_pairs(names: dict[str, str], skip: set[frozenset]) -> list[tuple[float, str, str]]:
+    found = []
+    ids = sorted(names)
+    for i, a in enumerate(ids):
+        for b in ids[i + 1 :]:
+            if frozenset((a, b)) in skip:
+                continue
+            score = jaccard(names[a], names[b])
+            if score > ACCIDENTAL_JACCARD_LIMIT:
+                found.append((round(score, 2), names[a], names[b]))
+    return found
+
+
+def test_I19_no_accidental_near_duplicate_report_names(raw, meta):
+    # Only the designed pairs may look alike; any other lookalike would give a lookup
+    # question two equally good answers, and the single-target gold would measure nothing.
+    designed = {frozenset(pair) for pair in meta["near_duplicate_pairs"]}
+    designed |= {frozenset(pair) for pair in meta["deprecated_map"].items()}
+    names = dict(zip(raw["reports"]["report_id"], raw["reports"]["name"], strict=True))
+    assert _similar_pairs(names, designed) == []
+
+
+def test_I19_no_near_duplicate_metric_names(raw):
+    names = dict(zip(raw["metrics"]["metric_id"], raw["metrics"]["name"], strict=True))
+    assert _similar_pairs(names, set()) == []
+
+
+def test_I19_request_titles_distinct_across_topic_clusters(raw, meta):
+    # Titles inside one cluster are paraphrases by design; across clusters they must differ,
+    # otherwise a past-work search would match a neighbouring topic.
+    topic = meta["request_topic_keys"]
+    titles = dict(zip(raw["requests"]["request_id"], raw["requests"]["title"], strict=True))
+    same_cluster = {
+        frozenset((a, b)) for a in titles for b in titles if a < b and topic[a] == topic[b]
+    }
+    assert _similar_pairs(titles, same_cluster) == []
+
+
+# ------------------------------------------------------------------ I20 template tics
+
+OPENING_SHARE_LIMIT = 0.15
+
+
+def _opening_shares(texts) -> dict[str, float]:
+    firsts = pd.Series([re.findall(r"[a-z0-9]+", text.lower())[0] for text in texts])
+    return firsts.value_counts(normalize=True).to_dict()
+
+
+@pytest.mark.parametrize(
+    ("table", "column"),
+    [("reports", "description"), ("requests", "title"), ("requests", "description")],
+)
+def test_I20_no_opening_word_dominates(raw, table, column):
+    # If most texts open the same way, a paraphrase query matches the template, not the topic.
+    shares = _opening_shares(raw[table][column])
+    worst = max(shares, key=shares.get)
+    assert shares[worst] <= OPENING_SHARE_LIMIT, (worst, round(shares[worst], 3))
+
+
+def test_I14_region_variants_do_not_duplicate_a_region_report(meta):
+    # Lexical overlap misses meaning: "X - Regional" and a sibling "X by Region" answer the
+    # same question even though their token Jaccard is only 0.5.
+    regional_variants = {"regional", "area_managers"}
+    subjects, qualifiers = meta["report_subjects"], meta["report_qualifiers"]
+    region_subjects = {subjects[rid] for rid, q in qualifiers.items() if q == "region"}
+    clashes = [
+        (partner, subjects[partner])
+        for partner, variant in meta["near_duplicate_variants"].items()
+        if variant in regional_variants and subjects[partner] in region_subjects
+    ]
+    assert clashes == []

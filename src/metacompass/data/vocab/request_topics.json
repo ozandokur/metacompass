@@ -1,5 +1,5 @@
 {
-  "_comment": "Analysis request clusters (N6). Titles and descriptions combine a subject phrase, a scope phrase and a purpose, so requests about the same thing are worded differently. related_subjects point at report subjects a finished request can result in. Purposes are prepositional phrases so they read correctly in every frame.",
+  "_comment": "Analysis request clusters (N6). Frames are dealt in shuffled rounds so no opening dominates (I20). Titles and descriptions combine a subject phrase, a scope phrase and a purpose, so requests about the same thing are worded differently. related_subjects point at report subjects a finished request can result in. Purposes are prepositional phrases so they read correctly in every frame.",
   "title_frames": [
     "{Subject} {scope}",
     "Analysis of {subject} {scope}",
@@ -8,14 +8,23 @@
     "Request: {subject} {scope}",
     "Deep dive into {subject} {scope}",
     "Numbers on {subject} {scope}",
-    "Help with {subject} {scope}"
+    "Help with {subject} {scope}",
+    "Looking for {subject} {scope}",
+    "Question about {subject} {scope}",
+    "{Subject} {scope} for review",
+    "Breakdown of {subject} {scope}"
   ],
   "description_frames": [
     "The {department} team would like to understand {subject} {scope} {purpose}.",
     "We keep getting questions about {subject}. Could the data team pull the figures {scope}? It is needed {purpose}.",
     "Looking for a breakdown of {subject} {scope}. We need it {purpose}.",
     "Please prepare an analysis of {subject} {scope}. Context: this is needed {purpose}.",
-    "Is there a way to report {subject} {scope}? It would be used {purpose}."
+    "Is there a way to report {subject} {scope}? It would be used {purpose}.",
+    "Could someone look at {subject} {scope}? The numbers are needed {purpose}.",
+    "Requesting figures on {subject} {scope} {purpose}.",
+    "Our team needs {subject} {scope}, ideally {purpose}.",
+    "{Subject} {scope} keeps coming up in {department}. A view is needed {purpose}.",
+    "Can the data team help with {subject} {scope}? It is wanted {purpose}."
   ],
   "clusters": [
     {"key": "returns_by_region", "department": "Supply Chain", "related_subjects": ["returns"],

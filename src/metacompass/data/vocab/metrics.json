@@ -134,7 +134,7 @@
       "sources": ["fct_parts_sales", "fct_inventory_snapshot"]
     },
     {
-      "name": "Parts Gross Margin", "department": "Supply Chain", "aliases": ["parts GM", "parts margin"],
+      "name": "Parts Margin %", "department": "Supply Chain", "aliases": ["parts GM", "parts gross margin"],
       "definition": "Parts revenue minus parts cost of sales, as a share of parts revenue.",
       "formula": "SUM(fct_parts_sales.net_revenue - fct_parts_sales.cost_of_sales) / SUM(fct_parts_sales.net_revenue)",
       "sources": ["fct_parts_sales"]
