@@ -1,0 +1,5 @@
+# Keep LF everywhere so hashes and diffs do not depend on the checkout platform.
+* text=auto eol=lf
+*.png binary
+*.gif binary
+*.npy binary
