@@ -95,6 +95,7 @@ def test_empty_corpus_after_filter_is_weak(retriever):
     assert result.hits == []
     assert result.signal.match_quality == "weak"
     assert result.signal.top_dense_cosine == 0.0
+    assert result.signal.dense_z == 0.0
 
 
 def test_exact_id_in_query_is_strong(retriever):
@@ -113,13 +114,50 @@ def test_unknown_id_is_not_an_exact_match(retriever):
     assert retriever.search("RPT-9999").signal.exact_match is False
 
 
-def test_dense_threshold_decides_without_exact_match():
-    strict = HybridRetriever(DOCS, HashEmbedder(dim=64), tau=0.99)
-    lenient = HybridRetriever(DOCS, HashEmbedder(dim=64), tau=0.01)
+def test_cosine_threshold_decides_without_exact_match():
+    strict = HybridRetriever(DOCS, HashEmbedder(dim=64), signal="cosine", tau=0.99)
+    lenient = HybridRetriever(DOCS, HashEmbedder(dim=64), signal="cosine", tau=0.01)
     query = "workshop owners come back"
     assert strict.search(query).signal.match_quality == "weak"
     assert lenient.search(query).signal.match_quality == "strong"
     assert strict.search(query).signal.exact_match is False
+
+
+def test_dense_z_is_the_top_cosine_standardised_over_the_filtered_corpus():
+    embedder = HashEmbedder(dim=64)
+    retriever = HybridRetriever(DOCS, embedder)
+    query = "workshop owners come back"
+    cosines = retriever.doc_vectors @ embedder.encode([query])[0]
+    expected = (cosines.max() - cosines.mean()) / cosines.std()
+    assert retriever.search(query).signal.dense_z == pytest.approx(expected, abs=1e-3)
+    # Only the filtered documents count, for the mean and the spread as well as the top.
+    reports = np.array([d.kind == "report" for d in DOCS])
+    sub = cosines[reports]
+    expected_reports = (sub.max() - sub.mean()) / sub.std()
+    got = retriever.search(query, kinds={"report"}).signal.dense_z
+    assert got == pytest.approx(expected_reports, abs=1e-3)
+
+
+def test_z_threshold_decides_without_exact_match():
+    query = "workshop owners come back"
+    strict = HybridRetriever(DOCS, HashEmbedder(dim=64), signal="z", tau_z=10.0)
+    lenient = HybridRetriever(DOCS, HashEmbedder(dim=64), signal="z", tau_z=-10.0)
+    assert strict.search(query).signal.match_quality == "weak"
+    assert lenient.search(query).signal.match_quality == "strong"
+
+
+def test_z_is_zero_when_the_filtered_corpus_has_no_spread():
+    single = HybridRetriever(DOCS, HashEmbedder(dim=64), signal="z", tau_z=0.5)
+    # One metric document, and a query that does not name it (that would be an exact match).
+    signal = single.search("revenue minus cost", kinds={"metric"}).signal
+    assert signal.exact_match is False
+    assert signal.dense_z == 0.0
+    assert signal.match_quality == "weak"
+
+
+def test_unknown_signal_kind_is_rejected():
+    with pytest.raises(ValueError):
+        HybridRetriever(DOCS, HashEmbedder(dim=8), signal="fuzzy")
 
 
 def test_signal_is_the_same_in_every_mode(retriever):

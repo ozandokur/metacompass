@@ -15,7 +15,7 @@ import numpy as np
 from metacompass.retrieval.tokenize import tokenize
 
 # Known output sizes, so `dim` is available without loading (and downloading) the model.
-_KNOWN_DIMS = {"all-MiniLM-L6-v2": 384}
+_KNOWN_DIMS = {"all-MiniLM-L6-v2": 384, "bge-small-en-v1.5": 384}
 
 
 @runtime_checkable

@@ -107,15 +107,17 @@ def request_documents(store: MetadataStore) -> list[RetrievalDoc]:
 
 
 def build_retrievers(
-    store: MetadataStore, embedder: Embedder, cache_dir: Path, tau: float | None = None
+    store: MetadataStore, embedder: Embedder, cache_dir: Path, **signal_settings
 ) -> dict[str, HybridRetriever]:
-    """Both retrievers, with document embeddings read from / written to cache_dir."""
+    """Both retrievers, with document embeddings read from / written to cache_dir.
+
+    signal_settings (signal, tau, tau_z) override the configured match signal.
+    """
     retrievers = {}
     for corpus, docs in (
         ("assets", asset_documents(store)),
         ("requests", request_documents(store)),
     ):
         vectors = encode_with_cache(embedder, [d.dense_text for d in docs], corpus, cache_dir)
-        extra = {} if tau is None else {"tau": tau}
-        retrievers[corpus] = HybridRetriever(docs, embedder, vectors, **extra)
+        retrievers[corpus] = HybridRetriever(docs, embedder, vectors, **signal_settings)
     return retrievers

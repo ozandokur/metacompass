@@ -82,7 +82,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Render eval/results.md from raw results.")
     parser.add_argument("--out", type=Path, default=ROOT / "eval" / "results.md")
     args = parser.parse_args(argv)
-    bench_path = RESULTS / "retrieval_bench.json"
+    bench_path = RESULTS / "retrieval_bench_v1.json"
     bench = json.loads(bench_path.read_text(encoding="utf-8")) if bench_path.is_file() else None
     args.out.write_bytes(render_results(bench).encode("utf-8"))
     print(f"wrote {args.out}")

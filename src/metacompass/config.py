@@ -37,6 +37,12 @@ RRF_CANDIDATES = 50
 # checkpoint; frozen before any test-set run.
 TAU = 0.65
 
+# Relative variant (spec §5.7 update, 2026-09-18): how many standard deviations the top
+# cosine sits above the mean cosine of the filtered corpus. PLACEHOLDER until the
+# retrieval benchmark compares both variants; MATCH_SIGNAL names the one in use.
+TAU_Z = 3.0
+MATCH_SIGNAL = "cosine"  # "cosine" (absolute, TAU) or "z" (relative, TAU_Z)
+
 
 class Settings(BaseModel):
     """Runtime settings read from the environment. Every field is optional until needed."""

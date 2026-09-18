@@ -3,9 +3,12 @@
 Filters (record type, department, deprecated reports) become a corpus mask before any
 ranking, so a filtered search still has a full candidate list. Every search also returns
 a match signal (§5.7): "strong" when the query names an asset exactly or the closest dense
-match clears the threshold tau, "weak" otherwise. The agent uses "weak" as evidence for
-abstaining. The signal is computed the same way in every mode, so the retrieval-mode
-ablations (A1, A2) change the ranking only, not the abstain evidence.
+match stands out, "weak" otherwise. "Stands out" is either an absolute cosine threshold
+(tau) or a relative one (tau_z): how many standard deviations the top cosine sits above
+the mean cosine of the filtered corpus. Raw cosines of small embedding models are not
+calibrated across queries; a z-score compares each query with its own background. The
+agent uses "weak" as evidence for abstaining. The signal is computed the same way in
+every mode, so the retrieval-mode ablations (A1, A2) change the ranking only.
 """
 
 import re
@@ -15,13 +18,15 @@ from typing import Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict
 
-from metacompass.config import RRF_CANDIDATES, RRF_K, TAU
+from metacompass.config import MATCH_SIGNAL, RRF_CANDIDATES, RRF_K, TAU, TAU_Z
 from metacompass.data.schema import RECORD_ID_REGEX
 from metacompass.retrieval.bm25 import BM25Index
 from metacompass.retrieval.embedders import Embedder
 
 RetrievalMode = Literal["hybrid", "bm25", "dense"]
 MODES = ("hybrid", "bm25", "dense")
+SignalKind = Literal["cosine", "z"]
+SIGNAL_KINDS = ("cosine", "z")
 
 
 @dataclass(frozen=True)
@@ -41,6 +46,7 @@ class MatchSignal(BaseModel):
     match_quality: Literal["strong", "weak"]
     exact_match: bool  # the query contains a record ID or a full name from the corpus
     top_dense_cosine: float  # best cosine similarity within the filtered corpus
+    dense_z: float  # (best cosine - mean cosine) / std of cosines, filtered corpus
 
 
 @dataclass(frozen=True)
@@ -86,11 +92,16 @@ class HybridRetriever:
         *,
         rrf_k: int = RRF_K,
         n_candidates: int = RRF_CANDIDATES,
+        signal: SignalKind = MATCH_SIGNAL,
         tau: float = TAU,
+        tau_z: float = TAU_Z,
     ) -> None:
+        if signal not in SIGNAL_KINDS:
+            raise ValueError(f"signal must be one of {SIGNAL_KINDS}, got {signal!r}")
         self.docs = list(docs)
         self.embedder = embedder
-        self.rrf_k, self.n_candidates, self.tau = rrf_k, n_candidates, tau
+        self.rrf_k, self.n_candidates = rrf_k, n_candidates
+        self.signal, self.tau, self.tau_z = signal, tau, tau_z
         if doc_vectors is None:
             doc_vectors = embedder.encode([d.dense_text for d in self.docs])
         if doc_vectors.shape != (len(self.docs), embedder.dim):
@@ -146,7 +157,9 @@ class HybridRetriever:
             raise ValueError("query must not be empty")
         allowed = self.mask(kinds, department, include_deprecated)
         if not allowed.any():
-            weak = MatchSignal(match_quality="weak", exact_match=False, top_dense_cosine=0.0)
+            weak = MatchSignal(
+                match_quality="weak", exact_match=False, top_dense_cosine=0.0, dense_z=0.0
+            )
             return SearchResult(hits=[], signal=weak)
 
         cosines = self.doc_vectors @ self.embedder.encode([query])[0]
@@ -174,9 +187,16 @@ class HybridRetriever:
         ]
 
         top_cosine = float(cosines[dense_order[0]])
+        background = cosines[allowed]
+        spread = float(background.std())
+        # With one document (or identical cosines) there is no background to stand out from.
+        dense_z = (top_cosine - float(background.mean())) / spread if spread > 1e-12 else 0.0
         exact = self._exact_match(query, allowed)
-        quality = "strong" if exact or top_cosine >= self.tau else "weak"
+        stands_out = top_cosine >= self.tau if self.signal == "cosine" else dense_z >= self.tau_z
         signal = MatchSignal(
-            match_quality=quality, exact_match=exact, top_dense_cosine=round(top_cosine, 4)
+            match_quality="strong" if exact or stands_out else "weak",
+            exact_match=exact,
+            top_dense_cosine=round(top_cosine, 4),
+            dense_z=round(dense_z, 4),
         )
         return SearchResult(hits=hits, signal=signal)
