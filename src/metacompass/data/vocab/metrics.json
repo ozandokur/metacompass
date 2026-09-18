@@ -1,0 +1,245 @@
+{
+  "_comment": "Metric catalog in ID order (MET-001..040). formula null means the definition exists but no agreed formula was ever documented (L6 trap). Sources are mart table names.",
+  "metrics": [
+    {
+      "name": "Units Sold", "department": "Sales", "aliases": ["units", "vehicle units", "sales volume"],
+      "definition": "Number of new and used vehicles invoiced to customers in the period.",
+      "formula": "COUNT(DISTINCT fct_vehicle_sales.sale_id) WHERE units > 0",
+      "sources": ["fct_vehicle_sales"]
+    },
+    {
+      "name": "Gross Margin %", "department": "Finance", "aliases": ["GM%", "gross margin", "GM"],
+      "definition": "Share of net revenue left after cost of sales, across vehicles, parts and service.",
+      "formula": "SUM(fct_gl_margin.gross_margin_amount) / SUM(fct_gl_margin.revenue_amount)",
+      "sources": ["fct_gl_margin", "fct_vehicle_sales"]
+    },
+    {
+      "name": "Average Order Value", "department": "Supply Chain", "aliases": ["AOV", "average parts order value"],
+      "definition": "Average net revenue of a parts order placed by dealers and trade customers.",
+      "formula": "SUM(fct_parts_sales.net_revenue) / COUNT(DISTINCT fct_parts_sales.parts_order_id)",
+      "sources": ["fct_parts_sales"]
+    },
+    {
+      "name": "Average Transaction Price", "department": "Sales", "aliases": ["ATP", "average selling price"],
+      "definition": "Average price customers actually paid for a vehicle after discounts.",
+      "formula": "SUM(fct_vehicle_sales.invoice_price) / SUM(fct_vehicle_sales.units)",
+      "sources": ["fct_vehicle_sales", "dim_vehicle"]
+    },
+    {
+      "name": "Discount Rate", "department": "Sales", "aliases": ["discount %", "discount depth"],
+      "definition": "Average discount given on a vehicle as a share of its list price.",
+      "formula": "SUM(fct_vehicle_sales.discount_amount) / SUM(fct_vehicle_sales.list_price)",
+      "sources": ["fct_vehicle_sales"]
+    },
+    {
+      "name": "Lead Conversion Rate", "department": "Sales", "aliases": ["LCR", "lead-to-sale rate"],
+      "definition": "Share of sales leads that turn into a signed vehicle order.",
+      "formula": "SUM(fct_leads.is_converted) / COUNT(fct_leads.lead_id)",
+      "sources": ["fct_leads", "fct_vehicle_sales"]
+    },
+    {
+      "name": "Pipeline Value", "department": "Sales", "aliases": ["open pipeline", "pipeline"],
+      "definition": "Expected value of all open sales opportunities that have not been won or lost.",
+      "formula": "SUM(fct_opportunities.expected_value_amount) WHERE stage NOT IN ('won', 'lost')",
+      "sources": ["fct_opportunities"]
+    },
+    {
+      "name": "Win Rate", "department": "Sales", "aliases": ["close rate", "opportunity win rate"],
+      "definition": "Share of closed opportunities that were won.",
+      "formula": "SUM(fct_opportunities.is_won) / COUNT(fct_opportunities.opportunity_id) WHERE stage IN ('won', 'lost')",
+      "sources": ["fct_opportunities"]
+    },
+    {
+      "name": "Test Drive Conversion", "department": "Sales", "aliases": ["TD conversion", "test drive to order"],
+      "definition": "Share of leads with a completed test drive that go on to buy.",
+      "formula": "SUM(fct_leads.is_converted) / COUNT(fct_leads.lead_id) WHERE has_test_drive",
+      "sources": ["fct_leads"]
+    },
+    {
+      "name": "Market Share", "department": "Sales", "aliases": ["share of market", "MS%"],
+      "definition": "Northwind Motors registrations as a share of all registrations in a region.",
+      "formula": null,
+      "sources": ["fct_vehicle_sales", "dim_region"]
+    },
+    {
+      "name": "Sales Target Attainment", "department": "Sales", "aliases": ["target attainment", "quota attainment"],
+      "definition": "Units sold as a share of the budgeted unit target for the period.",
+      "formula": "SUM(fct_vehicle_sales.units) / SUM(fct_budget_2026.budget_amount) WHERE account_code = 'UNITS'",
+      "sources": ["fct_vehicle_sales", "fct_budget_2026"]
+    },
+    {
+      "name": "Service Retention Rate", "department": "Aftersales", "aliases": ["SRR", "service retention", "service loyalty"],
+      "definition": "Share of vehicle owners who return to the dealer network for scheduled servicing within the expected interval.",
+      "formula": "SUM(fct_service_orders.is_retained_customer) / COUNT(DISTINCT dim_customer.customer_key)",
+      "sources": ["fct_service_orders", "dim_customer"]
+    },
+    {
+      "name": "First Time Fix Rate", "department": "Aftersales", "aliases": ["FTFR", "first-time fix"],
+      "definition": "Share of repairs that did not need a repeat visit for the same fault.",
+      "formula": "1 - SUM(fct_service_orders.is_comeback) / COUNT(fct_service_orders.repair_order_id)",
+      "sources": ["fct_service_orders"]
+    },
+    {
+      "name": "Revenue per Repair Order", "department": "Aftersales", "aliases": ["RO revenue", "revenue per RO"],
+      "definition": "Average labour and parts revenue on a workshop repair order.",
+      "formula": "SUM(fct_service_orders.labor_amount + fct_service_orders.parts_amount) / COUNT(fct_service_orders.repair_order_id)",
+      "sources": ["fct_service_orders"]
+    },
+    {
+      "name": "Workshop Utilization", "department": "Aftersales", "aliases": ["bay utilization", "labour utilisation"],
+      "definition": "Technician hours sold as a share of the standard hours available.",
+      "formula": "SUM(fct_service_orders.labor_hours) / SUM(fct_service_orders.standard_hours)",
+      "sources": ["fct_service_orders", "dim_dealer"]
+    },
+    {
+      "name": "Warranty Claim Rate", "department": "Aftersales", "aliases": ["WCR", "claims per 1000 vehicles"],
+      "definition": "Warranty claims per thousand vehicles sold.",
+      "formula": "1000 * COUNT(fct_warranty_claims.claim_id) / SUM(fct_vehicle_sales.units)",
+      "sources": ["fct_warranty_claims", "fct_vehicle_sales"]
+    },
+    {
+      "name": "Warranty Cost per Unit", "department": "Aftersales", "aliases": ["CPU", "warranty cost per vehicle"],
+      "definition": "Approved warranty cost net of supplier recovery, per vehicle in the fleet.",
+      "formula": "SUM(fct_warranty_claims.approved_amount - fct_warranty_claims.recovered_amount) / COUNT(DISTINCT dim_vehicle.vehicle_key)",
+      "sources": ["fct_warranty_claims", "dim_vehicle"]
+    },
+    {
+      "name": "Recall Completion Rate", "department": "Aftersales", "aliases": ["recall completion", "recall closure rate"],
+      "definition": "Share of vehicles affected by a recall that have had the fix applied.",
+      "formula": "1 - SUM(fct_recalls.is_open) / COUNT(fct_recalls.vehicle_key)",
+      "sources": ["fct_recalls"]
+    },
+    {
+      "name": "Customer Satisfaction Score", "department": "Aftersales", "aliases": ["CSAT", "satisfaction score"],
+      "definition": "Average satisfaction score customers give after a sale or service visit.",
+      "formula": "AVG(fct_customer_surveys.csat_score)",
+      "sources": ["fct_customer_surveys"]
+    },
+    {
+      "name": "Net Promoter Score", "department": "Marketing", "aliases": ["NPS", "promoter score"],
+      "definition": "Promoters minus detractors as a share of survey respondents.",
+      "formula": "(SUM(fct_customer_surveys.is_promoter) - SUM(fct_customer_surveys.is_detractor)) * 100 / COUNT(fct_customer_surveys.survey_response_id)",
+      "sources": ["fct_customer_surveys"]
+    },
+    {
+      "name": "Average Repair Time", "department": "Aftersales", "aliases": ["ART", "repair turnaround"],
+      "definition": "Average labour hours booked on a repair order.",
+      "formula": "AVG(fct_service_orders.labor_hours)",
+      "sources": ["fct_service_orders"]
+    },
+    {
+      "name": "Parts Fill Rate", "department": "Supply Chain", "aliases": ["fill rate", "line fill rate"],
+      "definition": "Share of parts order lines shipped complete from stock on the first pick.",
+      "formula": "SUM(fct_parts_sales.is_first_pick_complete) / COUNT(fct_parts_sales.parts_order_id)",
+      "sources": ["fct_parts_sales", "fct_inventory_snapshot"]
+    },
+    {
+      "name": "Parts Gross Margin", "department": "Supply Chain", "aliases": ["parts GM", "parts margin"],
+      "definition": "Parts revenue minus parts cost of sales, as a share of parts revenue.",
+      "formula": "SUM(fct_parts_sales.net_revenue - fct_parts_sales.cost_of_sales) / SUM(fct_parts_sales.net_revenue)",
+      "sources": ["fct_parts_sales"]
+    },
+    {
+      "name": "Inventory Turnover", "department": "Supply Chain", "aliases": ["stock turns", "turns"],
+      "definition": "How many times the average parts stock is sold through in a year.",
+      "formula": "SUM(fct_parts_sales.cost_of_sales) / AVG(fct_inventory_snapshot.stock_value_amount)",
+      "sources": ["fct_inventory_snapshot", "fct_parts_sales"]
+    },
+    {
+      "name": "Days of Supply", "department": "Supply Chain", "aliases": ["DOS", "days on hand"],
+      "definition": "Number of days current stock would last at the recent average daily demand.",
+      "formula": "SUM(fct_inventory_snapshot.on_hand_qty) / AVG(daily shipped quantity over the last 90 days)",
+      "sources": ["fct_inventory_snapshot"]
+    },
+    {
+      "name": "On-Time Delivery", "department": "Supply Chain", "aliases": ["OTD", "on-time delivery rate"],
+      "definition": "Share of shipments delivered to the dealer by the promised date.",
+      "formula": "SUM(fct_shipments.is_on_time) / COUNT(fct_shipments.shipment_id)",
+      "sources": ["fct_shipments"]
+    },
+    {
+      "name": "Backorder Rate", "department": "Supply Chain", "aliases": ["BO rate", "backorder share"],
+      "definition": "Share of parts order lines that could not be shipped because stock was missing.",
+      "formula": "SUM(fct_parts_sales.is_backorder) / COUNT(fct_parts_sales.parts_order_id)",
+      "sources": ["fct_parts_sales", "fct_purchase_orders"]
+    },
+    {
+      "name": "Supplier Lead Time", "department": "Supply Chain", "aliases": ["lead time", "supplier LT"],
+      "definition": "Average number of days between placing a purchase order and receiving the goods.",
+      "formula": "AVG(fct_purchase_orders.lead_time_days)",
+      "sources": ["fct_purchase_orders", "dim_supplier"]
+    },
+    {
+      "name": "Return Rate", "department": "Supply Chain", "aliases": ["returns %", "RMA rate"],
+      "definition": "Returned parts quantity as a share of parts shipped.",
+      "formula": "SUM(fct_returns.return_qty) / SUM(fct_parts_sales.shipped_qty)",
+      "sources": ["fct_returns", "fct_parts_sales"]
+    },
+    {
+      "name": "Aged Stock Share", "department": "Supply Chain", "aliases": ["aged stock", "stock older than 90 days"],
+      "definition": "Share of stock value held for more than 90 days.",
+      "formula": "SUM(fct_inventory_snapshot.stock_value_amount) WHERE days_in_stock > 90 / SUM(fct_inventory_snapshot.stock_value_amount)",
+      "sources": ["fct_inventory_snapshot"]
+    },
+    {
+      "name": "Revenue Growth YoY", "department": "Finance", "aliases": ["YoY growth", "year-over-year revenue growth"],
+      "definition": "Change in revenue compared with the same period of the previous year.",
+      "formula": "SUM(revenue_amount this period) / SUM(revenue_amount same period last year) - 1, from fct_gl_margin",
+      "sources": ["fct_gl_margin"]
+    },
+    {
+      "name": "Operating Expense Ratio", "department": "Finance", "aliases": ["OpEx ratio", "cost-to-revenue ratio"],
+      "definition": "Operating expenses as a share of revenue.",
+      "formula": "SUM(fct_gl_margin.opex_amount) / SUM(fct_gl_margin.revenue_amount)",
+      "sources": ["fct_gl_margin"]
+    },
+    {
+      "name": "Budget Variance", "department": "Finance", "aliases": ["BvA", "budget vs actual variance"],
+      "definition": "Difference between actual spend or revenue and the approved budget for the period.",
+      "formula": "SUM(fct_gl_margin.opex_amount) - SUM(fct_budget_2026.budget_amount)",
+      "sources": ["fct_budget_2026", "fct_gl_margin"]
+    },
+    {
+      "name": "Revenue MTD", "department": "Finance", "aliases": ["MTD revenue", "month-to-date revenue"],
+      "definition": "Revenue booked from the first day of the current month up to yesterday.",
+      "formula": "SUM(fct_gl_margin.revenue_amount) WHERE dim_date.calendar_date BETWEEN month_start AND yesterday",
+      "sources": ["fct_gl_margin", "dim_date"]
+    },
+    {
+      "name": "Dealer Profitability Index", "department": "Finance", "aliases": ["DPI", "dealer profit index"],
+      "definition": "Composite index ranking dealers by profitability after incentives and support costs.",
+      "formula": null,
+      "sources": ["fct_gl_margin", "dim_dealer"]
+    },
+    {
+      "name": "Days Sales Outstanding", "department": "Finance", "aliases": ["DSO", "debtor days"],
+      "definition": "Average number of days it takes customers to pay their invoices.",
+      "formula": "AVG(days between invoice date and payment date) weighted by invoice amount, from fct_gl_margin receivables lines",
+      "sources": ["fct_gl_margin"]
+    },
+    {
+      "name": "Cost per Lead", "department": "Marketing", "aliases": ["CPL", "cost per enquiry"],
+      "definition": "Marketing spend divided by the number of leads it generated.",
+      "formula": "SUM(fct_campaign_performance.spend_amount) / SUM(fct_campaign_performance.leads_count)",
+      "sources": ["fct_campaign_performance", "fct_leads"]
+    },
+    {
+      "name": "Return on Ad Spend", "department": "Marketing", "aliases": ["ROAS", "ad spend return"],
+      "definition": "Revenue attributed to paid media for every unit of currency spent.",
+      "formula": "SUM(fct_campaign_performance.attributed_revenue_amount) / SUM(fct_campaign_performance.spend_amount)",
+      "sources": ["fct_campaign_performance", "fct_vehicle_sales"]
+    },
+    {
+      "name": "Website Conversion Rate", "department": "Marketing", "aliases": ["web CVR", "site conversion rate"],
+      "definition": "Share of website sessions that end with an enquiry or test drive form.",
+      "formula": "SUM(fct_web_traffic.form_submissions_count) / SUM(fct_web_traffic.sessions_count)",
+      "sources": ["fct_web_traffic", "fct_leads"]
+    },
+    {
+      "name": "Customer Lifetime Value", "department": "Marketing", "aliases": ["CLV", "LTV", "lifetime value"],
+      "definition": "Expected total margin from a customer across vehicle purchases and service visits.",
+      "formula": null,
+      "sources": ["fct_vehicle_sales", "fct_service_orders", "dim_customer"]
+    }
+  ]
+}

@@ -1,0 +1,477 @@
+{
+  "_comment": "Report names are built as qualifier pattern around a subject name plus an optional format word. Each (subject, qualifier) pair is used once, so two reports never differ only by their format word. n_reports counts base reports; near-duplicate partners (N1) and replacements (N2) are added on top.",
+  "formats": [
+    {"text": "", "weight": 35},
+    {"text": " Dashboard", "weight": 25},
+    {"text": " Report", "weight": 15},
+    {"text": " Overview", "weight": 10},
+    {"text": " Tracker", "weight": 8},
+    {"text": " Scorecard", "weight": 7}
+  ],
+  "qualifiers": {
+    "none": {"pattern": "{base}", "phrase": "", "tags": [], "tables": []},
+    "region": {"pattern": "{base} by Region", "phrase": "split by sales region", "tags": ["region"], "tables": ["dim_region"]},
+    "dealer": {"pattern": "{base} by Dealer", "phrase": "for each dealership", "tags": ["dealer"], "tables": ["dim_dealer"]},
+    "model": {"pattern": "{base} by Model", "phrase": "per vehicle model", "tags": ["model"], "tables": ["dim_vehicle"]},
+    "segment": {"pattern": "{base} by Customer Segment", "phrase": "per customer segment", "tags": ["customers"], "tables": ["dim_customer"]},
+    "category": {"pattern": "{base} by Part Category", "phrase": "per part category", "tags": ["part category"], "tables": ["dim_part"]},
+    "warehouse": {"pattern": "{base} by Warehouse", "phrase": "for each warehouse", "tags": ["warehouse"], "tables": ["dim_warehouse"]},
+    "supplier": {"pattern": "{base} by Supplier", "phrase": "per supplier", "tags": ["suppliers"], "tables": ["dim_supplier"]},
+    "campaign": {"pattern": "{base} by Campaign", "phrase": "for each marketing campaign", "tags": ["campaigns"], "tables": ["dim_campaign"]},
+    "weekly": {"pattern": "Weekly {base}", "phrase": "on a weekly basis", "tags": ["weekly"], "tables": ["dim_date"]},
+    "monthly": {"pattern": "Monthly {base}", "phrase": "month by month", "tags": ["monthly"], "tables": ["dim_date"]},
+    "yoy": {"pattern": "{base} YoY", "phrase": "compared with the same period last year", "tags": ["YoY"], "tables": ["dim_date"]},
+    "mtd": {"pattern": "{base} MTD", "phrase": "for the month to date", "tags": ["MTD"], "tables": ["dim_date"]},
+    "exec": {"pattern": "{base} Executive Summary", "phrase": "summarised for the leadership team", "tags": ["executive"], "tables": [], "no_format": true},
+    "trend": {"pattern": "{base} Trend", "phrase": "as a rolling 13-month trend", "tags": ["trend"], "tables": ["dim_date"], "no_format": true}
+  },
+  "description_templates": [
+    "Shows {measure}{q}.",
+    "Tracks {measure}{q}. Used by {audience} in their {cadence} review.",
+    "{Measure}{q}, with drill-down to {drill}.",
+    "Summary of {measure}{q}. Refreshed {refresh} from the data warehouse.",
+    "{Measure}{q}. Built for {audience}, with filters for period and {filter}.",
+    "Helps {audience} follow {measure}{q} and spot problems early."
+  ],
+  "template_fillers": {
+    "cadence": ["weekly", "monthly", "quarterly"],
+    "refresh": ["daily", "every morning", "overnight", "every hour"],
+    "filter": ["region", "dealer", "model", "channel"]
+  },
+  "vague_descriptions": [
+    "Legacy view. Ask the owner for context.",
+    "Copied from an older workspace. Description to be added.",
+    "Built for a one-off leadership request; see the owner.",
+    "Work in progress. Numbers not yet validated.",
+    "Internal view for the team. Contact the owner before sharing.",
+    "TBD",
+    "Old layout kept for reference."
+  ],
+  "near_duplicate_variants": [
+    {
+      "key": "regional", "suffix": " – Regional", "exclude_qualifiers": ["region"],
+      "description": "Regional version for area managers: {measure} split by sales region, one page per region.",
+      "tags": ["region"], "tables": ["dim_region"]
+    },
+    {
+      "key": "detail", "suffix": " – Detail",
+      "description": "Record-level detail behind the summary view of {measure}, one row per transaction, meant for analysts who export data.",
+      "tags": ["detail"], "tables": []
+    },
+    {
+      "key": "extended", "suffix": " (Extended)",
+      "description": "Extended edition covering {measure} with a longer history back to 2019 and extra columns for analysts.",
+      "tags": ["history"], "tables": []
+    },
+    {
+      "key": "area_managers", "suffix": " – Area Managers", "exclude_qualifiers": ["region"],
+      "description": "Cut-down view of {measure} for area managers, limited to the dealers in their own territory.",
+      "tags": ["area managers"], "tables": ["dim_dealer"]
+    },
+    {
+      "key": "drilldown", "suffix": " – Drilldown",
+      "description": "Companion page that lets users click from the headline figures on {measure} into individual dealers and orders.",
+      "tags": ["drilldown"], "tables": []
+    }
+  ],
+  "replacement_suffixes": [" v2", " 2.0", " (New)", " – Rebuilt"],
+  "replacement_description": "Rebuilt version on the current warehouse tables: {measure}{q}. Replaces the earlier report of the same name.",
+  "subjects": [
+    {
+      "key": "dealer_sales_performance", "department": "Sales", "name": "Dealer Sales Performance", "n_reports": 6,
+      "measures": ["new vehicle sales volume and revenue against target for every dealership", "how many cars each dealer sells compared with its plan"],
+      "audiences": ["area sales managers", "the dealer development team"],
+      "drill": ["individual salespeople", "model lines"],
+      "tags": ["sales", "dealers", "targets"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_dealer", "dim_date"], "intermediates": ["int_vehicle_sales_enriched"],
+      "qualifiers": ["none", "region", "model", "weekly", "monthly", "yoy", "mtd", "exec"]
+    },
+    {
+      "key": "new_vehicle_sales", "department": "Sales", "name": "New Vehicle Sales", "n_reports": 6,
+      "measures": ["invoiced new car units and registrations", "the number of brand-new vehicles handed over to customers"],
+      "audiences": ["the sales leadership team", "product planners"],
+      "drill": ["trim levels", "individual deals"],
+      "tags": ["sales", "new vehicles", "registrations"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_vehicle", "dim_date"], "intermediates": ["int_vehicle_sales_enriched"],
+      "qualifiers": ["none", "region", "dealer", "model", "weekly", "monthly", "yoy", "mtd", "trend"]
+    },
+    {
+      "key": "used_vehicle_sales", "department": "Sales", "name": "Used Car Sales", "n_reports": 5,
+      "measures": ["certified pre-owned and used car sales volume and margin", "second-hand vehicle deals and the profit they make"],
+      "audiences": ["used car managers", "the remarketing team"],
+      "drill": ["stock age bands", "vehicle age"],
+      "tags": ["used cars", "remarketing", "margin"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_vehicle", "dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "monthly", "trend"]
+    },
+    {
+      "key": "sales_pipeline", "department": "Sales", "name": "Sales Pipeline", "n_reports": 6,
+      "measures": ["open sales opportunities by stage with their expected close dates", "deals that are still being negotiated and how likely they are to close"],
+      "audiences": ["sales managers", "the forecasting team"],
+      "drill": ["single opportunities", "salespeople"],
+      "tags": ["pipeline", "opportunities", "forecast"], "abbrev_tags": [],
+      "facts": ["fct_opportunities"], "dims": ["dim_dealer", "dim_date"], "intermediates": ["int_opportunities_pipeline"],
+      "qualifiers": ["none", "region", "dealer", "weekly", "monthly", "exec", "trend"]
+    },
+    {
+      "key": "lead_conversion", "department": "Sales", "name": "Lead Conversion", "n_reports": 6,
+      "measures": ["how enquiries turn into test drives, quotes and signed orders", "the share of sales leads that end in a purchase"],
+      "audiences": ["dealer principals", "the CRM team"],
+      "drill": ["lead sources", "individual leads"],
+      "tags": ["leads", "conversion", "funnel"], "abbrev_tags": [],
+      "facts": ["fct_leads", "fct_opportunities"], "dims": ["dim_dealer", "dim_campaign", "dim_date"], "intermediates": ["int_leads_scored"],
+      "qualifiers": ["none", "region", "dealer", "campaign", "weekly", "monthly", "trend"]
+    },
+    {
+      "key": "fleet_sales", "department": "Sales", "name": "Fleet Sales", "n_reports": 5,
+      "measures": ["volume and discount levels on corporate and rental fleet deals", "sales to business customers that buy vehicles in bulk"],
+      "audiences": ["fleet account managers", "the fleet sales director"],
+      "drill": ["fleet accounts", "contract terms"],
+      "tags": ["fleet", "B2B", "discounts"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_customer", "dim_vehicle"], "intermediates": [],
+      "qualifiers": ["none", "model", "segment", "monthly", "yoy", "exec"]
+    },
+    {
+      "key": "pricing_discounts", "department": "Sales", "name": "Pricing and Discounts", "n_reports": 5,
+      "measures": ["transaction prices, incentive spend and discount depth versus list price", "how far below list price cars are actually sold"],
+      "audiences": ["pricing analysts", "the sales director"],
+      "drill": ["individual invoices", "incentive programmes"],
+      "tags": ["pricing", "discounts", "incentives"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_vehicle", "dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "monthly", "trend"]
+    },
+    {
+      "key": "order_bank", "department": "Sales", "name": "Order Bank", "n_reports": 5,
+      "measures": ["customer orders placed but not yet delivered, with how long each has been waiting", "sold vehicles that are still waiting for production or transport"],
+      "audiences": ["sales operations", "the logistics desk"],
+      "drill": ["order numbers", "expected build weeks"],
+      "tags": ["orders", "backlog", "delivery"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_vehicle", "dim_dealer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "weekly"]
+    },
+    {
+      "key": "service_retention", "department": "Aftersales", "name": "Service Retention", "n_reports": 6,
+      "measures": ["the share of vehicle owners who come back to the dealer network for scheduled maintenance", "how many customers keep servicing their car with us after the sale"],
+      "audiences": ["aftersales area managers", "dealer service managers"],
+      "drill": ["vehicle age bands", "individual dealers"],
+      "tags": ["service", "retention", "loyalty"], "abbrev_tags": [],
+      "facts": ["fct_service_orders"], "dims": ["dim_customer", "dim_dealer", "dim_date"], "intermediates": ["int_service_retention_base"],
+      "qualifiers": ["none", "region", "dealer", "model", "monthly", "yoy", "trend"]
+    },
+    {
+      "key": "workshop_productivity", "department": "Aftersales", "name": "Workshop Productivity", "n_reports": 6,
+      "measures": ["technician hours sold versus hours available in each workshop", "how efficiently workshop time is turned into billed labour"],
+      "audiences": ["service managers", "the aftersales operations lead"],
+      "drill": ["technician teams", "labour operation codes"],
+      "tags": ["workshop", "productivity", "labour"], "abbrev_tags": [],
+      "facts": ["fct_service_orders"], "dims": ["dim_dealer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "weekly", "monthly", "trend", "exec"]
+    },
+    {
+      "key": "repair_order_revenue", "department": "Aftersales", "name": "Repair Order Revenue", "n_reports": 5,
+      "measures": ["labour and parts revenue on each workshop visit", "what customers spend when they bring their car in for repair"],
+      "audiences": ["dealer service managers", "the aftersales finance partner"],
+      "drill": ["service types", "repair orders"],
+      "tags": ["service", "revenue", "repair orders"], "abbrev_tags": [],
+      "facts": ["fct_service_orders", "fct_parts_sales"], "dims": ["dim_dealer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "monthly", "yoy", "mtd"]
+    },
+    {
+      "key": "warranty_claims", "department": "Aftersales", "name": "Warranty Claims", "n_reports": 6,
+      "measures": ["submitted, approved and rejected warranty claims and what they cost", "repairs paid for under the manufacturer warranty"],
+      "audiences": ["the warranty team", "quality engineers"],
+      "drill": ["failure codes", "individual claims"],
+      "tags": ["warranty", "claims", "quality"], "abbrev_tags": [],
+      "facts": ["fct_warranty_claims"], "dims": ["dim_vehicle", "dim_dealer", "dim_supplier"], "intermediates": ["int_warranty_claims_enriched"],
+      "qualifiers": ["none", "dealer", "model", "supplier", "monthly", "trend", "exec"]
+    },
+    {
+      "key": "recall_campaigns", "department": "Aftersales", "name": "Recall Campaign Progress", "n_reports": 5,
+      "measures": ["completion of safety recalls across affected vehicles", "how many recalled cars have already had the fix applied"],
+      "audiences": ["the technical quality team", "dealer service managers"],
+      "drill": ["recall codes", "affected VINs"],
+      "tags": ["recalls", "safety", "quality"], "abbrev_tags": [],
+      "facts": ["fct_recalls"], "dims": ["dim_vehicle", "dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "weekly", "exec"]
+    },
+    {
+      "key": "first_time_fix", "department": "Aftersales", "name": "First Time Fix", "n_reports": 5,
+      "measures": ["repairs completed correctly on the first visit without a comeback", "how often a car has to return for the same fault"],
+      "audiences": ["field service engineers", "workshop foremen"],
+      "drill": ["fault codes", "technician teams"],
+      "tags": ["service quality", "comebacks"], "abbrev_tags": ["FTFR"],
+      "facts": ["fct_service_orders"], "dims": ["dim_dealer", "dim_vehicle"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "monthly", "trend"]
+    },
+    {
+      "key": "customer_satisfaction", "department": "Aftersales", "name": "Customer Satisfaction", "n_reports": 5,
+      "measures": ["post-visit survey scores and customer comments", "how happy customers are after buying or servicing a car"],
+      "audiences": ["the customer care team", "dealer principals"],
+      "drill": ["survey questions", "verbatim comments"],
+      "tags": ["surveys", "customer experience"], "abbrev_tags": ["CSAT"],
+      "facts": ["fct_customer_surveys"], "dims": ["dim_dealer", "dim_customer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "monthly", "yoy", "trend"]
+    },
+    {
+      "key": "service_bookings", "department": "Aftersales", "name": "Service Bookings", "n_reports": 5,
+      "measures": ["workshop appointments booked online and by phone, including no-shows", "how customers book service visits and whether they turn up"],
+      "audiences": ["contact centre leads", "service advisors"],
+      "drill": ["booking channels", "time slots"],
+      "tags": ["bookings", "service", "appointments"], "abbrev_tags": [],
+      "facts": ["fct_service_orders", "fct_web_traffic"], "dims": ["dim_dealer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "weekly", "monthly"]
+    },
+    {
+      "key": "parts_fill_rate", "department": "Supply Chain", "name": "Parts Fill Rate", "n_reports": 5,
+      "measures": ["order lines shipped complete from stock on the first attempt", "how often dealers get every part they ordered straight away"],
+      "audiences": ["parts logistics managers", "warehouse supervisors"],
+      "drill": ["part numbers", "order lines"],
+      "tags": ["parts", "availability", "service level"], "abbrev_tags": [],
+      "facts": ["fct_parts_sales", "fct_inventory_snapshot"], "dims": ["dim_part", "dim_warehouse"], "intermediates": [],
+      "qualifiers": ["none", "warehouse", "category", "dealer", "weekly", "monthly", "trend"]
+    },
+    {
+      "key": "parts_inventory", "department": "Supply Chain", "name": "Parts Inventory Health", "n_reports": 5,
+      "measures": ["stock value, ageing and slow-moving parts in the warehouses", "which parts are piling up on the shelves and what they are worth"],
+      "audiences": ["inventory planners", "the finance controller"],
+      "drill": ["bin locations", "part numbers"],
+      "tags": ["inventory", "stock", "ageing"], "abbrev_tags": [],
+      "facts": ["fct_inventory_snapshot"], "dims": ["dim_part", "dim_warehouse", "dim_date"], "intermediates": ["int_inventory_daily"],
+      "qualifiers": ["none", "warehouse", "category", "monthly", "trend", "exec"]
+    },
+    {
+      "key": "parts_sales", "department": "Supply Chain", "name": "Parts Sales", "n_reports": 5,
+      "measures": ["wholesale and retail parts revenue and margin", "income from selling parts and accessories to dealers and workshops"],
+      "audiences": ["parts sales managers", "the supply chain director"],
+      "drill": ["part categories", "trade customers"],
+      "tags": ["parts", "revenue"], "abbrev_tags": ["AOV"],
+      "facts": ["fct_parts_sales"], "dims": ["dim_part", "dim_dealer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "category", "monthly", "yoy", "mtd"]
+    },
+    {
+      "key": "backorders", "department": "Supply Chain", "name": "Backorder Monitor", "n_reports": 4, "no_format": true,
+      "measures": ["parts orders waiting on supplier stock and their expected arrival", "dealer orders that cannot be shipped yet because the part is missing"],
+      "audiences": ["the parts hotline", "buyers"],
+      "drill": ["supplier purchase orders", "dealer orders"],
+      "tags": ["backorders", "parts", "suppliers"], "abbrev_tags": [],
+      "facts": ["fct_parts_sales", "fct_purchase_orders"], "dims": ["dim_part", "dim_supplier"], "intermediates": [],
+      "qualifiers": ["none", "dealer", "supplier", "category", "weekly"]
+    },
+    {
+      "key": "supplier_performance", "department": "Supply Chain", "name": "Supplier Performance", "n_reports": 5,
+      "measures": ["supplier lead times, on-time delivery and quality issues", "how reliably our vendors deliver what we order"],
+      "audiences": ["the procurement team", "supplier quality engineers"],
+      "drill": ["purchase orders", "supplier sites"],
+      "tags": ["suppliers", "procurement", "lead time"], "abbrev_tags": ["OTD"],
+      "facts": ["fct_purchase_orders"], "dims": ["dim_supplier", "dim_part", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "category", "monthly", "yoy", "trend", "exec"]
+    },
+    {
+      "key": "vehicle_logistics", "department": "Supply Chain", "name": "Vehicle Logistics", "n_reports": 5,
+      "measures": ["transport time from port to dealer and late deliveries", "how long new cars take to reach the showroom once they land"],
+      "audiences": ["the logistics desk", "dealer network managers"],
+      "drill": ["carriers", "routes"],
+      "tags": ["logistics", "delivery", "transport"], "abbrev_tags": ["OTD"],
+      "facts": ["fct_shipments"], "dims": ["dim_dealer", "dim_vehicle", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "weekly", "monthly"]
+    },
+    {
+      "key": "returns", "department": "Supply Chain", "name": "Parts Returns", "n_reports": 5,
+      "measures": ["returned parts, the reasons for return and the credit notes issued", "parts that dealers send back and why"],
+      "audiences": ["the returns desk", "warehouse supervisors"],
+      "drill": ["return reason codes", "credit notes"],
+      "tags": ["returns", "parts", "credits"], "abbrev_tags": [],
+      "facts": ["fct_returns"], "dims": ["dim_part", "dim_region", "dim_dealer"], "intermediates": ["int_returns_lines"],
+      "qualifiers": ["none", "region", "dealer", "category", "monthly", "trend"]
+    },
+    {
+      "key": "gross_margin", "department": "Finance", "name": "Gross Margin", "n_reports": 5,
+      "measures": ["revenue minus cost of sales across vehicles, parts and service", "how much profit is left after paying for the goods we sell"],
+      "audiences": ["the finance leadership team", "business controllers"],
+      "drill": ["business lines", "cost centers"],
+      "tags": ["margin", "profitability", "finance"], "abbrev_tags": ["GM"],
+      "facts": ["fct_gl_margin", "fct_vehicle_sales"], "dims": ["dim_region", "dim_date"], "intermediates": ["int_gl_margin_lines"],
+      "qualifiers": ["none", "region", "model", "monthly", "yoy", "mtd", "exec"]
+    },
+    {
+      "key": "pnl", "department": "Finance", "name": "Profit and Loss", "n_reports": 5,
+      "measures": ["income statement lines from revenue down to operating profit", "the monthly P&L for every cost center"],
+      "audiences": ["the financial controller", "department heads"],
+      "drill": ["general ledger accounts", "cost centers"],
+      "tags": ["P&L", "finance", "month end"], "abbrev_tags": [],
+      "facts": ["fct_gl_margin"], "dims": ["dim_date", "dim_region"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "mtd", "exec"]
+    },
+    {
+      "key": "budget_vs_actual", "department": "Finance", "name": "Budget vs Actual", "n_reports": 5,
+      "measures": ["spend and revenue against the approved 2026 budget", "where we are over or under plan this year"],
+      "audiences": ["budget holders", "the FP&A team"],
+      "drill": ["cost centers", "accounts"],
+      "tags": ["budget", "variance", "planning"], "abbrev_tags": [],
+      "facts": ["fct_budget_2026", "fct_gl_margin"], "dims": ["dim_region", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "mtd", "exec"]
+    },
+    {
+      "key": "opex", "department": "Finance", "name": "Operating Expenses", "n_reports": 4,
+      "measures": ["operating costs by cost center and expense category", "what each department spends to keep the business running"],
+      "audiences": ["department heads", "cost accountants"],
+      "drill": ["expense categories", "invoices"],
+      "tags": ["opex", "costs"], "abbrev_tags": [],
+      "facts": ["fct_gl_margin"], "dims": ["dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "trend"]
+    },
+    {
+      "key": "dealer_profitability", "department": "Finance", "name": "Dealer Profitability", "n_reports": 4,
+      "measures": ["net profit contribution of each dealership after incentives and support", "which dealers make money for the network and which do not"],
+      "audiences": ["the dealer development team", "the finance director"],
+      "drill": ["income lines", "incentive payments"],
+      "tags": ["dealers", "profitability"], "abbrev_tags": [],
+      "facts": ["fct_gl_margin", "fct_vehicle_sales"], "dims": ["dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "exec"]
+    },
+    {
+      "key": "cash_collections", "department": "Finance", "name": "Receivables and Collections", "n_reports": 4,
+      "measures": ["outstanding invoices, days sales outstanding and overdue balances", "money customers still owe us and how late they are paying"],
+      "audiences": ["credit controllers", "the treasury team"],
+      "drill": ["customer accounts", "invoices"],
+      "tags": ["receivables", "cash", "collections"], "abbrev_tags": ["DSO"],
+      "facts": ["fct_gl_margin"], "dims": ["dim_customer", "dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "segment", "weekly", "monthly"]
+    },
+    {
+      "key": "revenue_summary", "department": "Finance", "name": "Revenue Summary", "n_reports": 4, "no_format": true,
+      "measures": ["total company revenue across vehicles, parts and service", "the top-line income of the whole business"],
+      "audiences": ["the executive team", "investor relations"],
+      "drill": ["business lines", "months"],
+      "tags": ["revenue", "finance"], "abbrev_tags": [],
+      "facts": ["fct_gl_margin", "fct_vehicle_sales", "fct_service_orders"], "dims": ["dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "mtd", "trend"]
+    },
+    {
+      "key": "campaign_performance", "department": "Marketing", "name": "Campaign Performance", "n_reports": 5,
+      "measures": ["reach, clicks, leads and spend for each marketing campaign", "what our advertising campaigns deliver for the money spent"],
+      "audiences": ["campaign managers", "the media agency"],
+      "drill": ["ad groups", "channels"],
+      "tags": ["campaigns", "media", "leads"], "abbrev_tags": ["CPL"],
+      "facts": ["fct_campaign_performance"], "dims": ["dim_campaign", "dim_date"], "intermediates": ["int_campaign_touchpoints"],
+      "qualifiers": ["none", "region", "weekly", "monthly", "mtd", "trend", "exec"]
+    },
+    {
+      "key": "web_traffic", "department": "Marketing", "name": "Website Traffic", "n_reports": 5,
+      "measures": ["visits, configurator usage and enquiry forms on the website", "how people use our website and online car builder"],
+      "audiences": ["the digital marketing team", "the web product owner"],
+      "drill": ["landing pages", "traffic sources"],
+      "tags": ["web", "digital", "configurator"], "abbrev_tags": [],
+      "facts": ["fct_web_traffic"], "dims": ["dim_date", "dim_campaign"], "intermediates": [],
+      "qualifiers": ["none", "campaign", "weekly", "monthly", "yoy", "trend"]
+    },
+    {
+      "key": "brand_nps", "department": "Marketing", "name": "Net Promoter Score", "n_reports": 4,
+      "measures": ["how likely customers are to recommend the brand to friends", "the balance of promoters and detractors among our customers"],
+      "audiences": ["the brand team", "the executive team"],
+      "drill": ["survey waves", "customer comments"],
+      "tags": ["brand", "surveys", "loyalty"], "abbrev_tags": ["NPS"],
+      "facts": ["fct_customer_surveys"], "dims": ["dim_customer", "dim_region"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "segment", "monthly", "trend"]
+    },
+    {
+      "key": "marketing_roi", "department": "Marketing", "name": "Marketing Return on Investment", "n_reports": 4,
+      "measures": ["vehicle revenue credited to marketing spend", "how much revenue each marketing channel brings back"],
+      "audiences": ["the head of marketing", "the finance business partner"],
+      "drill": ["channels", "campaigns"],
+      "tags": ["ROI", "media spend"], "abbrev_tags": ["ROAS"],
+      "facts": ["fct_campaign_performance", "fct_vehicle_sales"], "dims": ["dim_campaign"], "intermediates": [],
+      "qualifiers": ["none", "campaign", "monthly", "yoy", "exec"]
+    },
+    {
+      "key": "customer_segments", "department": "Marketing", "name": "Customer Segmentation", "n_reports": 5,
+      "measures": ["customer groups by age, vehicle type and buying behaviour", "who our buyers are and what they tend to purchase"],
+      "audiences": ["CRM specialists", "the market research team"],
+      "drill": ["segments", "postal areas"],
+      "tags": ["customers", "segmentation", "CRM"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_customer", "dim_vehicle"], "intermediates": [],
+      "qualifiers": ["none", "region", "model", "monthly", "trend"]
+    },
+    {
+      "key": "event_leads", "department": "Marketing", "name": "Event and Showroom Leads", "n_reports": 4,
+      "measures": ["leads captured at motor shows, events and showroom visits", "enquiries collected face to face rather than online"],
+      "audiences": ["the events team", "dealer marketing coordinators"],
+      "drill": ["events", "lead records"],
+      "tags": ["events", "leads", "showroom"], "abbrev_tags": [],
+      "facts": ["fct_leads"], "dims": ["dim_campaign", "dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "monthly", "exec"]
+    },
+    {
+      "key": "executive_kpis", "department": "Operations", "name": "Executive KPI Pack", "n_reports": 5, "no_format": true,
+      "measures": ["the headline company KPIs for the leadership team", "one page of the most important numbers across sales, service and finance"],
+      "audiences": ["the executive board", "the COO office"],
+      "drill": ["business areas", "months"],
+      "tags": ["executive", "KPIs", "leadership"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales", "fct_gl_margin", "fct_service_orders"], "dims": ["dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "weekly", "monthly", "yoy", "mtd"]
+    },
+    {
+      "key": "dealer_network", "department": "Operations", "name": "Dealer Network Overview", "n_reports": 4, "no_format": true,
+      "measures": ["dealer count, openings, closures and standards compliance", "how the dealer network is changing over time"],
+      "audiences": ["network development managers", "the operations team"],
+      "drill": ["dealer sites", "standards audits"],
+      "tags": ["dealers", "network"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales"], "dims": ["dim_dealer", "dim_region"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "exec"]
+    },
+    {
+      "key": "vehicle_stock", "department": "Operations", "name": "Vehicle Stock", "n_reports": 5,
+      "measures": ["new vehicles in stock at dealers and in the central compound, with days in stock", "how many unsold cars we hold and for how long"],
+      "audiences": ["stock controllers", "sales operations"],
+      "drill": ["VINs", "storage locations"],
+      "tags": ["stock", "inventory", "vehicles"], "abbrev_tags": [],
+      "facts": ["fct_inventory_snapshot"], "dims": ["dim_vehicle", "dim_dealer"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "model", "weekly", "trend"]
+    },
+    {
+      "key": "daily_operations", "department": "Operations", "name": "Daily Operations Summary", "n_reports": 4, "no_format": true,
+      "measures": ["daily volumes, backlogs and exceptions across sales, service and logistics", "what happened yesterday across the business and what needs attention"],
+      "audiences": ["the operations control room", "duty managers"],
+      "drill": ["exception lists", "hubs"],
+      "tags": ["operations", "daily", "exceptions"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales", "fct_service_orders", "fct_shipments"], "dims": ["dim_date"], "intermediates": [],
+      "qualifiers": ["none", "region", "dealer", "exec"]
+    },
+    {
+      "key": "data_quality", "department": "Data & Analytics", "name": "Data Quality Monitor", "n_reports": 5, "no_format": true,
+      "measures": ["failed data tests, null rates and freshness of the warehouse tables", "whether the data behind our reports can be trusted today"],
+      "audiences": ["data engineers", "BI developers"],
+      "drill": ["individual tests", "table loads"],
+      "tags": ["data quality", "monitoring", "freshness"], "abbrev_tags": [],
+      "facts": [], "dims": [], "intermediates": ["int_vehicle_sales_enriched", "int_service_orders_enriched", "int_customer_profiles", "int_parts_sales_lines"],
+      "qualifiers": ["none", "weekly", "monthly", "trend", "exec"]
+    },
+    {
+      "key": "customer_360", "department": "Data & Analytics", "name": "Customer 360", "n_reports": 4,
+      "measures": ["everything we know about a customer across sales, service and marketing", "a single view of each customer's vehicles, visits and contacts"],
+      "audiences": ["the contact centre", "CRM specialists"],
+      "drill": ["customer records", "vehicles owned"],
+      "tags": ["customers", "CRM", "single view"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales", "fct_service_orders"], "dims": ["dim_customer"], "intermediates": [],
+      "qualifiers": ["none", "region", "segment", "exec"]
+    },
+    {
+      "key": "dealer_benchmark", "department": "Data & Analytics", "name": "Dealer Benchmarking", "n_reports": 5,
+      "measures": ["dealers compared with their peers on sales, service and satisfaction", "a league table that ranks dealers of similar size"],
+      "audiences": ["area managers", "dealer principals"],
+      "drill": ["KPI definitions", "peer groups"],
+      "tags": ["dealers", "benchmark", "league table"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales", "fct_service_orders", "fct_customer_surveys"], "dims": ["dim_dealer", "dim_region"], "intermediates": [],
+      "qualifiers": ["none", "region", "monthly", "yoy", "exec", "trend"]
+    },
+    {
+      "key": "forecast_inputs", "department": "Data & Analytics", "name": "Demand Forecast Inputs", "n_reports": 4,
+      "measures": ["historic sales, stock and order data prepared for the demand forecast", "the numbers the forecasting model uses to predict future orders"],
+      "audiences": ["demand planners", "data scientists"],
+      "drill": ["model features", "forecast runs"],
+      "tags": ["forecast", "planning", "demand"], "abbrev_tags": [],
+      "facts": ["fct_vehicle_sales", "fct_inventory_snapshot"], "dims": ["dim_vehicle", "dim_date"], "intermediates": ["int_vehicle_sales_enriched"],
+      "qualifiers": ["none", "region", "model", "monthly", "weekly"]
+    }
+  ]
+}

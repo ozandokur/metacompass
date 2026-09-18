@@ -1,0 +1,127 @@
+{
+  "company": "Northwind Motors",
+  "regions": ["North", "South", "East", "West", "Central"],
+  "source_systems": {
+    "DMS": "dealer management system",
+    "ERP": "ERP finance and procurement system",
+    "CRM": "customer relationship management system",
+    "WMS": "parts warehouse management system",
+    "WARRANTY": "warranty and recall system",
+    "WEB": "website and digital marketing platform"
+  },
+  "shared_workspace": "Self-Service Sandbox",
+  "departments": [
+    {
+      "name": "Operations",
+      "size": 8,
+      "team_leads": 1,
+      "head_title": "Chief Operating Officer",
+      "lead_titles": ["Operations Manager"],
+      "member_titles": [
+        "Operations Analyst",
+        "Business Process Specialist",
+        "Network Development Manager",
+        "Program Manager",
+        "Dealer Standards Coordinator"
+      ],
+      "workspaces": ["Operations Control Tower", "Executive Reporting"]
+    },
+    {
+      "name": "Sales",
+      "size": 22,
+      "team_leads": 3,
+      "head_title": "Head of Sales",
+      "lead_titles": ["Regional Sales Director", "Fleet Sales Director", "Sales Operations Lead"],
+      "member_titles": [
+        "Regional Sales Manager",
+        "Area Sales Manager",
+        "Sales Analyst",
+        "Dealer Development Manager",
+        "Sales Operations Specialist",
+        "Fleet Account Manager",
+        "Pricing Analyst"
+      ],
+      "workspaces": ["Sales Performance", "Dealer Network"]
+    },
+    {
+      "name": "Aftersales",
+      "size": 20,
+      "team_leads": 3,
+      "head_title": "Head of Aftersales",
+      "lead_titles": ["Service Operations Lead", "Warranty Manager", "Customer Care Lead"],
+      "member_titles": [
+        "Service Performance Analyst",
+        "Field Service Engineer",
+        "Warranty Analyst",
+        "Technical Quality Specialist",
+        "Customer Experience Analyst",
+        "Service Marketing Specialist"
+      ],
+      "workspaces": ["Aftersales & Service"]
+    },
+    {
+      "name": "Finance",
+      "size": 14,
+      "team_leads": 2,
+      "head_title": "Head of Finance",
+      "lead_titles": ["Financial Controller", "FP&A Lead"],
+      "member_titles": [
+        "Financial Analyst",
+        "Management Accountant",
+        "Credit Controller",
+        "FP&A Analyst",
+        "Cost Accountant"
+      ],
+      "workspaces": ["Finance Reporting", "Executive Reporting"]
+    },
+    {
+      "name": "Marketing",
+      "size": 14,
+      "team_leads": 2,
+      "head_title": "Head of Marketing",
+      "lead_titles": ["Digital Marketing Lead", "Brand and Events Lead"],
+      "member_titles": [
+        "Marketing Analyst",
+        "Campaign Manager",
+        "CRM Specialist",
+        "Digital Marketing Specialist",
+        "Events Coordinator",
+        "Market Research Analyst"
+      ],
+      "workspaces": ["Marketing Insights"]
+    },
+    {
+      "name": "Supply Chain",
+      "size": 16,
+      "team_leads": 2,
+      "head_title": "Head of Supply Chain",
+      "lead_titles": ["Parts Logistics Lead", "Procurement Lead"],
+      "member_titles": [
+        "Supply Chain Analyst",
+        "Inventory Planner",
+        "Demand Planner",
+        "Buyer",
+        "Logistics Coordinator",
+        "Warehouse Operations Analyst"
+      ],
+      "workspaces": ["Supply Chain & Parts"]
+    },
+    {
+      "name": "Data & Analytics",
+      "size": 26,
+      "team_leads": 3,
+      "head_title": "Head of Data & Analytics",
+      "lead_titles": ["Data Platform Lead", "Analytics Engineering Lead", "BI Lead"],
+      "member_titles": [
+        "Data Engineer",
+        "Senior Data Engineer",
+        "Analytics Engineer",
+        "BI Developer",
+        "Data Analyst",
+        "Senior Data Analyst",
+        "Data Scientist"
+      ],
+      "workspaces": ["Data Platform Monitoring"]
+    }
+  ]
+}

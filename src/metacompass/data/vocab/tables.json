@@ -1,0 +1,486 @@
+{
+  "_comment": "Warehouse tables in ID order: staging (TBL-001..030), intermediate (031..055), mart (056..080). Parents are listed as [parent_name, transform_type]; an intermediate may only have intermediate parents that appear earlier in this list. owner_department marks the tables owned outside Data & Analytics.",
+  "mart_domains": {
+    "dim_customer": "core", "dim_vehicle": "core", "dim_dealer": "core", "dim_region": "core",
+    "dim_date": "core", "dim_part": "core", "dim_campaign": "core", "dim_warehouse": "core",
+    "dim_supplier": "core",
+    "fct_vehicle_sales": "sales", "fct_leads": "sales", "fct_opportunities": "sales",
+    "fct_service_orders": "service", "fct_warranty_claims": "service", "fct_recalls": "service",
+    "fct_customer_surveys": "service",
+    "fct_parts_sales": "parts", "fct_returns": "parts", "fct_inventory_snapshot": "parts",
+    "fct_budget_2026": "finance", "fct_gl_margin": "finance",
+    "fct_campaign_performance": "marketing", "fct_web_traffic": "marketing",
+    "fct_shipments": "supply_chain", "fct_purchase_orders": "supply_chain"
+  },
+  "tables": [
+    {
+      "name": "stg_dms_vehicle_sales", "layer": "staging", "source_system": "DMS",
+      "description": "Raw vehicle sales transactions exported nightly from the dealer management system, one row per signed sale.",
+      "columns": ["sale_id", "dealer_code", "vin", "customer_id", "model_code", "sale_date", "sale_type", "list_price", "invoice_price", "discount_amount", "salesperson_code", "loaded_at"]
+    },
+    {
+      "name": "stg_dms_service_orders", "layer": "staging", "source_system": "DMS",
+      "description": "Workshop repair orders as recorded by dealers, including labour hours and parts charged.",
+      "columns": ["repair_order_id", "dealer_code", "vin", "customer_id", "opened_at", "closed_at", "service_type", "labor_hours", "labor_amount", "parts_amount", "is_warranty", "loaded_at"]
+    },
+    {
+      "name": "stg_dms_dealers", "layer": "staging", "source_system": "DMS", "owner_department": "Sales",
+      "description": "Dealer master data from the dealer management system: codes, locations, tier and opening dates.",
+      "columns": ["dealer_code", "dealer_name", "city", "region_code", "dealer_tier", "opened_date", "closed_date", "loaded_at"],
+      "row_count": 196, "update_frequency": "daily"
+    },
+    {
+      "name": "stg_dms_vehicle_stock", "layer": "staging", "source_system": "DMS",
+      "description": "Current new and demo vehicle stock held at each dealer, keyed by VIN.",
+      "columns": ["vin", "dealer_code", "model_code", "arrival_date", "stock_status", "is_demo", "loaded_at"]
+    },
+    {
+      "name": "stg_dms_model_catalog", "layer": "staging", "source_system": "DMS",
+      "description": "Vehicle model and trim catalog with list prices, as maintained in the dealer system.",
+      "columns": ["model_code", "model_name", "model_year", "body_type", "fuel_type", "trim_level", "list_price", "loaded_at"],
+      "row_count": 420, "update_frequency": "daily"
+    },
+    {
+      "name": "stg_erp_gl_entries", "layer": "staging", "source_system": "ERP", "owner_department": "Finance",
+      "description": "General ledger postings from the ERP, one row per journal line.",
+      "columns": ["gl_entry_id", "account_code", "cost_center_code", "posting_date", "amount", "currency_code", "document_type", "loaded_at"]
+    },
+    {
+      "name": "stg_erp_invoices", "layer": "staging", "source_system": "ERP",
+      "description": "Customer invoices and payment status from accounts receivable.",
+      "columns": ["invoice_id", "customer_account_id", "invoice_date", "due_date", "invoice_amount", "paid_amount", "invoice_status", "loaded_at"]
+    },
+    {
+      "name": "stg_erp_cost_centers", "layer": "staging", "source_system": "ERP",
+      "description": "Cost center master data with department and region assignment.",
+      "columns": ["cost_center_code", "cost_center_name", "department_code", "region_code", "parent_cost_center_code", "valid_from_date"],
+      "row_count": 180, "update_frequency": "weekly"
+    },
+    {
+      "name": "stg_erp_plan_lines", "layer": "staging", "source_system": "ERP", "owner_department": "Finance",
+      "description": "Approved plan lines from the 2026 planning cycle, loaded when the plan was signed off. Earlier and later planning cycles are not extracted.",
+      "columns": ["plan_line_id", "cost_center_code", "account_code", "plan_period", "planned_amount", "plan_version", "approved_at"],
+      "update_frequency": "monthly"
+    },
+    {
+      "name": "stg_erp_purchase_orders", "layer": "staging", "source_system": "ERP",
+      "description": "Purchase orders raised with parts suppliers, with promised and actual receipt dates.",
+      "columns": ["po_id", "supplier_id", "part_number", "order_date", "promised_date", "received_date", "order_qty", "unit_cost", "loaded_at"]
+    },
+    {
+      "name": "stg_crm_customers", "layer": "staging", "source_system": "CRM",
+      "description": "Private and business customers registered in the CRM.",
+      "columns": ["customer_id", "first_name", "last_name", "email_hash", "postal_code", "customer_type", "created_at", "loaded_at"]
+    },
+    {
+      "name": "stg_crm_leads", "layer": "staging", "source_system": "CRM",
+      "description": "Sales enquiries captured in the CRM from all channels.",
+      "columns": ["lead_id", "customer_id", "dealer_code", "lead_source", "model_interest", "created_at", "lead_status", "loaded_at"]
+    },
+    {
+      "name": "stg_crm_opportunities", "layer": "staging", "source_system": "CRM",
+      "description": "Sales opportunities with their current stage, expected value and loss reason.",
+      "columns": ["opportunity_id", "lead_id", "dealer_code", "stage", "expected_close_date", "expected_value_amount", "lost_reason", "updated_at"]
+    },
+    {
+      "name": "stg_crm_survey_responses", "layer": "staging", "source_system": "CRM", "owner_department": "Marketing",
+      "description": "Customer survey answers after purchase and after service visits, including free-text comments.",
+      "columns": ["survey_response_id", "customer_id", "dealer_code", "survey_type", "nps_score", "csat_score", "comment_text", "responded_at"]
+    },
+    {
+      "name": "stg_crm_test_drives", "layer": "staging", "source_system": "CRM",
+      "description": "Test drive appointments booked against leads.",
+      "columns": ["test_drive_id", "lead_id", "dealer_code", "model_code", "scheduled_at", "is_completed", "loaded_at"]
+    },
+    {
+      "name": "stg_wms_parts_stock", "layer": "staging", "source_system": "WMS", "owner_department": "Supply Chain",
+      "description": "Daily parts stock levels per warehouse bin from the warehouse management system.",
+      "columns": ["warehouse_code", "part_number", "on_hand_qty", "reserved_qty", "bin_location", "snapshot_date", "unit_cost"]
+    },
+    {
+      "name": "stg_wms_parts_orders", "layer": "staging", "source_system": "WMS",
+      "description": "Parts orders placed by dealers and trade customers, with shipped quantities.",
+      "columns": ["parts_order_id", "dealer_code", "part_number", "order_qty", "shipped_qty", "order_date", "ship_date", "order_channel", "loaded_at"]
+    },
+    {
+      "name": "stg_wms_parts_catalog", "layer": "staging", "source_system": "WMS",
+      "description": "Parts master catalog with category, supplier and list price.",
+      "columns": ["part_number", "part_description", "part_category", "supplier_id", "list_price", "is_obsolete", "loaded_at"],
+      "row_count": 52000, "update_frequency": "daily"
+    },
+    {
+      "name": "stg_wms_shipments", "layer": "staging", "source_system": "WMS",
+      "description": "Outbound vehicle and parts shipments with carrier, dispatch and delivery timestamps.",
+      "columns": ["shipment_id", "carrier_code", "origin_code", "destination_dealer_code", "shipped_at", "delivered_at", "vin", "damage_flag"]
+    },
+    {
+      "name": "stg_wms_returns", "layer": "staging", "source_system": "WMS",
+      "description": "Parts sent back by dealers, with reason code and credit amount.",
+      "columns": ["return_id", "parts_order_id", "part_number", "dealer_code", "return_reason_code", "return_qty", "credit_amount", "returned_date"]
+    },
+    {
+      "name": "stg_warranty_claims", "layer": "staging", "source_system": "WARRANTY", "owner_department": "Aftersales",
+      "description": "Warranty claims submitted by dealers, with claimed and approved amounts.",
+      "columns": ["claim_id", "vin", "dealer_code", "repair_order_id", "failure_code", "claim_date", "claimed_amount", "approved_amount", "claim_status"]
+    },
+    {
+      "name": "stg_warranty_repairs", "layer": "staging", "source_system": "WARRANTY",
+      "description": "Labour and parts lines attached to each warranty claim.",
+      "columns": ["repair_line_id", "claim_id", "labor_code", "part_number", "labor_hours", "parts_amount", "loaded_at"]
+    },
+    {
+      "name": "stg_warranty_recalls", "layer": "staging", "source_system": "WARRANTY",
+      "description": "Safety recall campaigns and the vehicles they apply to, with completion dates.",
+      "columns": ["recall_id", "recall_code", "vin", "issued_date", "completed_date", "recall_status"]
+    },
+    {
+      "name": "stg_warranty_labor_codes", "layer": "staging", "source_system": "WARRANTY",
+      "description": "Standard labour operation codes with their allowed hours.",
+      "columns": ["labor_code", "labor_description", "standard_hours", "component_group"],
+      "row_count": 2400, "update_frequency": "weekly"
+    },
+    {
+      "name": "stg_warranty_supplier_recovery", "layer": "staging", "source_system": "WARRANTY",
+      "description": "Amounts recovered from component suppliers for warranty repairs they are liable for.",
+      "columns": ["recovery_id", "claim_id", "supplier_id", "recovered_amount", "recovery_date", "recovery_status"]
+    },
+    {
+      "name": "stg_web_sessions", "layer": "staging", "source_system": "WEB",
+      "description": "Website visits from the analytics tag, one row per session.",
+      "columns": ["session_id", "visitor_id", "started_at", "ended_at", "landing_page", "traffic_source", "device_type", "page_views_count"]
+    },
+    {
+      "name": "stg_web_configurator_builds", "layer": "staging", "source_system": "WEB",
+      "description": "Vehicle builds started in the online configurator and the last step reached.",
+      "columns": ["build_id", "session_id", "model_code", "trim_level", "build_step", "is_completed", "created_at"]
+    },
+    {
+      "name": "stg_web_form_submissions", "layer": "staging", "source_system": "WEB",
+      "description": "Enquiry, brochure and test drive forms submitted on the website.",
+      "columns": ["submission_id", "session_id", "form_type", "dealer_code", "model_code", "submitted_at", "consent_flag"]
+    },
+    {
+      "name": "stg_web_campaign_clicks", "layer": "staging", "source_system": "WEB",
+      "description": "Paid media clicks with campaign code, channel and cost.",
+      "columns": ["click_id", "campaign_code", "channel", "clicked_at", "session_id", "cost_amount"]
+    },
+    {
+      "name": "stg_web_service_bookings", "layer": "staging", "source_system": "WEB",
+      "description": "Service appointments booked online or through the contact centre, with no-show flag.",
+      "columns": ["booking_id", "customer_id", "dealer_code", "booked_at", "appointment_date", "booking_channel", "is_no_show"]
+    },
+    {
+      "name": "int_region_mapping", "layer": "intermediate",
+      "description": "Maps every dealer and cost center to one of the five sales regions and its area manager.",
+      "columns": ["region_code", "region_name", "area_manager_code", "dealer_code", "cost_center_code"],
+      "parents": [["stg_dms_dealers", "clean"], ["stg_erp_cost_centers", "join"]],
+      "row_count": 196
+    },
+    {
+      "name": "int_calendar_spine", "layer": "intermediate",
+      "description": "Daily calendar with fiscal year, quarter and month, derived from ERP posting periods.",
+      "columns": ["calendar_date", "fiscal_year", "fiscal_quarter", "fiscal_month", "iso_week", "is_working_day"],
+      "parents": [["stg_erp_gl_entries", "aggregate"]],
+      "row_count": 4018, "update_frequency": "monthly"
+    },
+    {
+      "name": "int_dealer_attributes", "layer": "intermediate",
+      "description": "Cleaned dealer attributes with region, tier and workshop capacity.",
+      "columns": ["dealer_code", "dealer_name", "region_code", "dealer_tier", "opened_date", "is_active_dealer", "workshop_bays_count"],
+      "parents": [["stg_dms_dealers", "clean"], ["int_region_mapping", "join"]],
+      "row_count": 196
+    },
+    {
+      "name": "int_vehicle_catalog", "layer": "intermediate",
+      "description": "Deduplicated model and trim catalog with harmonised fuel and body types.",
+      "columns": ["model_code", "model_name", "model_year", "body_type", "fuel_type", "trim_level", "list_price"],
+      "parents": [["stg_dms_model_catalog", "clean"]],
+      "row_count": 410
+    },
+    {
+      "name": "int_customer_profiles", "layer": "intermediate",
+      "description": "One row per customer with type, home region and marketing consent.",
+      "columns": ["customer_id", "customer_type", "postal_code", "region_code", "first_seen_date", "marketing_consent_flag"],
+      "parents": [["stg_crm_customers", "clean"], ["stg_web_form_submissions", "join"]]
+    },
+    {
+      "name": "int_customer_vehicle_links", "layer": "intermediate",
+      "description": "Links customers to the vehicles they bought and the last time each vehicle was serviced.",
+      "columns": ["customer_id", "vin", "model_code", "purchase_date", "last_service_date", "ownership_status"],
+      "parents": [["stg_dms_vehicle_sales", "join"], ["stg_crm_customers", "join"], ["stg_dms_service_orders", "join"]]
+    },
+    {
+      "name": "int_vehicle_sales_enriched", "layer": "intermediate",
+      "description": "Vehicle sales joined with dealer, model and customer attributes, with net revenue and cost of sales.",
+      "columns": ["sale_id", "vin", "dealer_code", "region_code", "model_code", "customer_id", "sale_date", "sale_type", "list_price", "invoice_price", "discount_amount", "net_revenue", "cost_of_sales"],
+      "parents": [["stg_dms_vehicle_sales", "clean"], ["int_dealer_attributes", "join"], ["int_vehicle_catalog", "join"], ["int_customer_profiles", "join"]]
+    },
+    {
+      "name": "int_service_orders_enriched", "layer": "intermediate",
+      "description": "Repair orders with standard labour hours, booking channel and a flag for repeat repairs.",
+      "columns": ["repair_order_id", "dealer_code", "vin", "customer_id", "service_type", "opened_at", "closed_at", "labor_hours", "standard_hours", "labor_amount", "parts_amount", "is_warranty", "is_comeback"],
+      "parents": [["stg_dms_service_orders", "clean"], ["int_dealer_attributes", "join"], ["stg_warranty_labor_codes", "join"], ["stg_web_service_bookings", "join"]]
+    },
+    {
+      "name": "int_service_retention_base", "layer": "intermediate",
+      "description": "Per vehicle and dealer, whether the owner came back for servicing within the expected interval.",
+      "columns": ["customer_id", "vin", "dealer_code", "months_since_purchase", "service_visits_count", "last_service_date", "is_retained"],
+      "parents": [["int_customer_vehicle_links", "join"], ["int_service_orders_enriched", "aggregate"]]
+    },
+    {
+      "name": "int_parts_movements", "layer": "intermediate",
+      "description": "Stock movements in and out of each parts warehouse.",
+      "columns": ["warehouse_code", "part_number", "movement_date", "movement_type", "movement_qty"],
+      "parents": [["stg_wms_parts_stock", "clean"], ["stg_wms_parts_orders", "join"]]
+    },
+    {
+      "name": "int_parts_sales_lines", "layer": "intermediate",
+      "description": "Parts order lines with category, invoiced revenue, cost and backorder flag.",
+      "columns": ["parts_order_id", "dealer_code", "part_number", "part_category", "order_date", "order_qty", "shipped_qty", "net_revenue", "cost_of_sales", "is_backorder"],
+      "parents": [["stg_wms_parts_orders", "clean"], ["stg_wms_parts_catalog", "join"], ["stg_erp_invoices", "join"], ["int_dealer_attributes", "join"]]
+    },
+    {
+      "name": "int_inventory_daily", "layer": "intermediate", "owner_department": "Supply Chain",
+      "description": "Daily stock position for parts and vehicles, valued at standard cost with days in stock.",
+      "columns": ["snapshot_date", "location_code", "item_code", "item_type", "on_hand_qty", "stock_value_amount", "days_in_stock"],
+      "parents": [["stg_wms_parts_stock", "snapshot"], ["int_parts_movements", "aggregate"], ["stg_dms_vehicle_stock", "snapshot"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "int_warranty_claims_enriched", "layer": "intermediate", "owner_department": "Aftersales",
+      "description": "Warranty claims with model, dealer, repair lines and supplier recoveries attached.",
+      "columns": ["claim_id", "vin", "model_code", "dealer_code", "supplier_id", "failure_code", "claim_date", "claimed_amount", "approved_amount", "recovered_amount", "labor_hours"],
+      "parents": [["stg_warranty_claims", "clean"], ["stg_warranty_repairs", "join"], ["int_vehicle_catalog", "join"], ["stg_warranty_supplier_recovery", "join"], ["int_dealer_attributes", "join"]]
+    },
+    {
+      "name": "int_returns_lines", "layer": "intermediate",
+      "description": "Parts returns matched to the original order line and part category.",
+      "columns": ["return_id", "parts_order_id", "part_number", "part_category", "dealer_code", "return_reason_code", "return_qty", "credit_amount", "returned_date"],
+      "parents": [["stg_wms_returns", "clean"], ["int_parts_sales_lines", "join"]]
+    },
+    {
+      "name": "int_leads_scored", "layer": "intermediate",
+      "description": "Leads with a propensity score, first contact time and whether a test drive happened.",
+      "columns": ["lead_id", "customer_id", "dealer_code", "lead_source", "model_interest", "created_at", "lead_score", "has_test_drive", "first_contact_at"],
+      "parents": [["stg_crm_leads", "clean"], ["stg_web_form_submissions", "join"], ["stg_crm_test_drives", "join"], ["int_customer_profiles", "join"]]
+    },
+    {
+      "name": "int_opportunities_pipeline", "layer": "intermediate",
+      "description": "Opportunity stage history with the date each stage was entered.",
+      "columns": ["opportunity_id", "lead_id", "dealer_code", "stage", "stage_entered_date", "expected_close_date", "expected_value_amount", "lost_reason"],
+      "parents": [["stg_crm_opportunities", "clean"], ["int_leads_scored", "join"]]
+    },
+    {
+      "name": "int_campaign_touchpoints", "layer": "intermediate", "owner_department": "Marketing",
+      "description": "Paid media touchpoints linked to the leads and sessions they produced.",
+      "columns": ["campaign_code", "channel", "lead_id", "session_id", "touch_date", "cost_amount"],
+      "parents": [["stg_web_campaign_clicks", "clean"], ["int_leads_scored", "join"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "int_web_sessions_sessionized", "layer": "intermediate",
+      "description": "Website sessions with the furthest configurator step reached and whether a form was sent.",
+      "columns": ["session_id", "visitor_id", "session_date", "traffic_source", "device_type", "page_views_count", "configurator_step_reached", "has_form_submission"],
+      "parents": [["stg_web_sessions", "aggregate"], ["stg_web_configurator_builds", "join"]]
+    },
+    {
+      "name": "int_survey_responses", "layer": "intermediate",
+      "description": "Survey answers linked to the customer and, for service surveys, the repair order.",
+      "columns": ["survey_response_id", "customer_id", "dealer_code", "repair_order_id", "survey_type", "nps_score", "csat_score", "responded_date"],
+      "parents": [["stg_crm_survey_responses", "clean"], ["int_customer_profiles", "join"], ["int_service_orders_enriched", "join"]]
+    },
+    {
+      "name": "int_gl_margin_lines", "layer": "intermediate", "owner_department": "Finance",
+      "description": "Ledger lines classified into revenue, cost of sales and operating expense by business line.",
+      "columns": ["posting_date", "cost_center_code", "region_code", "business_line", "revenue_amount", "cost_of_sales_amount", "opex_amount"],
+      "parents": [["stg_erp_gl_entries", "clean"], ["stg_erp_cost_centers", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "int_invoice_lines", "layer": "intermediate",
+      "description": "Customer invoices with region and days overdue.",
+      "columns": ["invoice_id", "customer_id", "region_code", "invoice_date", "due_date", "invoice_amount", "paid_amount", "days_overdue"],
+      "parents": [["stg_erp_invoices", "clean"], ["int_customer_profiles", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "int_cost_center_hierarchy", "layer": "intermediate", "owner_department": "Finance",
+      "description": "Flattened cost center hierarchy used to roll costs up to departments.",
+      "columns": ["cost_center_code", "cost_center_name", "parent_cost_center_code", "department_code", "hierarchy_level"],
+      "parents": [["stg_erp_cost_centers", "clean"]],
+      "row_count": 180, "update_frequency": "weekly"
+    },
+    {
+      "name": "int_purchase_order_lines", "layer": "intermediate",
+      "description": "Supplier purchase order lines with part category and receipt timing.",
+      "columns": ["po_id", "supplier_id", "part_number", "part_category", "order_date", "promised_date", "received_date", "order_qty", "unit_cost"],
+      "parents": [["stg_erp_purchase_orders", "clean"], ["stg_wms_parts_catalog", "join"]]
+    },
+    {
+      "name": "int_shipments_tracked", "layer": "intermediate",
+      "description": "Shipments with route, destination region, transit days and damage flag.",
+      "columns": ["shipment_id", "carrier_code", "route_code", "dealer_code", "region_code", "shipped_at", "delivered_at", "transit_days", "damage_flag"],
+      "parents": [["stg_wms_shipments", "clean"], ["int_dealer_attributes", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "int_recall_campaigns", "layer": "intermediate",
+      "description": "Recall campaigns per affected vehicle with owner and open or closed state.",
+      "columns": ["recall_code", "vin", "customer_id", "model_code", "issued_date", "completed_date", "is_open"],
+      "parents": [["stg_warranty_recalls", "clean"], ["int_customer_vehicle_links", "join"]]
+    },
+    {
+      "name": "dim_customer", "layer": "mart",
+      "description": "Customer dimension with segment, home region and number of vehicles owned.",
+      "columns": ["customer_key", "customer_id", "customer_type", "region_code", "segment", "first_purchase_date", "vehicles_owned_count", "marketing_consent_flag"],
+      "parents": [["int_customer_profiles", "clean"], ["int_customer_vehicle_links", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "dim_vehicle", "layer": "mart",
+      "description": "Vehicle dimension, one row per VIN with model, trim and fuel type.",
+      "columns": ["vehicle_key", "vin", "model_code", "model_name", "model_year", "body_type", "fuel_type", "trim_level"],
+      "parents": [["int_vehicle_catalog", "clean"], ["int_customer_vehicle_links", "join"]]
+    },
+    {
+      "name": "dim_dealer", "layer": "mart", "owner_department": "Sales",
+      "description": "Dealer dimension with region, tier and status.",
+      "columns": ["dealer_key", "dealer_code", "dealer_name", "region_code", "dealer_tier", "opened_date", "is_active_dealer"],
+      "parents": [["int_dealer_attributes", "clean"], ["int_region_mapping", "join"], ["stg_dms_dealers", "clean"]],
+      "row_count": 196, "update_frequency": "daily"
+    },
+    {
+      "name": "dim_region", "layer": "mart",
+      "description": "The five sales regions (North, South, East, West, Central) and their area manager territories.",
+      "columns": ["region_key", "region_code", "region_name", "area_manager_code"],
+      "parents": [["int_region_mapping", "clean"], ["stg_erp_cost_centers", "join"]],
+      "row_count": 25, "update_frequency": "weekly"
+    },
+    {
+      "name": "dim_date", "layer": "mart",
+      "description": "Calendar dimension with fiscal periods and working-day flags, 2016 to 2026.",
+      "columns": ["date_key", "calendar_date", "fiscal_year", "fiscal_quarter", "fiscal_month", "iso_week", "is_working_day"],
+      "parents": [["int_calendar_spine", "clean"]],
+      "row_count": 4018, "update_frequency": "monthly"
+    },
+    {
+      "name": "dim_part", "layer": "mart",
+      "description": "Parts dimension with category, supplier and obsolescence flag.",
+      "columns": ["part_key", "part_number", "part_description", "part_category", "supplier_id", "list_price", "is_obsolete"],
+      "parents": [["stg_wms_parts_catalog", "clean"], ["int_parts_sales_lines", "join"], ["int_purchase_order_lines", "join"]],
+      "row_count": 48000, "update_frequency": "daily"
+    },
+    {
+      "name": "dim_campaign", "layer": "mart",
+      "description": "Marketing campaigns with channel and flight dates.",
+      "columns": ["campaign_key", "campaign_code", "campaign_name", "channel", "start_date", "end_date"],
+      "parents": [["int_campaign_touchpoints", "aggregate"], ["stg_web_campaign_clicks", "clean"]],
+      "row_count": 310, "update_frequency": "daily"
+    },
+    {
+      "name": "dim_warehouse", "layer": "mart",
+      "description": "Parts warehouses and vehicle compounds with their region.",
+      "columns": ["warehouse_key", "warehouse_code", "warehouse_name", "region_code"],
+      "parents": [["int_inventory_daily", "aggregate"], ["int_shipments_tracked", "join"], ["int_region_mapping", "join"]],
+      "row_count": 6, "update_frequency": "weekly"
+    },
+    {
+      "name": "dim_supplier", "layer": "mart",
+      "description": "Parts and component suppliers with country and tier.",
+      "columns": ["supplier_key", "supplier_id", "supplier_name", "country_code", "supplier_tier"],
+      "parents": [["int_purchase_order_lines", "aggregate"], ["int_warranty_claims_enriched", "join"]],
+      "row_count": 140, "update_frequency": "weekly"
+    },
+    {
+      "name": "fct_vehicle_sales", "layer": "mart",
+      "description": "One row per vehicle sale with units, prices, discounts, incentives, net revenue and cost of sales.",
+      "columns": ["sale_id", "date_key", "dealer_key", "vehicle_key", "customer_key", "region_key", "sale_type", "units", "list_price", "invoice_price", "discount_amount", "net_revenue", "cost_of_sales", "incentive_amount"],
+      "parents": [["int_vehicle_sales_enriched", "clean"], ["int_customer_vehicle_links", "join"], ["int_region_mapping", "join"], ["int_invoice_lines", "join"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_service_orders", "layer": "mart",
+      "description": "One row per repair order with labour, parts, warranty and repeat-repair flags and service retention status.",
+      "columns": ["repair_order_id", "date_key", "dealer_key", "vehicle_key", "customer_key", "service_type", "labor_hours", "standard_hours", "labor_amount", "parts_amount", "is_warranty", "is_comeback", "is_retained_customer"],
+      "parents": [["int_service_orders_enriched", "clean"], ["int_customer_vehicle_links", "join"], ["int_calendar_spine", "join"], ["int_service_retention_base", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_parts_sales", "layer": "mart",
+      "description": "Parts order lines with revenue, cost, backorder status and whether the line shipped complete on the first pick.",
+      "columns": ["parts_order_id", "date_key", "dealer_key", "part_key", "order_qty", "shipped_qty", "net_revenue", "cost_of_sales", "is_backorder", "is_first_pick_complete"],
+      "parents": [["int_parts_sales_lines", "clean"], ["int_invoice_lines", "join"], ["int_dealer_attributes", "join"], ["int_calendar_spine", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_warranty_claims", "layer": "mart", "owner_department": "Aftersales",
+      "description": "Warranty claims with claimed, approved and supplier-recovered amounts.",
+      "columns": ["claim_id", "date_key", "dealer_key", "vehicle_key", "supplier_key", "failure_code", "claimed_amount", "approved_amount", "recovered_amount"],
+      "parents": [["int_warranty_claims_enriched", "clean"], ["int_service_orders_enriched", "join"], ["int_dealer_attributes", "join"], ["int_calendar_spine", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_returns", "layer": "mart",
+      "description": "Parts returns with reason code, quantity and credit issued.",
+      "columns": ["return_id", "date_key", "dealer_key", "part_key", "region_key", "return_reason_code", "return_qty", "credit_amount"],
+      "parents": [["int_returns_lines", "clean"], ["int_region_mapping", "join"], ["int_parts_sales_lines", "join"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_leads", "layer": "mart",
+      "description": "Sales leads with source, score, test drive flag, conversion flag and response time.",
+      "columns": ["lead_id", "date_key", "dealer_key", "campaign_key", "lead_source", "lead_score", "has_test_drive", "is_converted", "response_minutes"],
+      "parents": [["int_leads_scored", "clean"], ["int_campaign_touchpoints", "join"], ["int_dealer_attributes", "join"], ["int_calendar_spine", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_inventory_snapshot", "layer": "mart", "owner_department": "Supply Chain",
+      "description": "Daily snapshot of parts and vehicle stock with value and days in stock.",
+      "columns": ["snapshot_date_key", "warehouse_key", "part_key", "vehicle_key", "on_hand_qty", "stock_value_amount", "days_in_stock"],
+      "parents": [["int_inventory_daily", "snapshot"], ["int_parts_movements", "aggregate"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_budget_2026", "layer": "mart", "owner_department": "Finance",
+      "description": "Approved 2026 operating budget by cost center, region, account and month. Holds the 2026 plan only; no other years are loaded.",
+      "columns": ["cost_center_code", "region_key", "account_code", "budget_month", "budget_amount", "plan_version"],
+      "parents": [["stg_erp_plan_lines", "clean"], ["int_cost_center_hierarchy", "join"], ["int_region_mapping", "join"]],
+      "row_count": 25920, "update_frequency": "monthly"
+    },
+    {
+      "name": "fct_gl_margin", "layer": "mart", "owner_department": "Finance",
+      "description": "Monthly revenue, cost of sales, gross margin and operating expense by cost center and business line.",
+      "columns": ["date_key", "cost_center_code", "region_key", "business_line", "revenue_amount", "cost_of_sales_amount", "gross_margin_amount", "opex_amount"],
+      "parents": [["int_gl_margin_lines", "aggregate"], ["int_cost_center_hierarchy", "join"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_opportunities", "layer": "mart",
+      "description": "Sales opportunities with stage, expected value, win flag and loss reason.",
+      "columns": ["opportunity_id", "date_key", "dealer_key", "stage", "expected_close_date", "expected_value_amount", "is_won", "lost_reason"],
+      "parents": [["int_opportunities_pipeline", "clean"], ["int_dealer_attributes", "join"], ["int_leads_scored", "join"], ["int_calendar_spine", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_campaign_performance", "layer": "mart", "owner_department": "Marketing",
+      "description": "Daily campaign results: impressions, clicks, leads, spend and attributed revenue.",
+      "columns": ["campaign_key", "date_key", "channel", "impressions_count", "clicks_count", "leads_count", "spend_amount", "attributed_revenue_amount"],
+      "parents": [["int_campaign_touchpoints", "aggregate"], ["int_leads_scored", "join"], ["int_web_sessions_sessionized", "join"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_web_traffic", "layer": "mart",
+      "description": "Daily website traffic by source and device, with configurator and form funnel counts.",
+      "columns": ["date_key", "traffic_source", "device_type", "sessions_count", "configurator_starts_count", "configurator_completions_count", "form_submissions_count"],
+      "parents": [["int_web_sessions_sessionized", "aggregate"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_customer_surveys", "layer": "mart", "owner_department": "Marketing",
+      "description": "Survey responses with NPS and CSAT scores and promoter and detractor flags.",
+      "columns": ["survey_response_id", "date_key", "dealer_key", "customer_key", "survey_type", "nps_score", "csat_score", "is_promoter", "is_detractor"],
+      "parents": [["int_survey_responses", "clean"], ["int_service_orders_enriched", "join"], ["int_dealer_attributes", "join"], ["int_calendar_spine", "join"], ["int_region_mapping", "join"]]
+    },
+    {
+      "name": "fct_shipments", "layer": "mart",
+      "description": "Vehicle and parts shipments with transit days, on-time flag and damage flag.",
+      "columns": ["shipment_id", "date_key", "dealer_key", "carrier_code", "route_code", "transit_days", "is_on_time", "damage_flag"],
+      "parents": [["int_shipments_tracked", "clean"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_purchase_orders", "layer": "mart", "owner_department": "Supply Chain",
+      "description": "Supplier purchase order lines with lead time and on-time receipt flag.",
+      "columns": ["po_id", "date_key", "supplier_key", "part_key", "order_qty", "lead_time_days", "is_on_time", "unit_cost"],
+      "parents": [["int_purchase_order_lines", "clean"], ["int_calendar_spine", "join"]]
+    },
+    {
+      "name": "fct_recalls", "layer": "mart", "owner_department": "Aftersales",
+      "description": "Recall status per affected vehicle with days open.",
+      "columns": ["recall_code", "vehicle_key", "dealer_key", "issued_date_key", "completed_date_key", "is_open", "days_open"],
+      "parents": [["int_recall_campaigns", "clean"], ["int_service_orders_enriched", "join"], ["int_vehicle_catalog", "join"], ["int_calendar_spine", "join"]]
+    }
+  ]
+}

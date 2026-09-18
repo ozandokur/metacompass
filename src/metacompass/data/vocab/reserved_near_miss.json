@@ -1,0 +1,27 @@
+{
+  "_comment": "Never used by the generator (N7). The eval builder combines these into realistic names of reports that do not exist, and into analysis topics nobody ever requested. Integrity tests assert none of these fragments or keywords appear in generated names or request texts.",
+  "report_name_fragments": [
+    "Heatmap",
+    "Cohort Funnel",
+    "Churn Radar",
+    "Loyalty Matrix",
+    "Pulse Check",
+    "Residual Value",
+    "Telematics",
+    "Price Elasticity",
+    "Share of Wallet",
+    "Attribution Waterfall",
+    "Conquest Tracker",
+    "Basket Analysis"
+  ],
+  "unused_request_topics": [
+    {"topic": "electric vehicle charging behaviour at home", "keywords": ["charging", "charger"]},
+    {"topic": "telematics-based driver scoring", "keywords": ["telematics", "driver scoring"]},
+    {"topic": "residual value forecasts for leased cars", "keywords": ["residual value", "leased"]},
+    {"topic": "carbon emissions per delivered vehicle", "keywords": ["emission", "carbon"]},
+    {"topic": "social media sentiment about the brand", "keywords": ["sentiment", "social media"]},
+    {"topic": "uptake of a car subscription model", "keywords": ["subscription"]},
+    {"topic": "employee commute patterns to the head office", "keywords": ["commute"]},
+    {"topic": "insurance claims after road accidents", "keywords": ["insurance", "accident"]}
+  ]
+}
