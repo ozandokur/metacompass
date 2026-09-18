@@ -1,11 +1,11 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 2 · Son güncelleme: 2026-09-18 ·
-Son kapı: Faz 1 geçti (2026-09-18; kontrol noktası düzeltmeleri uygulandı)
+Aktif faz: 2 (kapı geçti, 🧑 insan kontrol noktası bekleniyor) · Son güncelleme: 2026-09-18 ·
+Son kapı: Faz 2 geçti (2026-09-18; `check_all.py --slow` dahil)
 
 ## Dondurulmuş değerler
-PROMPT_VERSION: — · τ: — (placeholder 0.45) · Model: — · Data seed: 42
+PROMPT_VERSION: — · τ: 0.65 (Faz 2 seçimi, kontrol noktasında gözden geçirilecek; test koşumundan önce dondurulacak) · Embedding: all-MiniLM-L6-v2 · Model: — · Data seed: 42
 
 ## Harcama
 Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
@@ -46,11 +46,66 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   | en sık açılış: talep başlığı | "deep" %15,0 | %8,3 |
   | en sık açılış: talep açıklaması | "please" %23,3 | %10,0 |
 
+- [Faz 2] Tokenizer (fc85f1b, fc4397a) · BM25 (8ba3298) · embedder'lar + cache (27d8188) ·
+  hibrit RRF + MatchSignal + korpus (ecca670) · lineage grafı + mini fixture (a83e864) ·
+  retrieval set + bağımsız gold (7ba7eea) · benchmark koşucusu + results.md (3d58479, 1d37885) ·
+  benchmark sonuçları + τ (7cdffa2)
+- [Faz 2] Öğrenme notları: 02_bm25, 03_dense_and_rrf, 04_match_quality_threshold, 05_graph_traversal
+- [Faz 2] Kabul: unit testler yeşil (HashEmbedder) ✅ · `pytest -m slow` gerçek embedder ile yeşil ✅
+  (`check_all.py --slow`: 211 test) · `eval/results/retrieval_bench.json` gerçek sonuçlarla ✅ ·
+  beklenti kontrolü yazılı ✅ (aşağıda) · τ seçildi, gerekçesi yazılı ✅ (config.py + not 04)
+- [Faz 2] **Beklenti kontrolü** (git 1d37885, 60 sorgu, top-10):
+  | | BM25 | dense | hibrit |
+  |---|---|---|---|
+  | E r@1 | 1.00 | 0.53 | 0.67 |
+  | P r@1 / r@5 | 0.20 / 0.47 | 0.13 / 0.27 | 0.20 / 0.40 |
+  | D r@1 | 0.73 | 0.67 | 0.67 |
+  | MRR (E+P+D) | 0.72 | 0.54 | 0.61 |
+  - E'de BM25 > dense ✅. Hibrit < BM25: fark tamamen rapor-ID sorgularında (hibrit 0/5; tablo
+    adı ve metrik kısaltmasında hibrit 1.00). Hipotez: dense metinde ID yok (§5.2), dense listesi
+    ID sorgusunda gürültü; RRF'te BM25'in 1. sırası iki listede orta sırada olan belgeye yeniliyor.
+  - P'de dense > BM25 ❌. Hipotezler: (1) **şablon sızıntısı** — 15 P sorgusunun 9'u hedefin
+    açıklaması/etiketleriyle ≥2 içerik kelimesi paylaşıyor (parafraz havuzunu yazarken vocab
+    ölçü ifadelerine bakmışım; isimle örtüşme kontrolü ≤%30 geçiyor, açıklama kontrol edilmiyor)
+    → BM25 şişik; (2) nitelendirici ifadesi ("per calendar month") MiniLM embedding'ine baskın,
+    dense'i başka konuların "Monthly …" raporlarına çekiyor; (3) korpustaki tablolar dense'i
+    çekiyor (ör. `stg_dms_vehicle_sales`). Konu düzeyinde doğru aileyi BM25 11/15, dense 6/15 buluyor.
+  - D'de hibrit > ikisi ❌. Deprecated çiftlerde üç mod da %50 (retrieval durumu bilmiyor, isimler
+    neredeyse aynı — bunu agent `status`/`replaced_by` ile çözmeli); yakın-kopyada BM25 7/7.
+  - **Modlar P ve D'de birbirine yakın** (P r@1 0.13–0.20, D r@1 0.67–0.73). Veri veya şablon
+    beklentiye uydurulmak için değiştirilmedi.
+  - τ: P kosinüsleri (medyan 0.45, 0.33–0.57) ile N kosinüsleri (medyan 0.46, 0.39–0.61) üst üste.
+    F1-maksimum τ = 0.65'te negatiflerin 15/15'i weak ama P'lerin de 15/15'i weak; strong olan
+    pozitiflerin hepsi exact_match sayesinde.
+
 ## Devam eden
-- Görev: Faz 2 — `retrieval/tokenize.py` · Yaklaşım: §5.3 kurallarını tablo tabanlı testlere
-  dök (girdi → beklenen token listesi), kırmızıyı gör, sonra regex tabanlı tokenizer yaz.
+- Görev: Faz 2 insan kontrol noktası · Ozan benchmark tablosunu, τ gerekçesini ve öğrenme
+  notları 02–05'i inceleyecek; aşağıdaki açık sorulara karar verecek.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-18 · BM25 aday ölçütü "skor > 0" değil "en az bir ortak token" · Okapi idf yarıdan
+  fazla belgede geçen terimlerde negatif/tabanda (ör. her rapor ID'sindeki `rpt`); bir test yakaladı.
+- 2026-09-18 · MatchSignal her modda aynı hesaplanıyor (bm25 modunda da dense kosinüs) · A1/A2
+  ablation'ları yalnızca sıralamayı değiştirsin, abstain kanıtını değil · Alternatif: bm25 modunda
+  sinyal yalnızca exact_match (A2'yi abstain etkisiyle karıştırırdı).
+- 2026-09-18 · exact_match: sorguda maskelenmiş korpustaki bir kaydın ID'si ya da tam normalize
+  ismi; metrik alias'larından yalnızca kısaltma ("AOV", "GM%") veya çok kelimeli olanlar sayılıyor ·
+  "units", "turns" gibi gündelik kelimeler her sorguyu strong yapardı.
+- 2026-09-18 · `retrieval/corpus.py` eklendi (belge metinleri §5.2) · `hybrid.py` generic kalsın.
+- 2026-09-18 · Mini fixture (`tests/fixtures/mini/`) Faz 3 ihtiyaçlarıyla birlikte şimdi tasarlandı
+  (tüm devir durumları, döngü, çıkmaz sokak, deprecated rapor, etki analizi durumları) · Faz 3'te
+  tekrar iş olmasın. 14 çalışan (spec ≈12).
+- 2026-09-18 · Retrieval seti: E = 5 tablo adı + 5 metrik kısaltması (rapor etiketi olmayanlar,
+  tek hedef olsun) + 5 rapor ID; P hedefleri "none" nitelendiricisiz, gürültü/belirsiz olmayan
+  aktif raporlar, konu başına bir sorgu; D = 8 deprecated + 7 yakın-kopya; N = rezerve parçalardan
+  var olan hiçbir ismi içermeyen isimler. Set bir testte yeniden üretilip commit edilenle karşılaştırılıyor.
+- 2026-09-18 · τ seçimi: macro-F1 (strong vs weak); platoda orta (çiftse alt orta) · 45 pozitife
+  karşı 15 negatifte tek sınıf F1'i düşük τ'yu ödüllendirirdi.
+- 2026-09-18 · Benchmark JSON'u git SHA'sını kaydeder; yalnızca izlenen dosya değişiklikleri
+  "-dirty" sayılır · Sonuçlar temiz commit'ten (1d37885) yeniden üretildi, sonuçlar aynı.
+- 2026-09-18 · **Protokol hatası:** tokenizer ve BM25 commit'leri (fc85f1b, 8ba3298) başarısız bir
+  kapıyla (ruff SIM905/SIM300) girdi; komut zinciri grep'in başarısına bakıyordu. fc4397a ile
+  düzeltildi; commit artık doğrudan `check_all.py` çıkış koduna bağlı bir yardımcıyla atılıyor.
 - 2026-09-18 · **Ozan onayları (Faz 1 kontrol noktası):** Python 3.13 sapması onaylandı (CI,
   Dockerfile, README aynı sürümü söyler); `/data/`, yalnız `generate.py` muafiyeti ve torch CPU
   index sapmaları onaylandı; E501 kapatma kabul edildi, uyarıyla: kapıyı geçmek için kural
@@ -143,6 +198,21 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Faz 2 — şablon sızıntısı:** P parafraz havuzu (`eval/templates.json`) hedef açıklamalarıyla
+  kelime paylaşıyor (9/15). Öneri: havuzu açıklama/etiket kelimelerinden de arındırıp builder'a
+  "açıklama+etiketlerle ≤%30" kontrolü eklemek, sonra benchmark'ı yeniden koşmak. Spec (§14 Faz 2)
+  bu durumda önce sormamı istiyor — onaylıyor musun?
+- [ ] **Faz 2 — τ:** 0.65'te sinyal fiilen yalnızca tam isim/ID dedektörü (P'lerin hepsi weak).
+  Seçenekler: (a) spec kuralına sadık kal, 0.65 (bedeli A4'te ölçülür); (b) 0.55 (F1 0.722, N'lerin
+  %13'ü strong); (c) sinyal tanımını değiştirmek (ör. top-1/top-2 kosinüs farkı) — spec değişikliği.
+  Öneri: (a), çünkü (b) F1'i düşürüp keyfi olur, (c) kapsam kararı. Şablon sızıntısı düzeltilirse
+  τ yeniden seçilmeli.
+- [ ] **Faz 2 — hibritte ID sorguları:** Sorgu korpustaki bir kaydın ID'sini içeriyorsa o kaydı 1.
+  sıraya koymak (exact-ID yönlendirmesi) hibritin E kaybını kapatır; spec'te yok. Öneri: yapma;
+  agent ID'yi zaten `get_record` ile doğrudan açabilir, retrieval ölçümü dürüst kalsın.
+- [ ] **Faz 5 notu:** Test setinin hedefleri retrieval setinin hedefleriyle örtüşmesin mi? (τ
+  retrieval setinde seçildi; aynı varlıkları hedefleyen test soruları hafif bir sızıntı olur.)
+  Öneri: builder test/dev hedeflerinden retrieval-set hedeflerini dışlasın.
 - [ ] **%15–20 ayrılmış sahip bandı I07 ile birlikte tutturulamıyor.** Zincir başı sayısı 22
   değil 25 (S1 12 + S2 6 + C2 3 + C3 2 + C4 2); I07 gereği 25 × 2 = 50 aktif rapor ayrılmış
   kişilere ait olmak zorunda → taban 50/235 = %21,3. Geçici karar: oran tam tabanda (başka hiçbir
