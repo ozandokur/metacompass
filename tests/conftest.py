@@ -54,3 +54,39 @@ MINI_DIR = Path(__file__).parent / "fixtures" / "mini"
 def mini_dir() -> Path:
     """Hand-written fixture data; see tests/fixtures/mini/README.md for its cases."""
     return MINI_DIR
+
+
+@pytest.fixture(scope="session")
+def mini_ctx(mini_dir, tmp_path_factory):
+    """Tool context over the mini fixture, with the network-free HashEmbedder."""
+    from metacompass.data.store import MetadataStore
+    from metacompass.graph import build_lineage_graph
+    from metacompass.retrieval.corpus import build_retrievers
+    from metacompass.retrieval.embedders import HashEmbedder
+    from metacompass.tools.schemas import ToolContext
+
+    store = MetadataStore.from_dir(mini_dir)
+    cache = tmp_path_factory.mktemp("mini_cache")
+    return ToolContext(
+        store=store,
+        retrievers=build_retrievers(store, HashEmbedder(dim=64), cache_dir=cache),
+        graph=build_lineage_graph(store),
+    )
+
+
+@pytest.fixture(scope="session")
+def real_ctx(generated_dir, tmp_path_factory):
+    """Tool context over the generated seed-42 data, with the HashEmbedder."""
+    from metacompass.data.store import MetadataStore
+    from metacompass.graph import build_lineage_graph
+    from metacompass.retrieval.corpus import build_retrievers
+    from metacompass.retrieval.embedders import HashEmbedder
+    from metacompass.tools.schemas import ToolContext
+
+    store = MetadataStore.from_dir(generated_dir)
+    cache = tmp_path_factory.mktemp("real_cache")
+    return ToolContext(
+        store=store,
+        retrievers=build_retrievers(store, HashEmbedder(dim=64), cache_dir=cache),
+        graph=build_lineage_graph(store),
+    )
