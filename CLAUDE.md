@@ -58,6 +58,13 @@ working. Do not wait for Ozan in the middle of a phase.
 - If you think I am wrong, say so directly. No flattery.
 - When a phase introduces a new concept, write docs/learn/NN_<topic>.md (spec §13.7).
 
+## Frozen constants (src/metacompass/config.py; spec Ek C.4)
+MAX_DEPTH 3 · RRF_K 60 / RRF_CANDIDATES 50 · MATCH_SIGNAL "z", TAU_Z 4.25 (TAU 0.70 fallback) ·
+DEFAULT_OUTPUT_CHAR_CAP 4000 · OUTPUT_CHAR_CAPS {"impact_analysis": 6000} ·
+NOTIFY_DETAIL_MAX 20 · NOTIFY_BROADCAST_TOP 10 (D24: impact_analysis switches to
+"broadcast" above 20 people; nobody is dropped, everyone is counted in the rollup).
+Tool results reach the LLM only through `registry.payload_json()`.
+
 ## Commands
 python -m metacompass.data.generate --seed 42 --out data/
 python scripts/check_all.py            # gate

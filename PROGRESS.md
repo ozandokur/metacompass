@@ -1,7 +1,7 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 3 · Son güncelleme: 2026-09-18 · Son kapı: Faz 2 düzeltmeleri geçti (2026-09-18)
+Aktif faz: 4 · Son güncelleme: 2026-09-18 · Son kapı: Faz 3 geçti (2026-09-18, Q-F3-1 → D24)
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: — · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
@@ -93,12 +93,79 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   - **Spec güncellendi** (`docs/plan/13_METACOMPASS_MASTER.md`): §4.4.2, §4.7 (I07, I18–I20),
     §5.5, §5.7, §5.8, §9.2, Ek C.2. `CLAUDE.md`'ye yeni karar yetkisi bölümü eklendi.
 
+- [Faz 3] `tools/schemas.py` + 12 sahiplik testi + `ownership.py` (75741c6)
+- [Faz 3] search + records, lineage + past_work, impact (D24), registry + `AgentConfig`; testler
+  `test_tools.py`, `test_registry.py`, `test_gold_impact.py`, `test_config.py` (+3). Her test önce
+  kırmızı görüldü (stub ya da mutasyonla). Tool/registry/gold testleri 17 seed'de yeşil.
+  Commit'ler: aşağıdaki "Faz 3 kapanış" satırı.
+- [Faz 3] Öğrenme notu: `docs/learn/06_owner_resolution.md`
+- [Faz 3] Kabul: 12 sahiplik testi ✅ · §7.9 minimumları 6 tool'da ✅ · registry şemaları
+  jsonschema Draft 2020-12 meta-şemasına uygun ✅ · gerçek veride `_meta.chains` ✅ (test 12,
+  17 seed) · mimari testleri ✅
+- [Faz 3] **Q-F3-1 kapandı → D24** (Ozan, 2026-09-18). `impact_analysis` ölçeğe göre biçim
+  değiştiriyor. `eval/run_impact_fanout.py` → `eval/results/impact_fanout.json` (seed 42):
+  | | individual (≤ 20 kişi) | broadcast (> 20 kişi) |
+  |---|---|---|
+  | tablo | **47** | **33** |
+  | staging / intermediate / mart | 15 / 13 / 19 | 15 / 12 / 6 |
+  | bildirilecek kişi aralığı | 4–17 | 21–72 |
+  Broadcast'a düşen mart'lar: dim_vehicle (25), dim_dealer (35), dim_region (22), dim_date (50),
+  fct_vehicle_sales (41), fct_service_orders (21). En büyük çıktı 6.000 karakter (sınırda); 40
+  tabloda `affected_*` listeleri kırpılıyor, notify ve rollup hiçbirinde kırpılmıyor. Bildirilecek
+  kişisi olmayan tablo yok.
+- [Faz 3 kapanış] Commit'ler: 75741c6 sahiplik · e112efc search+records · 5417dc4 lineage+past_work ·
+  0bc98e5 impact · b3ad7ee registry · 525a99f fan-out script'i · ardından docs ve fan-out JSON'u.
+  Her commit öncesi tam kapı geçti (297 test).
+- **Spec güncellendi, Q-F3-1 kapandı** (2026-09-18): §7.1 (tool başına sınır), §7.7 (şema, mod
+  kuralı, 6.000 sınırı), §7.9, §8.4 (broadcast satırı), §9.2 (L5 = 7 individual + 3 broadcast; MX
+  yalnızca individual tablolar; dev L5 = 2 + 1), §9.4 (`impact_notify` gold'u), §9.8 (A5 notu),
+  Ek C.4 (sabitler), §15 D24. `CLAUDE.md`'ye sabitler eklendi.
+
 ## Devam eden
-- Görev: Faz 3 — altı tool ve sahiplik çözümü · Yaklaşım: mini fixture hazır (Faz 2); önce
-  `tools/schemas.py`, sonra `test_owner_resolution.py` (12 test, kırmızı) → `ownership.py`, sonra
-  diğer tool'lar test önce, en son registry. Faz 3 sonunda `ownership.py` satır satır anlatılacak.
+- Görev: Faz 4 — LLM istemcisi ve agent döngüsü · Yaklaşım: §8 sırasıyla llm → answer → prompts
+  → loop, hepsi test önce ve FakeLLM ile ağsız. `.env` yok (H1–H3 boş) → ProviderClient ve live
+  smoke atlanır, Ozan'a bildirilir.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-18 · **D24 (Ozan, Q-F3-1):** `impact_analysis` ölçeğe göre biçim değiştirir (≤ 20 kişi
+  bireysel liste; > 20 ilk 10 + departman kırılımı; impact için çıktı sınırı 6.000) · Bireysel
+  bildirim ölçekte anlamsızlaşıyor; 72 ID'lik bir liste L5'i kopyalama testine çevirirdi ·
+  Reddedilen: (a) notify tam + sınır aşımı, (b) notify'ı kesmek, (c) aşımda yalnızca ID listesi ·
+  Bedel: broadcast cevaplar bireysel doğrulukta ölçülmüyor (gold = departman başkanları).
+  Önceki geçici kararım ("notify kazanır, sınır aşılır") bununla geçersiz.
+- 2026-09-18 · **Geçici karar (D24 ayrıntıları, spec'te yok):**
+  - `notify_rollup` sırası: `people_count` azalan, sonra departman adı.
+  - `NotifyRollup.report_count`: o departmandaki kişilere yönlenen etkilenen **active** raporlar.
+    Deprecated raporların sahibi bildirilmediği için (D10) bu sayıda yok.
+  - `affected_report_count`: `affected_reports` listesiyle aynı küme (active + deprecated).
+  - Ozan'ın "her tabloda rollup `people_count` toplamı = `notify_total_count`" maddesi broadcast
+    tablolarda test ediliyor. Individual modda rollup tanım gereği boş; orada tamlık
+    `notify` listesinin gold ile birebir eşitliğiyle test ediliyor.
+  - L5'teki 7 individual + 3 broadcast soruda katman karışımı korunacak (Faz 5 seçimi
+    `impact_fanout.json`'dan).
+  - `results.md`'deki A5 yorumu ("broadcast sorularında tool bütçesinin tükenmesi ablation'ın
+    ölçtüğü şey") A5 sonuçları gelince `eval/report.py`'ye yazılacak (Faz 7/8).
+- 2026-09-18 · Bağımsız impact gold'u (`eval/gold.py:current_contact`, `impact_notify`) Faz 5
+  yerine şimdi yazıldı · Ozan'ın istediği "bağımsız pandas hesabı" testi bunu gerektiriyordu;
+  Faz 5 yalnızca gold_spec bağlantısını ekleyecek. Önce mini fixture'da elle hesaplanan
+  değerlerle test edildi. Tool ile gold, 80 tabloda ve 17 seed'de birebir aynı.
+- 2026-09-18 · `eval/runinfo.py:git_sha()` benchmark ve fan-out script'lerinde ortak (refactor).
+- 2026-09-18 · `AgentConfig` şimdi `config.py`'de; `prompt_version` Faz 4'te prompt ile gelecek ·
+  Registry ona Faz 3'te ihtiyaç duyuyor. Spec'te olmayan ek: `tools_enabled` bilinmeyen tool
+  adını reddediyor (bir ablation'da yazım hatası bir tool'u sessizce kapatmasın).
+- 2026-09-18 · Registry: hata çıktılarından kayıt ID'si toplanmıyor · "RPT-0999 does not exist"
+  grounding'e görülmüş ID gibi girmesin · Alternatif: regex'i her çıktıya uygulamak (spec'in lafzı).
+- 2026-09-18 · Registry: beklenmeyen istisna → `INTERNAL` + genel mesaj, ayrıntı `logging` ile
+  loglanıyor · Bir tool hatası agent koşusunu bitirmesin ve kullanıcıya iç ayrıntı sızmasın.
+- 2026-09-18 · `payload_json()` = LLM'e giden tek serileştirme (kompakt, UTF-8), `model_dump_json()`
+  ile birebir aynı (test var) · 4.000 sınırı tool'da hangi metin üzerinde ölçüldüyse LLM o metni
+  görsün; varsayılan `json.dumps` boşluk ekliyor (ör. 3.9k → 4.3k). Faz 4 döngüsü bunu kullanmalı.
+- 2026-09-18 · A4'te (`show_match_quality=False`) `signal` her iki arama tool'unun çıktısından
+  (search_assets **ve** find_similar_past_work) çıkıyor ve tool açıklamalarındaki sinyal cümlesi
+  de düşüyor · Ablation'da sinyal hiçbir yoldan modele ulaşmasın.
+- 2026-09-18 · Tool açıklamaları registry'de elle yazıldı (İngilizce, 2–3 cümle) · Parametre
+  şemaları `model_json_schema()` ile üretiliyor (§7.1); açıklamalar dev setinde değişebilir
+  (prompt iterasyonu sayılır, en fazla 3).
 - 2026-09-18 · **Ozan'ın Faz 2 kararları (nihai):** (1) parafraz havuzu düzeltilsin (eksik builder
   doğrulaması); (2) sinyal tanımı değişsin, mutlak ve göreli (z) taransın, iyi olan sabitlensin;
   (3) hibritte ID yönlendirmesi yok, RRF özelliği olarak yazılsın; (4) retrieval setinin hedefleri
@@ -239,6 +306,23 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [x] **Q-F3-1 — kapandı 2026-09-18, Ozan (d) seçeneğini seçti → D24.** Aşağıdaki kayıt tarihçe
+  olarak duruyor. (DUR-VE-SOR: bir test assertion'ını değiştirme ihtiyacı.) §7.7'de iki kural
+  çelişiyor: "çıktı ≤ 4.000 karakter" ve "`notify` kırpılmaz". Seed 42, 80 tablo: 49 tablonun tam
+  çıktısı > 4.000. Diğer listeler boşaltıldıktan sonra bile 23 tablo (11 staging, 9 intermediate,
+  3 mart: dim_date, dim_dealer, fct_vehicle_sales) > 4.000, en büyüğü 12.252 karakter (72 kişi).
+  Neden: 250 rapor, ~600 rapor kenarı (≥%90 mart) ve 82 aktif çalışan (spec sayıları) → hub
+  tablolar 50–72 kişiye bildirim gerektiriyor. Kişi başı ~165 karakter, yani ~24 kişiden sonra
+  sınır matematiksel olarak tutamaz. `test_impact_size_limit_never_cuts_the_notify_list`
+  TBL-003 için hem `≤ 4000` hem `notify == full.notify` iddia ediyor; ikisi birlikte sağlanamaz.
+  Seçenekler:
+  (a) **notify kazanır** (geçici karar, uygulandı): test yalnızca `≤ 4000` satırını bırakır; yerine
+  yeni property testi zaten var (başka her liste boşalmadan sınır aşılmıyor, notify tam) ·
+  (b) **sınır kazanır**: notify kesilir + `notify_total` sayacı; L5'te hub tablolar için cevap
+  eksik kalır, Faz 5'te L5 hedefleri notify'ı sığan tablolarla sınırlanmalı ·
+  (c) aşımda notify yalnızca ID listesine düşer (~720 karakter): sınır tutar, ama §7.7 şeması
+  değişir ve agent isim/gerekçe göremez.
+  Öneri: (a). Test dosyasına dokunmadım; karar gelene kadar kapı kırmızı, commit yok.
 - [x] Faz 2 soruları (sızıntı, τ, ID yönlendirmesi, retrieval/test örtüşmesi, I07 bandı) — Ozan
   2026-09-18'de karara bağladı, yukarıda "Kararlar"da.
 - [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) — Faz 4'ün canlı adımından önce gerekli.
