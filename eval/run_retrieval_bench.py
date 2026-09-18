@@ -16,7 +16,6 @@ Usage: python eval/run_retrieval_bench.py --model sentence-transformers/all-Mini
 
 import argparse
 import json
-import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -25,6 +24,7 @@ import build_sets
 from metacompass.data.store import MetadataStore
 from metacompass.retrieval.corpus import build_retrievers
 from metacompass.retrieval.embedders import Embedder, SentenceTransformerEmbedder
+from runinfo import git_sha
 
 ROOT = Path(__file__).resolve().parents[1]
 MODES = ("bm25", "dense", "hybrid")
@@ -153,16 +153,6 @@ def choose_model(runs: dict[str, dict]) -> str:
     return best
 
 
-def _git_sha() -> str:
-    def git(*args: str) -> str:
-        return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout
-
-    sha = git("rev-parse", "--short", "HEAD").strip() or "unknown"
-    # Only tracked changes count: untracked result files are outputs, not code.
-    dirty = git("status", "--porcelain", "--untracked-files=no").strip()
-    return sha + ("-dirty" if dirty else "")
-
-
 def _forbidden_first(record: dict, mode: str) -> bool:
     other, target = record["forbidden_ranks"][mode][0], record["ranks"][mode]
     return other is not None and (target is None or other < target)
@@ -268,7 +258,7 @@ def run(
             "retrieval_set": set_path.resolve().relative_to(ROOT).as_posix(),
             "n_queries": {t: sum(1 for r in records if r["type"] == t) for t in "EPDN"},
             "top_k": TOP_K,
-            "git_sha": _git_sha(),
+            "git_sha": git_sha(),
             "run_date": date.today().isoformat(),
         },
         "modes": _summaries(records),
