@@ -1,14 +1,15 @@
 """Builds evaluation question sets from the generated data and eval/templates.json (spec §9.5).
 
-Phase 2 builds the retrieval benchmark set (spec §5.8): 60 queries in four types.
+The retrieval benchmark set (spec §5.8) is built here: 60 queries in four types.
   E exact          - a table name, a metric acronym or a report ID
   P paraphrase     - a report described without its own words (name overlap <= 30%)
   D disambiguation - the active member of a designed near-duplicate or deprecated pair
   N negative       - a realistic report name that does not exist (reserved fragments)
-Selection is seeded. Every item's gold is computed by gold.py from its gold_spec, and the
-builder refuses to write a set that breaks a validation rule.
+The dev and test question sets (spec §9.2) are built by question_sets.py; this script is
+the command line for both. Selection is seeded. Every item's gold is computed by gold.py
+from its gold_spec, and the builder refuses to write a set that breaks a validation rule.
 
-Usage: python eval/build_sets.py --data data/ --seed 42 --only retrieval
+Usage: python eval/build_sets.py --data data/ --seed 42 [--only retrieval|questions]
 """
 
 import argparse
@@ -21,70 +22,30 @@ from pathlib import Path
 import pandas as pd
 
 import gold
+import question_sets
+from set_rules import (
+    EVAL_DIR,
+    MAX_DESCRIPTION_OVERLAP,
+    MAX_PARAPHRASE_OVERLAP,
+    ROOT,
+    VOCAB_DIR,
+    content_overlap,
+    frame_words,
+    load_templates,
+    name_overlap,
+    noise_members,
+    norm,
+    unique_combos,
+    write_json,
+)
 
-ROOT = Path(__file__).resolve().parents[1]
-EVAL_DIR = ROOT / "eval"
-TEMPLATES = EVAL_DIR / "templates.json"
-VOCAB_DIR = ROOT / "src" / "metacompass" / "data" / "vocab"
-
-# The retrieval stop-word list (spec §5.3).
-STOPWORDS = {
-    "the", "a", "an", "of", "for", "to", "in", "on", "and",
-    "or", "is", "are", "which", "what", "who", "by", "with",
-}  # fmt: skip
-# English function words, used on top of STOPWORDS when checking whether a paraphrase
-# borrows the target's description: "how" or "as" in both texts is not leaked content.
-FUNCTION_WORDS = STOPWORDS | {
-    "about", "after", "all", "am", "any", "as", "at", "be", "been", "before", "being", "both",
-    "but", "can", "could", "did", "do", "does", "each", "every", "from", "had", "has", "have",
-    "he", "her", "here", "his", "how", "i", "if", "into", "it", "its", "just", "me", "my",
-    "no", "not", "our", "ours", "out", "over", "own", "per", "she", "so", "some", "such",
-    "than", "that", "their", "them", "then", "there", "these", "they", "this", "those",
-    "through", "too", "until", "up", "us", "very", "was", "we", "were", "when", "where",
-    "whether", "while", "why", "will", "would", "yet", "you", "your",
-}  # fmt: skip
 PER_TYPE = 15
-MAX_PARAPHRASE_OVERLAP = 0.30  # share of the target name's words (spec §9.5)
-MAX_DESCRIPTION_OVERLAP = 0.20  # share of the query's content words (spec update 2026-09-18)
 ACRONYM = re.compile(r"^[A-Z0-9%]{2,}$")
 
 
-def load_templates() -> dict:
-    return json.loads(TEMPLATES.read_text(encoding="utf-8"))
-
-
-def _words(text: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", text.lower())) - STOPWORDS
-
-
-def _norm(text: str) -> str:
-    return " " + " ".join(re.findall(r"[a-z0-9]+", text.lower())) + " "
-
-
-def name_overlap(query: str, name: str) -> float:
-    """Share of the name's content words that also appear in the query."""
-    name_words = _words(name)
-    return len(name_words & _words(query)) / len(name_words) if name_words else 0.0
-
-
-def _frame_words(templates: dict) -> set[str]:
-    """Words that every paraphrase query shares because they come from the template itself."""
-    words: set[str] = set()
-    for template in templates["retrieval"]["paraphrase"]:
-        words |= _words(template.replace("{topic}", " ").replace("{dimension}", " "))
-    return words
-
-
 def description_overlap(query: str, text: str, templates: dict) -> float:
-    """Share of the query's own content words that also appear in `text`.
-
-    Stop words and the paraphrase template's fixed words ("Is there a dashboard that
-    shows ...") are ignored: they are the same for every query, so they cannot point at
-    one target. What is left is the paraphrase itself, which must not borrow the target's
-    description or tag words, or BM25 gets the answer for free.
-    """
-    content = _words(query) - _frame_words(templates) - FUNCTION_WORDS
-    return len(content & (_words(text) - FUNCTION_WORDS)) / len(content) if content else 0.0
+    """content_overlap with the retrieval paraphrase templates' fixed words ignored."""
+    return content_overlap(query, text, frame_words(templates["retrieval"]["paraphrase"]))
 
 
 def _item(item_id: str, kind: str, query: str, gold_spec: dict, notes: str, raw, meta) -> dict:
@@ -114,7 +75,7 @@ def _exact_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
         for alias, ids in alias_owner.items()
         if ACRONYM.match(alias) and len(ids) == 1 and alias.rstrip("%") not in tag_words
     )
-    noise = _noise_members(meta)
+    noise = noise_members(meta)
     plain_reports = [r for r in reports["report_id"] if r not in noise]
 
     specs = []
@@ -148,30 +109,10 @@ def _exact_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
     ]
 
 
-def _noise_members(meta: dict) -> set[str]:
-    members = {rid for pair in meta["near_duplicate_pairs"] for rid in pair}
-    return members | set(meta["deprecated_map"]) | set(meta["deprecated_map"].values())
-
-
-def _unique_combos(meta: dict) -> set[str]:
-    """Reports that are the only one with their (subject, qualifier) combination.
-
-    A paraphrase names a topic and a dimension. If two reports share both (a deprecated
-    report and its replacement, a near duplicate and its base), the question has two right
-    answers and a single-target gold measures nothing, so neither may be a P target.
-    """
-    subjects, qualifiers = meta["report_subjects"], meta["report_qualifiers"]
-    counts: dict[tuple[str, str], int] = {}
-    for rid in subjects:
-        combo = (subjects[rid], qualifiers[rid])
-        counts[combo] = counts.get(combo, 0) + 1
-    return {rid for rid in subjects if counts[(subjects[rid], qualifiers[rid])] == 1}
-
-
 def _paraphrase_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
     reports = raw["reports"].set_index("report_id")
     subjects, qualifiers = meta["report_subjects"], meta["report_qualifiers"]
-    unique = _unique_combos(meta)
+    unique = unique_combos(meta)
     vague = set(meta["vague_description_reports"])  # findable by name only: not a paraphrase test
     # "none" is excluded: a general question about a topic fits every report of that topic.
     candidates = [
@@ -237,7 +178,7 @@ def _disambiguation_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
 def _negative_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
     reserved = json.loads((VOCAB_DIR / "reserved_near_miss.json").read_text(encoding="utf-8"))
     existing = [
-        _norm(n)
+        norm(n)
         for n in pd.concat([raw["reports"]["name"], raw["tables"]["name"], raw["metrics"]["name"]])
     ]
     fragments = reserved["report_name_fragments"]
@@ -251,7 +192,7 @@ def _negative_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
             + rng.choice(t["near_miss_formats"])
         )
         query = rng.choice(t["retrieval"]["negative"]).format(name=name)
-        if name in seen or any(e in _norm(query) for e in existing):
+        if name in seen or any(e in norm(query) for e in existing):
             continue
         seen.add(name)
         spec = {"type": "abstain", "reason": "near_miss_name"}
@@ -269,7 +210,7 @@ def validate_retrieval_set(items: list[dict], raw, meta, templates: dict) -> Non
     if len({i["query"] for i in items}) != len(items):
         raise ValueError("duplicate queries")
     reports = raw["reports"].set_index("report_id")
-    unique = _unique_combos(meta)
+    unique = unique_combos(meta)
     for item in items:
         if item["type"] == "P":
             target = item["gold"]["answer_ids"][0]
@@ -298,29 +239,39 @@ def build_retrieval_set(raw, meta, templates: dict, seed: int) -> list[dict]:
     return items
 
 
-def _write(path: Path, payload: dict) -> None:
-    text = json.dumps(payload, indent=2, ensure_ascii=False) + "\n"
-    path.write_bytes(text.encode("utf-8"))
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Build evaluation sets from generated data.")
     parser.add_argument("--data", type=Path, default=ROOT / "data")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--only", choices=["retrieval"], default="retrieval")
+    parser.add_argument("--only", choices=["retrieval", "questions"], default=None)
     args = parser.parse_args(argv)
 
     raw, meta = gold.load_raw(args.data), gold.load_meta(args.data)
-    items = build_retrieval_set(raw, meta, load_templates(), args.seed)
-    _write(
-        EVAL_DIR / "retrieval_set.json",
-        {
-            "_comment": "Retrieval benchmark (spec §5.8). Built by eval/build_sets.py; do not edit by hand.",
-            "seed": args.seed,
-            "items": items,
-        },
-    )
-    print(f"wrote {len(items)} retrieval queries to eval/retrieval_set.json")
+    templates = load_templates()
+    if args.only in (None, "retrieval"):
+        items = build_retrieval_set(raw, meta, templates, args.seed)
+        write_json(
+            EVAL_DIR / "retrieval_set.json",
+            {
+                "_comment": "Retrieval benchmark (spec §5.8). Built by eval/build_sets.py; do not edit by hand.",
+                "seed": args.seed,
+                "items": items,
+            },
+        )
+        print(f"wrote {len(items)} retrieval queries to eval/retrieval_set.json")
+    if args.only in (None, "questions"):
+        retrieval = json.loads((EVAL_DIR / "retrieval_set.json").read_text(encoding="utf-8"))
+        sets = question_sets.build_question_sets(
+            raw, meta, templates, args.seed, retrieval["items"]
+        )
+        for name, items in sets.items():
+            write_json(
+                EVAL_DIR / f"{name}_set.json", question_sets.set_file(name, args.seed, items)
+            )
+            print(f"wrote {len(items)} {name} questions to eval/{name}_set.json")
+        review = question_sets.review_sample(sets["test"], raw)
+        (EVAL_DIR / "review_sample.md").write_text(review, encoding="utf-8", newline="\n")
+        print("wrote eval/review_sample.md (not committed)")
     return 0
 
 

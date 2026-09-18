@@ -1,5 +1,5 @@
 {
-  "_comment": "Question templates and paraphrase pools for eval/build_sets.py. Paraphrases avoid the words the generator can put into the matching report: its name stems, measures, audiences, drill targets, tags and the description templates (v2, 2026-09-18). The builder still checks every generated query: <= 30% overlap with the target name and <= 20% of the query's content words found in the target's description and tags.",
+  "_comment": "Question templates and paraphrase pools for eval/build_sets.py. Paraphrases avoid the words the generator can put into the matching report: its name stems, measures, audiences, drill targets, tags and the description templates (v2, 2026-09-18). The builder still checks every generated query: <= 30% overlap with the target name and <= 20% of the query's content words found in the target's description and tags. The 'questions' block holds the dev/test question templates per category (spec Ek D, at least 4 per category); 'request_paraphrases' describes each request topic cluster without the words its requests use, for L4 and MX questions.",
   "subject_paraphrases": {
     "dealer_sales_performance": [
       "how each franchise outlet is doing on its quota of automobiles sold",
@@ -310,6 +310,374 @@
       "Who owns the {name}?",
       "Where can I find the {name}?",
       "Is the {name} still maintained?"
+    ]
+  },
+  "questions": {
+    "L1": {
+      "exact_report_id": [
+        "What is {report_id} about, and is it still in use?",
+        "Tell me what {report_id} shows."
+      ],
+      "exact_report_name": [
+        "Where can I find {report_name}?",
+        "Is {report_name} a report we still maintain?"
+      ],
+      "exact_table_name": [
+        "What is stored in the table {table_name}?",
+        "Which table is {table_name} and what does it hold?"
+      ],
+      "exact_metric_acronym": [
+        "What does the {alias} metric measure?",
+        "Where is {alias} defined?"
+      ],
+      "paraphrase": [
+        "Is there a dashboard that shows {topic}{dimension}?",
+        "Which report tracks {topic}{dimension}?",
+        "I need a report on {topic}{dimension}. Does one exist?",
+        "Can you point me to a view of {topic}{dimension}?"
+      ],
+      "deprecated_current": [
+        "I need the current version of {name}. Which report is it?",
+        "{name} looks out of date. Which report should I use instead?"
+      ],
+      "near_duplicate": [
+        "I am after {name}, {cue}. Which report is that?",
+        "Which report is {name}, {cue}?"
+      ]
+    },
+    "L2": {
+      "report_neutral": [
+        "Who owns {report_name}?",
+        "Who is the right person to ask about {report_name} today?"
+      ],
+      "report_departed": [
+        "{report_name} was built by someone who may no longer be here. Who should I talk to?"
+      ],
+      "table": [
+        "Who is the right contact for the table {table_name} today?",
+        "Who should I ask about {table_name}?"
+      ],
+      "metric": [
+        "Which person can answer questions about the {metric_name} metric right now?",
+        "Who is responsible for the {metric_name} metric today?"
+      ]
+    },
+    "L3": {
+      "metric_upstream": [
+        "Which tables feed the {metric_name} metric, up to {depth} steps upstream?",
+        "What tables is {metric_name} built from, including the tables behind them, up to {depth} levels back?"
+      ],
+      "report_upstream": [
+        "What source tables does {report_name} depend on, up to {depth} levels back?",
+        "Which tables does {report_name} read from, directly or up to {depth} steps upstream?"
+      ],
+      "staging_downstream": [
+        "Which reports are built on top of {table_name} within {depth} steps?",
+        "If {table_name} stops loading, which reports within {depth} steps downstream are affected?"
+      ]
+    },
+    "L4": [
+      "Has anyone already looked into {topic}?",
+      "Before I start: was there a previous request about {topic}?",
+      "Did the data team ever build something for {topic}?",
+      "Find earlier analysis requests similar to this: {topic}."
+    ],
+    "L5": {
+      "by_name": [
+        "If I change the schema of {table_name}, which reports break and who needs to know?",
+        "We are deprecating {table_name}. Who should I notify?",
+        "{table_name} is going to be rebuilt. Whom do I have to warn?"
+      ],
+      "by_id": [
+        "What is the blast radius of modifying {table_id}?"
+      ]
+    },
+    "L6": {
+      "salary": [
+        "What is {employee_name}'s salary?",
+        "How much does {employee_name} earn?"
+      ],
+      "budget_2027": [
+        "What is the 2027 budget for the {region} region?",
+        "How much budget does the {region} region have for 2027?"
+      ],
+      "accuracy": [
+        "How accurate is {report_name}?",
+        "Can I trust the numbers in {report_name}? How accurate are they?"
+      ],
+      "near_miss": [
+        "Who owns the {name}?",
+        "Where can I find the {name}?",
+        "Is the {name} still maintained?"
+      ],
+      "never_done": [
+        "Has anyone analyzed {topic}?",
+        "Was there ever a request about {topic}?"
+      ],
+      "null_formula": [
+        "What is the exact formula for {metric_name}?",
+        "How exactly is {metric_name} calculated?"
+      ],
+      "future": [
+        "Who will own {report_name} next year?",
+        "Who is going to be responsible for {report_name} in 2027?"
+      ]
+    },
+    "MX": {
+      "metric_owners": [
+        "The {metric_name} numbers look wrong. Who owns the tables it is built from?",
+        "I want to question the source data behind {metric_name}. Who are the current owners of its source tables?"
+      ],
+      "deprecated_replacement": [
+        "{report_name} stopped refreshing. What replaced it and who owns the replacement?",
+        "{report_name} seems abandoned. Which report took over, and who looks after it now?"
+      ],
+      "request_report": [
+        "Someone once requested {topic}. Which report came out of it, and who maintains it now?",
+        "There was a past request about {topic}. Which report did it produce and who owns that report today?"
+      ]
+    }
+  },
+  "request_paraphrases": {
+    "returns_by_region": [
+      "components that garages send back to us, split geographically",
+      "how many spares get handed back in each territory"
+    ],
+    "service_retention_by_dealer": [
+      "drivers who keep coming back to the same franchise for upkeep",
+      "whether motorists stay with our garages after the initial check-up, site by site"
+    ],
+    "warranty_cost_by_model": [
+      "how much the guarantee fixes set us back for each nameplate",
+      "money paid out under the manufacturer guarantee, broken down by car type"
+    ],
+    "lead_to_sale_by_dealer": [
+      "what share of interested prospects end up buying, for each franchise site",
+      "prospects becoming signed contracts at every retail outlet"
+    ],
+    "discount_depth_by_model": [
+      "how much we knock off the sticker for each nameplate",
+      "money taken off the asking amount per car type"
+    ],
+    "fleet_deal_margin": [
+      "what we actually earn on bulk purchases by hire firms and businesses",
+      "earnings on large multi-car agreements with firms"
+    ],
+    "used_car_stock_age": [
+      "trade-ins waiting too long for a buyer at each franchise",
+      "the time previously registered motors spend unsold on our lots"
+    ],
+    "test_drive_uptake_online": [
+      "trial runs in a car that were arranged from our web pages",
+      "prospects reserving a spin in a new model over the internet"
+    ],
+    "configurator_dropoff": [
+      "where visitors give up while designing their motor on our site",
+      "unfinished custom specifications on the web tool"
+    ],
+    "cost_per_lead_campaigns": [
+      "what we pay to win each interested prospect, per promotion",
+      "the price of every new contact generated by our advertising pushes"
+    ],
+    "nps_by_region": [
+      "how willing buyers are to suggest us to friends, in each part of the country",
+      "fans versus critics of the brand, geographically"
+    ],
+    "csat_after_service": [
+      "how happy drivers are once their car leaves the garage",
+      "ratings motorists give us following an appointment for upkeep"
+    ],
+    "repeat_repairs": [
+      "cars that come back with an identical problem soon after a garage job",
+      "jobs that had to be redone by the mechanics"
+    ],
+    "workshop_capacity": [
+      "how busy our mechanics are compared with what they could handle",
+      "idle garage slots and overloaded repair teams"
+    ],
+    "recall_completion": [
+      "cars still waiting for a mandatory defect remedy",
+      "how far we have got with regulator-ordered fixes"
+    ],
+    "fill_rate_by_depot": [
+      "how often a spares request leaves in full in one go, per storage site",
+      "component requests we satisfy straight from the shelves at each hub"
+    ],
+    "slow_moving_parts": [
+      "spares that nobody has bought for ages",
+      "components gathering dust on our shelves"
+    ],
+    "supplier_punctuality": [
+      "whether the makers of our components ship when they promised",
+      "tardy shipments from the firms we buy spares from"
+    ],
+    "backorder_ageing": [
+      "component requests still owed to garages and how long they have been open",
+      "spares promised but not yet sent, grouped by how many weeks they have been pending"
+    ],
+    "vehicle_delivery_delays": [
+      "motors reaching retail sites behind schedule",
+      "how many days it takes for new automobiles to arrive at the franchises"
+    ],
+    "dealer_margin_ranking": [
+      "which franchise outlets earn us the most once bonuses are counted",
+      "ordering our retail partners by what they really bring in"
+    ],
+    "opex_by_cost_center": [
+      "day-to-day outgoings of every business unit",
+      "what each function pays just to keep the lights on"
+    ],
+    "budget_variance": [
+      "whether teams are over or under the amounts agreed for the year",
+      "real outcomes set beside the signed-off targets for each function"
+    ],
+    "overdue_receivables": [
+      "bills clients have not settled yet",
+      "money owed to us that is past its due date"
+    ],
+    "margin_mix_business_lines": [
+      "which divisions keep the most of every euro they take in",
+      "what remains of turnover once purchase prices are paid, for cars, spares and repairs"
+    ],
+    "revenue_growth_yoy": [
+      "whether turnover is rising compared with twelve months earlier",
+      "how much more money each division takes in than in the previous annual period"
+    ],
+    "order_bank_ageing": [
+      "purchases that buyers signed and are still waiting to receive",
+      "contracts where the automobile has yet to reach its buyer"
+    ],
+    "pipeline_forecast": [
+      "negotiations still under way and when they might be won",
+      "prospects in talks and the likely volume they will bring"
+    ],
+    "dealer_stock_days": [
+      "how long fresh automobiles stay unsold on franchise lots",
+      "weeks that brand-new motors wait at retail sites before a buyer appears"
+    ],
+    "service_booking_no_shows": [
+      "drivers who reserve a garage slot and then never arrive",
+      "empty repair slots because people forgot to come in"
+    ],
+    "model_mix": [
+      "which nameplates buyers pick most often",
+      "the proportion of each car line in what we deliver"
+    ],
+    "customer_segment_profile": [
+      "who our clientele are, by life stage and household",
+      "the kind of people who purchase from us and what they drive"
+    ],
+    "marketing_roi_channels": [
+      "what each promotional outlet earns for every unit of budget",
+      "which advertising routes pay for themselves"
+    ],
+    "event_lead_quality": [
+      "prospects met in person at exhibitions and open days, and whether they buy",
+      "people we meet at expos and how many become buyers"
+    ],
+    "data_freshness": [
+      "whether the numbers on our dashboards were refreshed on schedule",
+      "nightly feeds that arrive behind time"
+    ],
+    "duplicate_customers": [
+      "the same buyer appearing more than once in our contact database",
+      "people registered several times under slightly different names"
+    ],
+    "dealer_league_table": [
+      "how each franchise stacks up next to outlets of equal scale",
+      "ranking retail sites alongside ones of the same scale"
+    ],
+    "demand_forecast": [
+      "how many automobiles we think buyers will want in the coming period",
+      "projecting upcoming car volumes so the factory can plan"
+    ],
+    "weekly_kpi_pack": [
+      "a short set of vital statistics for the directors every seven days",
+      "the key indicators top executives look at at the start of each week"
+    ],
+    "daily_exceptions": [
+      "problems that came up in the previous twenty-four hours",
+      "a morning list of issues to sort out first"
+    ],
+    "parts_revenue_by_dealer": [
+      "what garages pay us for spares, franchise by franchise",
+      "earnings from components we sell to each retail partner"
+    ],
+    "warranty_supplier_recovery": [
+      "getting makers to reimburse us for guarantee fixes caused by their faulty items",
+      "cash we claw back from the firms that built defective items"
+    ],
+    "repair_order_value": [
+      "how much drivers pay us each time a garage fixes their car",
+      "the typical bill for a garage appointment at every franchise"
+    ],
+    "web_traffic_sources": [
+      "where people who browse our internet presence come from",
+      "which referrers bring browsers to the brand homepage"
+    ],
+    "lost_deal_reasons": [
+      "prospects who walked away and bought elsewhere",
+      "what drives buyers to a rival brand instead of us"
+    ],
+    "inventory_valuation": [
+      "how much cash sits in the spares on our shelves",
+      "the worth of components stored in each distribution hub"
+    ],
+    "sales_target_attainment": [
+      "whether each territory hits the volume goals it was given",
+      "how close teams come to their agreed selling objectives"
+    ],
+    "dealer_network_changes": [
+      "franchises we have added or shut down",
+      "how many retail partners we have and how that has evolved"
+    ],
+    "price_realisation": [
+      "what buyers really pay compared with the official sticker",
+      "the gap between the catalogue amount and the invoiced amount per car"
+    ],
+    "return_reasons": [
+      "what motivates garages to hand components in to us",
+      "causes behind spares coming home to the depot"
+    ],
+    "survey_response_rates": [
+      "what share of buyers bother to fill in our questionnaires",
+      "whether people reply to the polls we send after a purchase"
+    ],
+    "month_end_pnl_pack": [
+      "the books showing earnings and outgoings for the directors each period",
+      "a periodic summary of what we earned and spent for top management"
+    ],
+    "cost_center_structure": [
+      "how spending units are arranged in the accounts",
+      "the tree of budget holders used in the ledger"
+    ],
+    "lead_response_time": [
+      "the delay before an interested prospect hears back from a showroom",
+      "whether franchises reply quickly to people asking about a car"
+    ],
+    "recurring_faults": [
+      "problems that keep appearing on particular cars",
+      "breakdowns that happen again and again across a production batch"
+    ],
+    "transport_damage": [
+      "automobiles that get scratched or dented on the way to us",
+      "harm to new motors while they are being shipped"
+    ],
+    "unused_reports": [
+      "analytics pages that no one looks at any more",
+      "BI screens gathering dust that we could retire"
+    ],
+    "single_customer_view": [
+      "a complete picture of each car owner across purchases and repairs",
+      "all information on a buyer gathered together"
+    ],
+    "accessory_attach_rate": [
+      "how often buyers take extras such as roof boxes with a car",
+      "optional kit bought alongside a fresh automobile"
+    ],
+    "picking_errors": [
+      "mistakes when staff collect components from the shelves",
+      "the depot selecting incorrect spares for a shipment"
     ]
   }
 }
