@@ -91,3 +91,32 @@ def test_negative_queries_name_nothing_that_exists(items, data):
     for item in items:
         if item["type"] == "N":
             assert not [n for n in names if n in norm(item["query"])], item["id"]
+
+
+def test_paraphrase_queries_barely_overlap_the_target_description(items, data):
+    # Name overlap alone let 9 of 15 v1 queries reuse description words, which fed BM25 the
+    # answer. Content words of the query (minus stop words and the template's own words) may
+    # hit the target's description and tags at most 20% of the time.
+    raw, _ = data
+    reports = raw["reports"].set_index("report_id")
+    for item in items:
+        if item["type"] == "P":
+            target = item["gold"]["answer_ids"][0]
+            text = reports.at[target, "description"] + " " + reports.at[target, "tags"]
+            overlap = build_sets.description_overlap(
+                item["query"], text, build_sets.load_templates()
+            )
+            assert overlap <= 0.20, (item["id"], round(overlap, 2))
+
+
+def test_paraphrase_targets_are_unique_by_subject_and_dimension(items, data):
+    _, meta = data
+    combos = [
+        (meta["report_subjects"][r], meta["report_qualifiers"][r]) for r in meta["report_subjects"]
+    ]
+    for item in items:
+        if item["type"] == "P":
+            target = item["gold"]["answer_ids"][0]
+            combo = (meta["report_subjects"][target], meta["report_qualifiers"][target])
+            assert combos.count(combo) == 1, (item["id"], combo)
+            assert combo[1] != "none", item["id"]

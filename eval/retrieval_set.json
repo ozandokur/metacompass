@@ -275,7 +275,7 @@
     {
       "id": "R-P-01",
       "type": "P",
-      "query": "We need numbers on what is left after paying for the goods we sell compared with the prior year. Does that exist?",
+      "query": "We need numbers on what remains of our income after buying in what we resell versus the previous annual result. Does that exist?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0128",
@@ -293,7 +293,7 @@
     {
       "id": "R-P-02",
       "type": "P",
-      "query": "Is there a dashboard that shows car revenue credited to advertising money compared with the prior year?",
+      "query": "Is there a dashboard that shows car income attributed to promotional budgets versus the previous annual result?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0201",
@@ -311,7 +311,7 @@
     {
       "id": "R-P-03",
       "type": "P",
-      "query": "Is there a dashboard that shows how happy people are after buying or getting their car looked after for each month?",
+      "query": "Is there a dashboard that shows how pleased people are after a purchase or a garage appointment once per billing cycle?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0205",
@@ -329,7 +329,7 @@
     {
       "id": "R-P-04",
       "type": "P",
-      "query": "Looking for something on ranking franchise points against similar-sized ones compared with the prior year.",
+      "query": "Looking for something on ranking franchise outlets against outlets of equal scale versus the previous annual result.",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0120",
@@ -347,7 +347,7 @@
     {
       "id": "R-P-05",
       "type": "P",
-      "query": "Is there a dashboard that shows factory-fresh units handed over to buyers for each car line?",
+      "query": "Is there a dashboard that shows factory-fresh automobiles passed to their first owners for each nameplate?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0030",
@@ -365,7 +365,7 @@
     {
       "id": "R-P-06",
       "type": "P",
-      "query": "Where can I see how many buyers come back for scheduled check-ups as a line over the last year?",
+      "query": "Where can I see how often buyers bring the automobile to us again for upkeep showing how it moved over the past year?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0238",
@@ -383,7 +383,7 @@
     {
       "id": "R-P-07",
       "type": "P",
-      "query": "We need numbers on how punctual the companies we buy components from are as a one-page brief for the directors. Does that exist?",
+      "query": "We need numbers on how punctual the firms that make our components are as a one-page brief for the directors. Does that exist?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0218",
@@ -401,7 +401,7 @@
     {
       "id": "R-P-08",
       "type": "P",
-      "query": "Is there a dashboard that shows prospects collected face to face at exhibitions and open days condensed for senior management?",
+      "query": "Is there a dashboard that shows prospects met in person at exhibitions and open days condensed for senior management?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0152",
@@ -419,7 +419,7 @@
     {
       "id": "R-P-09",
       "type": "P",
-      "query": "Where can I see fans versus critics among our customers for each type of buyer?",
+      "query": "Where can I see fans versus critics in our buyer base for each type of buyer?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0227",
@@ -437,7 +437,7 @@
     {
       "id": "R-P-10",
       "type": "P",
-      "query": "Where can I see items dealers hand back and the refunds they get as a line over the last year?",
+      "query": "Where can I see rejected items shipped to our depot and the refunds paid for them showing how it moved over the past year?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0016",
@@ -455,7 +455,7 @@
     {
       "id": "R-P-11",
       "type": "P",
-      "query": "Where can I see running expenditure by department for each month?",
+      "query": "Where can I see day-to-day outgoings of every function once per billing cycle?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0102",
@@ -473,7 +473,7 @@
     {
       "id": "R-P-12",
       "type": "P",
-      "query": "Where can I see the numbers the prediction model uses to estimate future car volumes for each area of the country?",
+      "query": "Where can I see the ingredients the prediction engine needs to estimate coming car volumes geographically?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0172",
@@ -491,7 +491,7 @@
     {
       "id": "R-P-13",
       "type": "P",
-      "query": "Where can I see one page of the most important figures for the directors broken down geographically?",
+      "query": "Where can I see a single sheet of the key indicators for the directors for each area of the country?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0209",
@@ -509,7 +509,7 @@
     {
       "id": "R-P-14",
       "type": "P",
-      "query": "Is there a dashboard that shows everything we know about one buyer across purchases, repairs and contacts for each type of buyer?",
+      "query": "Is there a dashboard that shows all the information on one buyer, from purchases to repairs to calls for each type of buyer?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0013",
@@ -527,7 +527,7 @@
     {
       "id": "R-P-15",
       "type": "P",
-      "query": "Looking for something on how much mechanic time gets billed to customers every seven days.",
+      "query": "Looking for something on how much mechanic effort becomes paid jobs every seven days.",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0123",

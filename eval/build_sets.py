@@ -27,12 +27,25 @@ EVAL_DIR = ROOT / "eval"
 TEMPLATES = EVAL_DIR / "templates.json"
 VOCAB_DIR = ROOT / "src" / "metacompass" / "data" / "vocab"
 
+# The retrieval stop-word list (spec §5.3).
 STOPWORDS = {
     "the", "a", "an", "of", "for", "to", "in", "on", "and",
     "or", "is", "are", "which", "what", "who", "by", "with",
 }  # fmt: skip
+# English function words, used on top of STOPWORDS when checking whether a paraphrase
+# borrows the target's description: "how" or "as" in both texts is not leaked content.
+FUNCTION_WORDS = STOPWORDS | {
+    "about", "after", "all", "am", "any", "as", "at", "be", "been", "before", "being", "both",
+    "but", "can", "could", "did", "do", "does", "each", "every", "from", "had", "has", "have",
+    "he", "her", "here", "his", "how", "i", "if", "into", "it", "its", "just", "me", "my",
+    "no", "not", "our", "ours", "out", "over", "own", "per", "she", "so", "some", "such",
+    "than", "that", "their", "them", "then", "there", "these", "they", "this", "those",
+    "through", "too", "until", "up", "us", "very", "was", "we", "were", "when", "where",
+    "whether", "while", "why", "will", "would", "yet", "you", "your",
+}  # fmt: skip
 PER_TYPE = 15
-MAX_PARAPHRASE_OVERLAP = 0.30
+MAX_PARAPHRASE_OVERLAP = 0.30  # share of the target name's words (spec §9.5)
+MAX_DESCRIPTION_OVERLAP = 0.20  # share of the query's content words (spec update 2026-09-18)
 ACRONYM = re.compile(r"^[A-Z0-9%]{2,}$")
 
 
@@ -52,6 +65,26 @@ def name_overlap(query: str, name: str) -> float:
     """Share of the name's content words that also appear in the query."""
     name_words = _words(name)
     return len(name_words & _words(query)) / len(name_words) if name_words else 0.0
+
+
+def _frame_words(templates: dict) -> set[str]:
+    """Words that every paraphrase query shares because they come from the template itself."""
+    words: set[str] = set()
+    for template in templates["retrieval"]["paraphrase"]:
+        words |= _words(template.replace("{topic}", " ").replace("{dimension}", " "))
+    return words
+
+
+def description_overlap(query: str, text: str, templates: dict) -> float:
+    """Share of the query's own content words that also appear in `text`.
+
+    Stop words and the paraphrase template's fixed words ("Is there a dashboard that
+    shows ...") are ignored: they are the same for every query, so they cannot point at
+    one target. What is left is the paraphrase itself, which must not borrow the target's
+    description or tag words, or BM25 gets the answer for free.
+    """
+    content = _words(query) - _frame_words(templates) - FUNCTION_WORDS
+    return len(content & (_words(text) - FUNCTION_WORDS)) / len(content) if content else 0.0
 
 
 def _item(item_id: str, kind: str, query: str, gold_spec: dict, notes: str, raw, meta) -> dict:
@@ -120,16 +153,32 @@ def _noise_members(meta: dict) -> set[str]:
     return members | set(meta["deprecated_map"]) | set(meta["deprecated_map"].values())
 
 
+def _unique_combos(meta: dict) -> set[str]:
+    """Reports that are the only one with their (subject, qualifier) combination.
+
+    A paraphrase names a topic and a dimension. If two reports share both (a deprecated
+    report and its replacement, a near duplicate and its base), the question has two right
+    answers and a single-target gold measures nothing, so neither may be a P target.
+    """
+    subjects, qualifiers = meta["report_subjects"], meta["report_qualifiers"]
+    counts: dict[tuple[str, str], int] = {}
+    for rid in subjects:
+        combo = (subjects[rid], qualifiers[rid])
+        counts[combo] = counts.get(combo, 0) + 1
+    return {rid for rid in subjects if counts[(subjects[rid], qualifiers[rid])] == 1}
+
+
 def _paraphrase_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
     reports = raw["reports"].set_index("report_id")
     subjects, qualifiers = meta["report_subjects"], meta["report_qualifiers"]
-    excluded = _noise_members(meta) | set(meta["vague_description_reports"])
-    # "none" is excluded: a general question about a topic fits every report of that topic,
-    # so a single-target gold would not hold.
+    unique = _unique_combos(meta)
+    vague = set(meta["vague_description_reports"])  # findable by name only: not a paraphrase test
+    # "none" is excluded: a general question about a topic fits every report of that topic.
     candidates = [
         rid
         for rid in sorted(reports.index)
-        if rid not in excluded
+        if rid in unique
+        and rid not in vague
         and qualifiers[rid] != "none"
         and reports.at[rid, "status"] == "active"
     ]
@@ -149,9 +198,13 @@ def _paraphrase_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
         ]
         rng.shuffle(options)
         name = reports.at[rid, "name"]
+        text = reports.at[rid, "description"] + " " + reports.at[rid, "tags"]
         for template, topic, dimension in options:
             query = template.format(topic=topic, dimension=dimension)
-            if name_overlap(query, name) <= MAX_PARAPHRASE_OVERLAP:
+            if (
+                name_overlap(query, name) <= MAX_PARAPHRASE_OVERLAP
+                and description_overlap(query, text, t) <= MAX_DESCRIPTION_OVERLAP
+            ):
                 used_subjects.add(subject)
                 spec = {"type": "asset_by_description", "target_id": rid, "forbidden_ids": []}
                 note = f"subject={subject}, qualifier={qualifier}"
@@ -208,21 +261,28 @@ def _negative_items(rng: random.Random, raw, meta, t: dict) -> list[dict]:
     return items
 
 
-def validate_retrieval_set(items: list[dict], raw, meta) -> None:
+def validate_retrieval_set(items: list[dict], raw, meta, templates: dict) -> None:
     """Raise ValueError if the set breaks a rule from spec §5.8 / §9.5."""
     counts = {kind: sum(1 for i in items if i["type"] == kind) for kind in "EPDN"}
     if counts != dict.fromkeys("EPDN", PER_TYPE):
         raise ValueError(f"wrong counts per type: {counts}")
     if len({i["query"] for i in items}) != len(items):
         raise ValueError("duplicate queries")
-    names = dict(zip(raw["reports"]["report_id"], raw["reports"]["name"], strict=True))
-    status = dict(zip(raw["reports"]["report_id"], raw["reports"]["status"], strict=True))
+    reports = raw["reports"].set_index("report_id")
+    unique = _unique_combos(meta)
     for item in items:
         if item["type"] == "P":
             target = item["gold"]["answer_ids"][0]
-            if name_overlap(item["query"], names[target]) > MAX_PARAPHRASE_OVERLAP:
+            text = reports.at[target, "description"] + " " + reports.at[target, "tags"]
+            if name_overlap(item["query"], reports.at[target, "name"]) > MAX_PARAPHRASE_OVERLAP:
                 raise ValueError(f"{item['id']}: paraphrase overlaps the target name")
-        if item["type"] == "D" and status[item["gold"]["answer_ids"][0]] != "active":
+            if description_overlap(item["query"], text, templates) > MAX_DESCRIPTION_OVERLAP:
+                raise ValueError(f"{item['id']}: paraphrase borrows the target's description")
+            if target not in unique:
+                raise ValueError(
+                    f"{item['id']}: another report shares the target's topic and dimension"
+                )
+        if item["type"] == "D" and reports.at[item["gold"]["answer_ids"][0], "status"] != "active":
             raise ValueError(f"{item['id']}: disambiguation target is not active")
 
 
@@ -234,7 +294,7 @@ def build_retrieval_set(raw, meta, templates: dict, seed: int) -> list[dict]:
         + _disambiguation_items(rng, raw, meta, templates)
         + _negative_items(rng, raw, meta, templates)
     )
-    validate_retrieval_set(items, raw, meta)
+    validate_retrieval_set(items, raw, meta, templates)
     return items
 
 
