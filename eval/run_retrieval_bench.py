@@ -91,7 +91,8 @@ def _git_sha() -> str:
         return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True).stdout
 
     sha = git("rev-parse", "--short", "HEAD").strip() or "unknown"
-    return sha + ("-dirty" if git("status", "--porcelain").strip() else "")
+    # Only tracked changes count: untracked result files are outputs, not code.
+    return sha + ("-dirty" if git("status", "--porcelain", "--untracked-files=no").strip() else "")
 
 
 def run(data_dir: Path, set_path: Path, embedder: Embedder, cache_dir: Path) -> dict:
