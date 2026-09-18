@@ -290,14 +290,16 @@ def test_I06_one_active_head_per_department(emp):
 # ------------------------------------------------------------------ I07 chain heads own reports
 
 
-def test_I07_chain_heads_own_at_least_two_active_reports(raw, meta):
+def test_I07_structure_starters_own_active_reports(raw, meta):
+    # Spec update 2026-09-18 (Ozan): S1/S2 people need >= 1 active report, C2/C3/C4 chain
+    # heads >= 2 (the test set asks two C4 questions about one chain head).
     chains = meta["chains"]
-    heads = list(chains["S1"]) + list(chains["S2"])
-    heads += [chain[0] for code in ("C2", "C3", "C4") for chain in chains[code]]
+    required = dict.fromkeys(list(chains["S1"]) + list(chains["S2"]), 1)
+    required |= {chain[0]: 2 for code in ("C2", "C3", "C4") for chain in chains[code]}
     active = raw["reports"][raw["reports"]["status"] == "active"]
     counts = active["owner_id"].value_counts()
-    for eid in heads:
-        assert counts.get(eid, 0) >= 2, eid
+    for eid, minimum in required.items():
+        assert counts.get(eid, 0) >= minimum, eid
 
 
 # ------------------------------------------------------------------ I08 layers and lineage DAG
@@ -639,26 +641,13 @@ def test_X_titles_vary_within_request_clusters(requests_, meta):
 # ------------------------------------------------------------------ I18 departed owners
 
 
-def _chain_heads(meta) -> list[str]:
-    chains = meta["chains"]
-    return (
-        list(chains["S1"])
-        + list(chains["S2"])
-        + [chain[0] for code in ("C2", "C3", "C4") for chain in chains[code]]
-    )
-
-
-def test_I18_departed_owner_share_of_active_reports(raw, emp, meta):
-    # Target band 15-20%. I07 forces every chain head to own >= 2 active reports, so the
-    # share can never drop below 2 * heads / active reports. SPEC-DEVIATION: with 25 heads
-    # and 235 active reports that floor is 21.3%, above the band; the generator then has to
-    # sit exactly on the floor (no departed owner beyond the guaranteed reports).
+def test_I18_departed_owner_share_of_active_reports(raw, emp):
+    # At most 18% of active reports may have a departed owner. A high share rewards an agent
+    # that calls resolve_owner on every question and makes ablation A3 look easier than it is.
+    # I07 alone forces 12 + 6 + 7 x 2 = 32 of 235 (13.6%).
     active = raw["reports"][raw["reports"]["status"] == "active"]
     departed = active["owner_id"].map(lambda o: emp[o]["status"] == "left")
-    share = departed.mean()
-    floor = 2 * len(_chain_heads(meta)) / len(active)
-    assert share >= 0.15
-    assert share <= max(0.20, floor) + 1e-9, (share, floor)
+    assert departed.mean() <= 0.18
 
 
 @pytest.mark.parametrize("table", ["tables", "metrics"])

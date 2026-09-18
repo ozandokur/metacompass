@@ -185,15 +185,15 @@
     {
       "id": "R-E-11",
       "type": "E",
-      "query": "RPT-0091",
+      "query": "RPT-0093",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0091",
+        "target_id": "RPT-0093",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0091"
+          "RPT-0093"
         ],
         "forbidden_ids": [],
         "should_abstain": false
@@ -203,15 +203,15 @@
     {
       "id": "R-E-12",
       "type": "E",
-      "query": "Who looks after RPT-0197?",
+      "query": "Who looks after RPT-0198?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0197",
+        "target_id": "RPT-0198",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0197"
+          "RPT-0198"
         ],
         "forbidden_ids": [],
         "should_abstain": false
@@ -221,15 +221,15 @@
     {
       "id": "R-E-13",
       "type": "E",
-      "query": "What is RPT-0228?",
+      "query": "What is RPT-0224?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0228",
+        "target_id": "RPT-0224",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0228"
+          "RPT-0224"
         ],
         "forbidden_ids": [],
         "should_abstain": false
@@ -239,25 +239,7 @@
     {
       "id": "R-E-14",
       "type": "E",
-      "query": "RPT-0034",
-      "gold_spec": {
-        "type": "asset_by_description",
-        "target_id": "RPT-0034",
-        "forbidden_ids": []
-      },
-      "gold": {
-        "answer_ids": [
-          "RPT-0034"
-        ],
-        "forbidden_ids": [],
-        "should_abstain": false
-      },
-      "notes": "report ID"
-    },
-    {
-      "id": "R-E-15",
-      "type": "E",
-      "query": "What is RPT-0032?",
+      "query": "RPT-0032",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0032",
@@ -273,99 +255,117 @@
       "notes": "report ID"
     },
     {
-      "id": "R-P-01",
-      "type": "P",
-      "query": "We need numbers on what is left after paying for the goods we sell compared with the prior year. Does that exist?",
+      "id": "R-E-15",
+      "type": "E",
+      "query": "What is RPT-0029?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0128",
+        "target_id": "RPT-0029",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0128"
+          "RPT-0029"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=gross_margin, qualifier=yoy"
+      "notes": "report ID"
+    },
+    {
+      "id": "R-P-01",
+      "type": "P",
+      "query": "We need numbers on the monthly accounts from turnover down to operating result since the start of the month. Does that exist?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0137",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0137"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "notes": "subject=pnl, qualifier=mtd"
     },
     {
       "id": "R-P-02",
       "type": "P",
-      "query": "Is there a dashboard that shows car revenue credited to advertising money compared with the prior year?",
+      "query": "Is there a dashboard that shows components gathering dust on the shelves and what they are worth as a one-page brief for the directors?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0201",
+        "target_id": "RPT-0208",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0201"
+          "RPT-0208"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=marketing_roi, qualifier=yoy"
+      "notes": "subject=parts_inventory, qualifier=exec"
     },
     {
       "id": "R-P-03",
       "type": "P",
-      "query": "Is there a dashboard that shows how happy people are after buying or getting their car looked after for each month?",
+      "query": "Is there a dashboard that shows factory-fresh units handed over to buyers every seven days?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0205",
+        "target_id": "RPT-0212",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0205"
+          "RPT-0212"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=customer_satisfaction, qualifier=monthly"
+      "notes": "subject=new_vehicle_sales, qualifier=weekly"
     },
     {
       "id": "R-P-04",
       "type": "P",
-      "query": "Looking for something on ranking franchise points against similar-sized ones compared with the prior year.",
+      "query": "Looking for something on total income across cars, spares and repairs since the start of the month.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0120",
+        "target_id": "RPT-0126",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0120"
+          "RPT-0126"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=dealer_benchmark, qualifier=yoy"
+      "notes": "subject=revenue_summary, qualifier=mtd"
     },
     {
       "id": "R-P-05",
       "type": "P",
-      "query": "Is there a dashboard that shows factory-fresh units handed over to buyers for each car line?",
+      "query": "Is there a dashboard that shows how long new cars take to travel from the ship to the showroom for each car line?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0030",
+        "target_id": "RPT-0029",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0030"
+          "RPT-0029"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=new_vehicle_sales, qualifier=model"
+      "notes": "subject=vehicle_logistics, qualifier=model"
     },
     {
       "id": "R-P-06",
       "type": "P",
-      "query": "Where can I see how many buyers come back for scheduled check-ups as a line over the last year?",
+      "query": "Where can I see the share of people who ask about a car and then sign per calendar month?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0238",
@@ -378,138 +378,84 @@
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=service_retention, qualifier=trend"
+      "notes": "subject=lead_conversion, qualifier=monthly"
     },
     {
       "id": "R-P-07",
       "type": "P",
-      "query": "We need numbers on how punctual the companies we buy components from are as a one-page brief for the directors. Does that exist?",
+      "query": "We need numbers on what customers pay when their car is fixed for each month. Does that exist?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0218",
+        "target_id": "RPT-0219",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0218"
+          "RPT-0219"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=supplier_performance, qualifier=exec"
+      "notes": "subject=repair_order_revenue, qualifier=monthly"
     },
     {
       "id": "R-P-08",
       "type": "P",
-      "query": "Is there a dashboard that shows prospects collected face to face at exhibitions and open days condensed for senior management?",
+      "query": "Is there a dashboard that shows negotiations that have not closed yet and when they might as a line over the last year?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0152",
+        "target_id": "RPT-0156",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0152"
+          "RPT-0156"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=event_leads, qualifier=exec"
+      "notes": "subject=sales_pipeline, qualifier=trend"
     },
     {
       "id": "R-P-09",
       "type": "P",
-      "query": "Where can I see fans versus critics among our customers for each type of buyer?",
+      "query": "Where can I see how much each advertising channel earns back compared with the prior year?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0227",
+        "target_id": "RPT-0223",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0227"
+          "RPT-0223"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=brand_nps, qualifier=segment"
+      "notes": "subject=marketing_roi, qualifier=yoy"
     },
     {
       "id": "R-P-10",
       "type": "P",
-      "query": "Where can I see items dealers hand back and the refunds they get as a line over the last year?",
+      "query": "Where can I see ad flights and the prospects they generate per calendar month?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0016",
+        "target_id": "RPT-0229",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0016"
+          "RPT-0229"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=returns, qualifier=trend"
+      "notes": "subject=campaign_performance, qualifier=monthly"
     },
     {
       "id": "R-P-11",
       "type": "P",
-      "query": "Where can I see running expenditure by department for each month?",
-      "gold_spec": {
-        "type": "asset_by_description",
-        "target_id": "RPT-0102",
-        "forbidden_ids": []
-      },
-      "gold": {
-        "answer_ids": [
-          "RPT-0102"
-        ],
-        "forbidden_ids": [],
-        "should_abstain": false
-      },
-      "notes": "subject=opex, qualifier=monthly"
-    },
-    {
-      "id": "R-P-12",
-      "type": "P",
-      "query": "Where can I see the numbers the prediction model uses to estimate future car volumes for each area of the country?",
-      "gold_spec": {
-        "type": "asset_by_description",
-        "target_id": "RPT-0172",
-        "forbidden_ids": []
-      },
-      "gold": {
-        "answer_ids": [
-          "RPT-0172"
-        ],
-        "forbidden_ids": [],
-        "should_abstain": false
-      },
-      "notes": "subject=forecast_inputs, qualifier=region"
-    },
-    {
-      "id": "R-P-13",
-      "type": "P",
-      "query": "Where can I see one page of the most important figures for the directors broken down geographically?",
-      "gold_spec": {
-        "type": "asset_by_description",
-        "target_id": "RPT-0209",
-        "forbidden_ids": []
-      },
-      "gold": {
-        "answer_ids": [
-          "RPT-0209"
-        ],
-        "forbidden_ids": [],
-        "should_abstain": false
-      },
-      "notes": "subject=executive_kpis, qualifier=region"
-    },
-    {
-      "id": "R-P-14",
-      "type": "P",
-      "query": "Is there a dashboard that shows everything we know about one buyer across purchases, repairs and contacts for each type of buyer?",
+      "query": "Where can I see money given away to close each purchase site by site?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0013",
@@ -522,43 +468,97 @@
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=customer_360, qualifier=segment"
+      "notes": "subject=pricing_discounts, qualifier=dealer"
     },
     {
-      "id": "R-P-15",
+      "id": "R-P-12",
       "type": "P",
-      "query": "Looking for something on how much mechanic time gets billed to customers every seven days.",
+      "query": "Where can I see income from selling spares and accessories to garages for each month?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0123",
+        "target_id": "RPT-0108",
         "forbidden_ids": []
       },
       "gold": {
         "answer_ids": [
-          "RPT-0123"
+          "RPT-0108"
         ],
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "notes": "subject=workshop_productivity, qualifier=weekly"
+      "notes": "subject=parts_sales, qualifier=monthly"
+    },
+    {
+      "id": "R-P-13",
+      "type": "P",
+      "query": "Where can I see cars bought in large batches by companies per buyer group?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0174",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0174"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "notes": "subject=fleet_sales, qualifier=segment"
+    },
+    {
+      "id": "R-P-14",
+      "type": "P",
+      "query": "Is there a dashboard that shows everything we know about one buyer across purchases, repairs and contacts for each area of the country?",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0131",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0131"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "notes": "subject=customer_360, qualifier=region"
+    },
+    {
+      "id": "R-P-15",
+      "type": "P",
+      "query": "Looking for something on owners who keep bringing their car back to us for maintenance line by line across the range.",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0134",
+        "forbidden_ids": []
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0134"
+        ],
+        "forbidden_ids": [],
+        "should_abstain": false
+      },
+      "notes": "subject=service_retention, qualifier=model"
     },
     {
       "id": "R-D-01",
       "type": "D",
-      "query": "I need the current version of the Media Spend Efficiency Executive Summary report.",
+      "query": "I need the current version of the CSAT Monitor Dashboard by Region report.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0186",
+        "target_id": "RPT-0231",
         "forbidden_ids": [
-          "RPT-0174"
+          "RPT-0164"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0186"
+          "RPT-0231"
         ],
         "forbidden_ids": [
-          "RPT-0174"
+          "RPT-0164"
         ],
         "should_abstain": false
       },
@@ -567,20 +567,20 @@
     {
       "id": "R-D-02",
       "type": "D",
-      "query": "I need the current version of the Monthly Workshop Loyalty report.",
+      "query": "I need the current version of the Parts Sales YoY report.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0133",
+        "target_id": "RPT-0176",
         "forbidden_ids": [
-          "RPT-0111"
+          "RPT-0101"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0133"
+          "RPT-0176"
         ],
         "forbidden_ids": [
-          "RPT-0111"
+          "RPT-0101"
         ],
         "should_abstain": false
       },
@@ -589,20 +589,20 @@
     {
       "id": "R-D-03",
       "type": "D",
-      "query": "Which Lead Conversion should I use now?",
+      "query": "Which Monthly Business Customer Volume should I use now?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0192",
+        "target_id": "RPT-0185",
         "forbidden_ids": [
-          "RPT-0162"
+          "RPT-0144"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0192"
+          "RPT-0185"
         ],
         "forbidden_ids": [
-          "RPT-0162"
+          "RPT-0144"
         ],
         "should_abstain": false
       },
@@ -611,20 +611,20 @@
     {
       "id": "R-D-04",
       "type": "D",
-      "query": "Which Budget vs Actual Scorecard should I use now?",
+      "query": "Which Lead Conversion should I use now?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0124",
+        "target_id": "RPT-0100",
         "forbidden_ids": [
-          "RPT-0058"
+          "RPT-0071"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0124"
+          "RPT-0100"
         ],
         "forbidden_ids": [
-          "RPT-0058"
+          "RPT-0071"
         ],
         "should_abstain": false
       },
@@ -633,20 +633,20 @@
     {
       "id": "R-D-05",
       "type": "D",
-      "query": "Which Demand Forecast Inputs Overview should I use now?",
+      "query": "Which Transaction Price Analysis Tracker by Model should I use now?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0182",
+        "target_id": "RPT-0202",
         "forbidden_ids": [
-          "RPT-0164"
+          "RPT-0159"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0182"
+          "RPT-0202"
         ],
         "forbidden_ids": [
-          "RPT-0164"
+          "RPT-0159"
         ],
         "should_abstain": false
       },
@@ -655,20 +655,20 @@
     {
       "id": "R-D-06",
       "type": "D",
-      "query": "I need the current version of the Vehicle Stock by Dealer report.",
+      "query": "I need the current version of the Monthly Workshop Loyalty report.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0110",
+        "target_id": "RPT-0138",
         "forbidden_ids": [
-          "RPT-0065"
+          "RPT-0091"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0110"
+          "RPT-0138"
         ],
         "forbidden_ids": [
-          "RPT-0065"
+          "RPT-0091"
         ],
         "should_abstain": false
       },
@@ -677,20 +677,20 @@
     {
       "id": "R-D-07",
       "type": "D",
-      "query": "Which Weekly Unfilled Parts Orders should I use now?",
+      "query": "Which Budget vs Actual Scorecard should I use now?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0175",
+        "target_id": "RPT-0187",
         "forbidden_ids": [
-          "RPT-0146"
+          "RPT-0127"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0175"
+          "RPT-0187"
         ],
         "forbidden_ids": [
-          "RPT-0146"
+          "RPT-0127"
         ],
         "should_abstain": false
       },
@@ -699,20 +699,20 @@
     {
       "id": "R-D-08",
       "type": "D",
-      "query": "I need the current version of the Showroom Traffic Report by Dealer report.",
+      "query": "I need the current version of the New Vehicle Sales Tracker report.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0178",
+        "target_id": "RPT-0207",
         "forbidden_ids": [
-          "RPT-0116"
+          "RPT-0120"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0178"
+          "RPT-0207"
         ],
         "forbidden_ids": [
-          "RPT-0116"
+          "RPT-0120"
         ],
         "should_abstain": false
       },
@@ -721,56 +721,78 @@
     {
       "id": "R-D-09",
       "type": "D",
-      "query": "Customer Profile Explorer Executive Summary: the record-level one for exporting, please.",
+      "query": "Warranty Cost Analysis Trend: the regional cut, please.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0115",
+        "target_id": "RPT-0102",
         "forbidden_ids": [
-          "RPT-0103"
+          "RPT-0086"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0115"
+          "RPT-0102"
         ],
         "forbidden_ids": [
-          "RPT-0103"
+          "RPT-0086"
         ],
         "should_abstain": false
       },
-      "notes": "near duplicate, variant=detail"
+      "notes": "near duplicate, variant=regional"
     },
     {
       "id": "R-D-10",
       "type": "D",
-      "query": "Executive KPI Pack: the record-level one for exporting, please.",
+      "query": "Overhead Costs Trend: the one with the longer history, please.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0199",
+        "target_id": "RPT-0140",
         "forbidden_ids": [
-          "RPT-0167"
+          "RPT-0130"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0199"
+          "RPT-0140"
         ],
         "forbidden_ids": [
-          "RPT-0167"
+          "RPT-0130"
+        ],
+        "should_abstain": false
+      },
+      "notes": "near duplicate, variant=extended"
+    },
+    {
+      "id": "R-D-11",
+      "type": "D",
+      "query": "I am looking for Dealer Net Margin Executive Summary, the record-level one for exporting.",
+      "gold_spec": {
+        "type": "asset_by_description",
+        "target_id": "RPT-0249",
+        "forbidden_ids": [
+          "RPT-0242"
+        ]
+      },
+      "gold": {
+        "answer_ids": [
+          "RPT-0249"
+        ],
+        "forbidden_ids": [
+          "RPT-0242"
         ],
         "should_abstain": false
       },
       "notes": "near duplicate, variant=detail"
     },
     {
-      "id": "R-D-11",
+      "id": "R-D-12",
       "type": "D",
-      "query": "I am looking for Vendor Delivery Reliability Tracker by Part Category, the version limited to my territory.",
+      "query": "Paid Media Results Executive Summary: the regional cut, please.",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0250",
         "forbidden_ids": [
-          "RPT-0237"
+          "RPT-0225"
         ]
       },
       "gold": {
@@ -778,29 +800,7 @@
           "RPT-0250"
         ],
         "forbidden_ids": [
-          "RPT-0237"
-        ],
-        "should_abstain": false
-      },
-      "notes": "near duplicate, variant=area_managers"
-    },
-    {
-      "id": "R-D-12",
-      "type": "D",
-      "query": "Warranty Cost Analysis Trend: the regional cut, please.",
-      "gold_spec": {
-        "type": "asset_by_description",
-        "target_id": "RPT-0226",
-        "forbidden_ids": [
-          "RPT-0215"
-        ]
-      },
-      "gold": {
-        "answer_ids": [
-          "RPT-0226"
-        ],
-        "forbidden_ids": [
-          "RPT-0215"
+          "RPT-0225"
         ],
         "should_abstain": false
       },
@@ -809,42 +809,42 @@
     {
       "id": "R-D-13",
       "type": "D",
-      "query": "I am looking for Monthly Receivables and Collections Report, the one with a page per region.",
+      "query": "I am looking for Parts Inventory Health Dashboard, the cut-down one for area managers.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0044",
+        "target_id": "RPT-0045",
         "forbidden_ids": [
-          "RPT-0024"
+          "RPT-0026"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0044"
+          "RPT-0045"
         ],
         "forbidden_ids": [
-          "RPT-0024"
+          "RPT-0026"
         ],
         "should_abstain": false
       },
-      "notes": "near duplicate, variant=regional"
+      "notes": "near duplicate, variant=area_managers"
     },
     {
       "id": "R-D-14",
       "type": "D",
-      "query": "I am looking for Daily Operations Summary by Dealer, the one where I can click into single dealers.",
+      "query": "I am looking for Service Revenue per Visit Report by Region, the one where I can click into single dealers.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0126",
+        "target_id": "RPT-0070",
         "forbidden_ids": [
-          "RPT-0088"
+          "RPT-0061"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0126"
+          "RPT-0070"
         ],
         "forbidden_ids": [
-          "RPT-0088"
+          "RPT-0061"
         ],
         "should_abstain": false
       },
@@ -853,24 +853,24 @@
     {
       "id": "R-D-15",
       "type": "D",
-      "query": "Parts Fill Rate Dashboard by Dealer: the cut-down one for area managers, please.",
+      "query": "Parts Returns: the one with a page per region, please.",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0225",
+        "target_id": "RPT-0200",
         "forbidden_ids": [
-          "RPT-0211"
+          "RPT-0189"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0225"
+          "RPT-0200"
         ],
         "forbidden_ids": [
-          "RPT-0211"
+          "RPT-0189"
         ],
         "should_abstain": false
       },
-      "notes": "near duplicate, variant=area_managers"
+      "notes": "near duplicate, variant=regional"
     },
     {
       "id": "R-N-01",

@@ -80,8 +80,8 @@ def build_card(data_dir: Path) -> str:
     status_of = emp.set_index("employee_id")["status"]
     owner_status = rep["owner_id"].map(status_of)
     chains = meta["chains"]
-    n_heads = len(chains["S1"]) + len(chains["S2"])
-    n_heads += sum(len(chains[code]) for code in ("C2", "C3", "C4"))
+    n_single = len(chains["S1"]) + len(chains["S2"])
+    n_chain = sum(len(chains[code]) for code in ("C2", "C3", "C4"))
     usage = rep["usage_30d"].astype(int)
     active = rep["status"] == "active"
 
@@ -144,8 +144,9 @@ def build_card(data_dir: Path) -> str:
     add(
         f"{departed_active} of {int(active.sum())} active reports "
         f"({departed_active / active.sum():.1%}) have an owner who has left the company. "
-        f"That is the floor set by the {n_heads} succession-chain heads, who must own two active "
-        "reports each; no other active report has a departed owner. For comparison, "
+        f"That is the floor the succession structures set: {n_single} S1/S2 leavers own one active "
+        f"report each and {n_chain} chain heads own two each ({n_single + 2 * n_chain} reports); "
+        "no other active report has a departed owner. For comparison, "
         f"{tab['owner_id'].map(status_of).eq('left').mean():.1%} of tables and "
         f"{met['owner_id'].map(status_of).eq('left').mean():.1%} of metrics have a departed owner."
     )
@@ -239,8 +240,8 @@ def build_card(data_dir: Path) -> str:
         "Text comes from templates and curated word lists, so wording repeats more than in a real catalog.",
         "Distributions are tidier than real life: exact status ratios, one owner per asset, no missing owners.",
         "Attrition is deliberately high (38 of 120 people left) so that every succession structure is present. "
-        "Departed owners are kept to the minimum that structure forces (about a fifth of active reports), "
-        "and chain heads own exactly two active reports each, which is tidier than a real catalog.",
+        "Departed owners are kept to the minimum that structure forces (about one in seven active reports), "
+        "and structure starters own exactly the one or two active reports required, which is tidier than a real catalog.",
         "Lineage is table-level only (no column lineage) and every table belongs to one hand-designed DAG.",
         "Dates are consistent by construction, but seasonality and business cycles are not modelled.",
         "Everything is in English; names come from Faker's en_US locale.",

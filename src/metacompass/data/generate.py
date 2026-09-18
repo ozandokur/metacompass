@@ -88,7 +88,7 @@ NAME_JACCARD_LIMIT = 0.6  # max token overlap between two unrelated report names
 FAILED_SHARE = 0.08
 ZERO_USAGE_SHARE = 0.20
 DEPARTED_OWNER_SHARE = 0.175  # tables and metrics owned by a former employee (target 15-20%)
-SAME_DEPT_OWNER_SHARE = 0.81  # with the forced same-department chain-head reports: ~85% overall
+SAME_DEPT_OWNER_SHARE = 0.83  # with the forced same-department starter reports: ~85% overall
 REQUEST_STATUS_COUNTS = {
     "done": 165,
     "duplicate": 39,
@@ -638,7 +638,7 @@ def _pick_owner(
 
 
 def _build_reports(
-    rng: random.Random, vocab: dict, people: list[Person], chain_heads: list[Person]
+    rng: random.Random, vocab: dict, people: list[Person], starters: list[tuple[Person, int]]
 ) -> list[ReportSpec]:
     rs = vocab["report_subjects"]
     org = vocab["org"]
@@ -704,17 +704,18 @@ def _build_reports(
             break
     assert len(deprecated) == N_DEPRECATED and len(near_dup_bases) == N_NEAR_DUPLICATES
 
-    # Chain heads own exactly two active reports each: I07 needs two, and every extra one
-    # would raise the departed-owner share above its floor (I18).
+    # Structure starters own exactly the active reports I07 asks for (one for S1/S2 people,
+    # two for C2/C3/C4 chain heads). No other active report gets a departed owner, which keeps
+    # the departed-owner share at the floor I07 sets (I18).
     noisy = {id(s) for s in deprecated} | {id(b) for b in near_dup_bases}
     free = [s for s in specs if id(s) not in noisy]
-    for head in chain_heads:
+    for head, count in starters:
         pool = [
             s for s in free if s.forced_owner is None and s.subject["department"] == head.department
         ]
-        if len(pool) < 2:
+        if len(pool) < count:
             pool = [s for s in free if s.forced_owner is None]
-        for spec in rng.sample(pool, 2):
+        for spec in rng.sample(pool, count):
             spec.forced_owner = head
 
     # Dates and owners: base reports first, then the reports derived from them.
@@ -1000,9 +1001,9 @@ def generate(seed: int = 42) -> GeneratedData:
         _stage_rng(seed, "metrics"), vocab, people, name_to_id
     )
 
-    chain_heads = list(chains["S1"]) + list(chains["S2"])
-    chain_heads += [chain[0] for code in ("C2", "C3", "C4") for chain in chains[code]]
-    reports = _build_reports(_stage_rng(seed, "reports"), vocab, people, chain_heads)
+    starters = [(p, 1) for p in chains["S1"] + chains["S2"]]
+    starters += [(chain[0], 2) for code in ("C2", "C3", "C4") for chain in chains[code]]
+    reports = _build_reports(_stage_rng(seed, "reports"), vocab, people, starters)
     requests = _build_requests(_stage_rng(seed, "requests"), vocab, people, reports)
 
     employee_rows = [

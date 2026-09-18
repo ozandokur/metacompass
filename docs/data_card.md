@@ -11,7 +11,7 @@ Seed `42` · generator `1.0` · reference date ("today") `2026-09-01`. This card
 | employees | 120 | a person, current or former, with manager and successor links |
 | reports | 250 | a BI report with owner, status, refresh state and usage |
 | tables | 80 | a warehouse table in the staging, intermediate or mart layer |
-| report_table_edges | 571 | a report reads a table |
+| report_table_edges | 569 | a report reads a table |
 | table_table_edges | 149 | data flows from a parent table into a child table |
 | metrics | 40 | a business metric with aliases, definition, formula and source tables |
 | requests | 300 | an analysis request to the data team |
@@ -53,9 +53,9 @@ Seed `42` · generator `1.0` · reference date ("today") `2026-09-01`. This card
 | Sales | 49 | 20% |
 | Supply Chain | 41 | 16% |
 
-`usage_30d` (views in the last 30 days) is long-tailed: p25 = 3, p50 = 13, p75 = 35, p90 = 85, p99 = 298, max = 351; 20% of active reports had no views.
+`usage_30d` (views in the last 30 days) is long-tailed: p25 = 3, p50 = 14, p75 = 40, p90 = 76, p99 = 290, max = 896; 20% of active reports had no views.
 
-50 of 235 active reports (21.3%) have an owner who has left the company. That is the floor set by the 25 succession-chain heads, who must own two active reports each; no other active report has a departed owner. For comparison, 17.5% of tables and 17.5% of metrics have a departed owner.
+32 of 235 active reports (13.6%) have an owner who has left the company. That is the floor the succession structures set: 18 S1/S2 leavers own one active report each and 7 chain heads own two each (32 reports); no other active report has a departed owner. For comparison, 17.5% of tables and 17.5% of metrics have a departed owner.
 
 ### Warehouse tables
 
@@ -114,12 +114,12 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | report | name | paired with | name |
 |---|---|---|---|
-| RPT-0017 | Retail Sales Against Plan YoY | RPT-0041 | Retail Sales Against Plan YoY – Detail |
-| RPT-0026 | Parts Inventory Health Dashboard | RPT-0045 | Parts Inventory Health Dashboard – Area Managers |
-| RPT-0031 | Daily Operations Summary by Dealer | RPT-0053 | Daily Operations Summary by Dealer – Drilldown |
-| RPT-0028 | Demand Forecast Inputs Overview | RPT-0076 | Demand Forecast Inputs Overview 2.0 |
-| RPT-0034 | Weekly Failed Data Tests | RPT-0051 | Weekly Failed Data Tests – Rebuilt |
-| RPT-0059 | Weekly Unfilled Parts Orders | RPT-0123 | Weekly Unfilled Parts Orders 2.0 |
+| RPT-0009 | Parts Returns | RPT-0031 | Parts Returns – Regional |
+| RPT-0024 | Monthly Receivables and Collections Report | RPT-0044 | Monthly Receivables and Collections Report – Regional |
+| RPT-0046 | Retail Sales Against Plan YoY | RPT-0074 | Retail Sales Against Plan YoY – Detail |
+| RPT-0008 | New Vehicle Sales Tracker | RPT-0068 | New Vehicle Sales Tracker v2 |
+| RPT-0017 | Parts Sales YoY | RPT-0087 | Parts Sales YoY (New) |
+| RPT-0023 | CSAT Monitor Dashboard by Region | RPT-0048 | CSAT Monitor Dashboard by Region (New) |
 
 ## Sample records
 
@@ -135,9 +135,9 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | report_id | name | department | owner_id | status | refresh_status | usage_30d | tags | description |
 |---|---|---|---|---|---|---|---|---|
-| RPT-0001 | Pricing and Discounts Overview | Sales | EMP-009 | active | success | 19 | incentives\|pricing\|discounts | How far below list price cars are actually sold, with drill-down to i… |
-| RPT-0126 | Company Revenue MTD | Finance | EMP-060 | active | success | 0 | revenue\|finance\|MTD | Total company revenue across vehicles, parts and service for the mont… |
-| RPT-0250 | Paid Media Results Executive Summary – Regional | Marketing | EMP-108 | active | success | 19 | leads\|campaigns\|media\|executive\|CPL | Regional version for area managers: what our advertising campaigns de… |
+| RPT-0001 | Sales Pipeline by Dealer | Sales | EMP-006 | active | success | 16 | forecast\|opportunities\|dealer | Shows open sales opportunities by stage with their expected close dat… |
+| RPT-0126 | Daily Operations Summary by Dealer – Drilldown | Operations | EMP-063 | active | success | 11 | exceptions\|operations\|daily\|dealer\|drilldown | Companion page that lets users click from the headline figures on dai… |
+| RPT-0250 | Vendor Delivery Reliability Tracker by Part Category – Area Managers | Supply Chain | EMP-061 | active | success | 11 | lead time\|procurement\|part category\|OTD\|area managers | Cut-down view of how reliably our vendors deliver what we order for a… |
 
 ### tables
 
@@ -151,9 +151,9 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | report_id | table_id |
 |---|---|
-| RPT-0001 | TBL-057 |
-| RPT-0124 | TBL-058 |
-| RPT-0250 | TBL-075 |
+| RPT-0001 | TBL-058 |
+| RPT-0123 | TBL-060 |
+| RPT-0250 | TBL-079 |
 
 ### table_table_edges
 
@@ -175,15 +175,15 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | request_id | title | status | department | created_date | closed_date | resulting_report_id | duplicate_of_request_id |
 |---|---|---|---|---|---|---|---|
-| REQ-0001 | Breakdown of missed service bookings by weekday | done | Aftersales | 2021-02-27 | 2021-06-25 | RPT-0073 |  |
-| REQ-0151 | Deep dive into customers not turning up per workshop | duplicate | Aftersales | 2024-11-12 | 2024-11-20 |  | REQ-0139 |
-| REQ-0300 | Average repair order value per workshop for review | duplicate | Aftersales | 2026-08-31 | 2026-09-01 |  | REQ-0251 |
+| REQ-0001 | Revenue growth by business unit | done | Finance | 2021-02-11 | 2021-03-08 |  |  |
+| REQ-0151 | Help with first-pick availability depot by depot | done | Supply Chain | 2024-09-24 | 2025-01-17 | RPT-0194 |  |
+| REQ-0300 | Analysis of speed of lead follow-up per salesperson | duplicate | Sales | 2026-08-31 | 2026-09-01 |  | REQ-0256 |
 
 ## Known limits
 
 - Text comes from templates and curated word lists, so wording repeats more than in a real catalog.
 - Distributions are tidier than real life: exact status ratios, one owner per asset, no missing owners.
-- Attrition is deliberately high (38 of 120 people left) so that every succession structure is present. Departed owners are kept to the minimum that structure forces (about a fifth of active reports), and chain heads own exactly two active reports each, which is tidier than a real catalog.
+- Attrition is deliberately high (38 of 120 people left) so that every succession structure is present. Departed owners are kept to the minimum that structure forces (about one in seven active reports), and structure starters own exactly the one or two active reports required, which is tidier than a real catalog.
 - Lineage is table-level only (no column lineage) and every table belongs to one hand-designed DAG.
 - Dates are consistent by construction, but seasonality and business cycles are not modelled.
 - Everything is in English; names come from Faker's en_US locale.
