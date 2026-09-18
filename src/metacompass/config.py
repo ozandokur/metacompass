@@ -29,19 +29,18 @@ MAX_DEPTH = 3
 RRF_K = 60
 RRF_CANDIDATES = 50
 
-# match_quality threshold on top dense cosine (spec §5.7).
-# Selected 2026-09-18 on the retrieval set (eval/results/retrieval_bench.json, git 1d37885,
-# model all-MiniLM-L6-v2): best macro-F1 = 0.733 on the plateau tau in {0.65, 0.70}; the
-# lower middle is taken. At 0.65 all 15 negative queries are weak, but so are all 15
-# paraphrase queries: only exact names/IDs come out strong. Under review at the Phase 2
-# checkpoint; frozen before any test-set run.
-TAU = 0.65
-
-# Relative variant (spec §5.7 update, 2026-09-18): how many standard deviations the top
-# cosine sits above the mean cosine of the filtered corpus. PLACEHOLDER until the
-# retrieval benchmark compares both variants; MATCH_SIGNAL names the one in use.
-TAU_Z = 3.0
-MATCH_SIGNAL = "cosine"  # "cosine" (absolute, TAU) or "z" (relative, TAU_Z)
+# Match signal (spec §5.7, updated 2026-09-18). A search is "strong" if the query names an
+# asset exactly, or if the closest dense match stands out:
+#   cosine: top cosine >= TAU
+#   z:      (top cosine - mean cosine) / std of cosines over the filtered corpus >= TAU_Z
+# Both thresholds were swept on the v2 retrieval set with the chosen embedding model
+# (eval/results/retrieval_bench_bge-small-en-v1.5.json, git 7665139): best macro-F1 is
+# 0.749 for z at 4.25 and 0.704 for cosine at 0.70, so the z variant is in use. At 4.25
+# all 15 negative queries are weak, but only 1 of 15 paraphrase queries is strong: the
+# signal still mostly rests on exact names/IDs. Frozen before any test-set run.
+TAU = 0.70
+TAU_Z = 4.25
+MATCH_SIGNAL = "z"  # "cosine" (absolute, TAU) or "z" (relative, TAU_Z)
 
 
 class Settings(BaseModel):
@@ -53,7 +52,9 @@ class Settings(BaseModel):
     llm_price_input_per_m: float | None = None
     llm_price_output_per_m: float | None = None
     eval_budget_usd: float | None = None
-    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    # Chosen by the pre-registered A/B in eval/run_retrieval_bench.py (hybrid MRR 0.580 vs
+    # 0.541 for all-MiniLM-L6-v2); see eval/results.md.
+    embedding_model: str = "BAAI/bge-small-en-v1.5"
     demo_daily_limit: int = 100
 
     @property

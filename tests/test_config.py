@@ -21,7 +21,7 @@ def test_empty_environment_gives_defaults(tmp_path):
     assert settings.llm_model is None
     assert settings.llm_api_key is None
     assert settings.eval_budget_usd is None
-    assert settings.embedding_model == "sentence-transformers/all-MiniLM-L6-v2"
+    assert settings.embedding_model == "BAAI/bge-small-en-v1.5"  # the A/B winner
     assert settings.demo_daily_limit == 100
     assert settings.has_llm is False
 

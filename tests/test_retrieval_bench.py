@@ -67,25 +67,89 @@ def test_results_page_marks_unrun_sections():
     assert "All data is synthetic" in page
 
 
-def test_results_page_shows_the_retrieval_table():
-    fake = {
-        "meta": {"embedding_model": "m", "data_seed": 42, "chosen_tau": 0.5, "git_sha": "abc"},
-        "chosen_tau": 0.5,
+def _fake_run(name, mrr, kind="cosine", equals_exact=True, topic=(0.2, 0.5, 0.4), overlap=0.0):
+    modes = {}
+    for i, mode in enumerate(("bm25", "dense", "hybrid")):
+        modes[mode] = {
+            "E": {"recall@1": 1.0, "recall@5": 1.0, "mrr": 1.0, "n": 15},
+            "P": {"recall@1": 0.1, "recall@5": 0.2, "mrr": 0.2, "n": 15, "topic_hit@5": topic[i]},
+            "D": {"recall@1": 0.7, "recall@5": 1.0, "mrr": 0.8, "n": 15, "pair_coverage@5": 1.0,
+                  "forbidden_above_target": 0.3},
+            "all": {"recall@1": 0.6, "recall@5": 0.7, "mrr": mrr if mode == "hybrid" else 0.5, "n": 45},
+            "E_recall@1_by_subtype": {"table name": 1.0, "metric acronym": 1.0,
+                                      "report ID": 1.0 if mode == "bm25" else 0.0},
+        }  # fmt: skip
+    per_query = [
+        {"type": "P", "exact_match": False, "top_dense_cosine": 0.5, "dense_z": 5.0, "description_overlap": overlap},
+        {"type": "N", "exact_match": False, "top_dense_cosine": 0.5, "dense_z": 1.0},
+    ]  # fmt: skip
+    return {
+        "meta": {"embedding_model": name, "data_seed": 42, "git_sha": "abc", "run_date": "2026-09-18",
+                 "n_queries": {"E": 15, "P": 15, "D": 15, "N": 15}, "top_k": 10, "label": ""},
+        "modes": modes,
+        "sweeps": {"cosine": [{"tau": 0.65, "macro_f1": 0.7, "strong_rate_positive": 0.6, "weak_rate_negative": 1.0}],
+                   "z": [{"tau": 4.25, "macro_f1": 0.75, "strong_rate_positive": 0.7, "weak_rate_negative": 1.0}]},
+        "signal": {"kind": kind, "threshold": 4.25 if kind == "z" else 0.65, "macro_f1": 0.75 if kind == "z" else 0.7,
+                   "positives_strong_rate": 0.7, "negatives_weak_rate": 1.0, "equals_exact_match": equals_exact,
+                   "best": {"cosine": {"threshold": 0.65, "macro_f1": 0.7}, "z": {"threshold": 4.25, "macro_f1": 0.75}}},
+        "leakage": {"p_description_overlap_mean": overlap, "p_queries_over_limit": 9 if overlap else 0, "limit": 0.2},
+        "per_query": per_query,
+    }  # fmt: skip
+
+
+def _fake_retrieval():
+    v1_original = {
+        "chosen_tau": 0.65,
+        "negatives_weak_rate": 1.0,
+        "meta": {"git_sha": "1d37885", "run_date": "2026-09-18"},
         "modes": {
             mode: {
-                t: {"recall@1": 0.5, "recall@5": 1.0, "mrr": 0.75, "n": 2}
-                for t in ("E", "P", "D", "all")
+                t: {"recall@1": 0.5, "recall@5": 1.0, "mrr": 0.75} for t in ("E", "P", "D", "all")
             }
             for mode in ("bm25", "dense", "hybrid")
         },
-        "negatives_weak_rate": 0.8,
-        "tau_sweep": [
-            {"tau": 0.5, "macro_f1": 0.9, "strong_rate_positive": 1.0, "weak_rate_negative": 0.8}
-        ],
     }
-    page = report.render_results(fake)
-    assert "| hybrid | 0.50 | 1.00 | 0.50 | 1.00 | 0.50 | 1.00 | 0.75 | 80% |" in page
-    assert "τ" in page
+    return {
+        "models": {
+            "all-MiniLM-L6-v2": _fake_run("all-MiniLM-L6-v2", 0.54),
+            "bge-small-en-v1.5": _fake_run("bge-small-en-v1.5", 0.58, kind="z", equals_exact=False),
+        },
+        "v1": v1_original,
+        "v1_rescored": _fake_run("all-MiniLM-L6-v2", 0.61, topic=(0.73, 0.53, 0.73), overlap=0.35),
+    }
+
+
+def test_results_page_headline_uses_the_ab_winner():
+    page = report.render_results(_fake_retrieval())
+    assert "bge-small-en-v1.5" in page.split("### Headline")[1].splitlines()[0]
+    assert "| hybrid | 1.00 | 1.00 | 0.20 | 0.40 | 1.00 | 0.58 |" in page
+
+
+def test_results_page_shows_both_models_and_the_rule():
+    page = report.render_results(_fake_retrieval())
+    assert "| all-MiniLM-L6-v2 | 0.54 |" in page
+    assert "| bge-small-en-v1.5 | 0.58 |" in page
+    assert "pre-registered" in page
+
+
+def test_results_page_keeps_the_original_v1_table_and_explains_the_change():
+    page = report.render_results(_fake_retrieval())
+    assert (
+        "| hybrid | 0.50 | 1.00 | 0.50 | 1.00 | 0.50 | 1.00 | 0.75 | 100% |" in page
+    )  # verbatim v1
+    assert "35%" in page  # mean description overlap of the leaky set, computed not typed
+
+
+def test_results_page_flags_a_signal_that_is_only_exact_match():
+    retrieval = _fake_retrieval()
+    retrieval["models"]["bge-small-en-v1.5"]["signal"]["equals_exact_match"] = True
+    page = report.render_results(retrieval)
+    assert "A4 ablation therefore measures only the prompt" in page
+
+
+def test_results_page_names_the_rrf_id_property():
+    page = report.render_results(_fake_retrieval())
+    assert "Known property" in page and "report ID" in page
 
 
 # ---------------------------------------------------------------- spec update 2026-09-18
