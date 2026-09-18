@@ -30,9 +30,12 @@ RRF_K = 60
 RRF_CANDIDATES = 50
 
 # match_quality threshold on top dense cosine (spec §5.7).
-# PLACEHOLDER: starting value; replaced in Phase 2 by the F1-maximising value from the
-# retrieval benchmark and frozen before any test-set run.
-TAU = 0.45
+# Selected 2026-09-18 on the retrieval set (eval/results/retrieval_bench.json, git 1d37885,
+# model all-MiniLM-L6-v2): best macro-F1 = 0.733 on the plateau tau in {0.65, 0.70}; the
+# lower middle is taken. At 0.65 all 15 negative queries are weak, but so are all 15
+# paraphrase queries: only exact names/IDs come out strong. Under review at the Phase 2
+# checkpoint; frozen before any test-set run.
+TAU = 0.65
 
 
 class Settings(BaseModel):

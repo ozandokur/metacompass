@@ -1,0 +1,2286 @@
+{
+  "meta": {
+    "embedding_model": "all-MiniLM-L6-v2",
+    "data_seed": 42,
+    "retrieval_set": "eval/retrieval_set.json",
+    "n_queries": {
+      "E": 15,
+      "P": 15,
+      "D": 15,
+      "N": 15
+    },
+    "top_k": 10,
+    "git_sha": "1d37885",
+    "run_date": "2026-09-18"
+  },
+  "modes": {
+    "bm25": {
+      "E": {
+        "n": 15,
+        "recall@1": 1.0,
+        "recall@5": 1.0,
+        "mrr": 1.0
+      },
+      "P": {
+        "n": 15,
+        "recall@1": 0.2,
+        "recall@5": 0.4667,
+        "mrr": 0.2856
+      },
+      "D": {
+        "n": 15,
+        "recall@1": 0.7333,
+        "recall@5": 1.0,
+        "mrr": 0.8667,
+        "forbidden_above_target": 0.2667
+      },
+      "all": {
+        "n": 45,
+        "recall@1": 0.6444,
+        "recall@5": 0.8222,
+        "mrr": 0.7174
+      }
+    },
+    "dense": {
+      "E": {
+        "n": 15,
+        "recall@1": 0.5333,
+        "recall@5": 0.6,
+        "mrr": 0.5467
+      },
+      "P": {
+        "n": 15,
+        "recall@1": 0.1333,
+        "recall@5": 0.2667,
+        "mrr": 0.2259
+      },
+      "D": {
+        "n": 15,
+        "recall@1": 0.6667,
+        "recall@5": 1.0,
+        "mrr": 0.8333,
+        "forbidden_above_target": 0.3333
+      },
+      "all": {
+        "n": 45,
+        "recall@1": 0.4444,
+        "recall@5": 0.6222,
+        "mrr": 0.5353
+      }
+    },
+    "hybrid": {
+      "E": {
+        "n": 15,
+        "recall@1": 0.6667,
+        "recall@5": 0.7333,
+        "mrr": 0.6895
+      },
+      "P": {
+        "n": 15,
+        "recall@1": 0.2,
+        "recall@5": 0.4,
+        "mrr": 0.2972
+      },
+      "D": {
+        "n": 15,
+        "recall@1": 0.6667,
+        "recall@5": 1.0,
+        "mrr": 0.8333,
+        "forbidden_above_target": 0.3333
+      },
+      "all": {
+        "n": 45,
+        "recall@1": 0.5111,
+        "recall@5": 0.7111,
+        "mrr": 0.6067
+      }
+    }
+  },
+  "tau_sweep": [
+    {
+      "tau": 0.3,
+      "macro_f1": 0.4286,
+      "strong_rate_positive": 1.0,
+      "weak_rate_negative": 0.0
+    },
+    {
+      "tau": 0.35,
+      "macro_f1": 0.4231,
+      "strong_rate_positive": 0.9778,
+      "weak_rate_negative": 0.0
+    },
+    {
+      "tau": 0.4,
+      "macro_f1": 0.5425,
+      "strong_rate_positive": 0.9778,
+      "weak_rate_negative": 0.1333
+    },
+    {
+      "tau": 0.45,
+      "macro_f1": 0.6072,
+      "strong_rate_positive": 0.8667,
+      "weak_rate_negative": 0.3333
+    },
+    {
+      "tau": 0.5,
+      "macro_f1": 0.6534,
+      "strong_rate_positive": 0.7111,
+      "weak_rate_negative": 0.6667
+    },
+    {
+      "tau": 0.55,
+      "macro_f1": 0.7221,
+      "strong_rate_positive": 0.7111,
+      "weak_rate_negative": 0.8667
+    },
+    {
+      "tau": 0.6,
+      "macro_f1": 0.7129,
+      "strong_rate_positive": 0.6667,
+      "weak_rate_negative": 0.9333
+    },
+    {
+      "tau": 0.65,
+      "macro_f1": 0.7333,
+      "strong_rate_positive": 0.6667,
+      "weak_rate_negative": 1.0
+    },
+    {
+      "tau": 0.7,
+      "macro_f1": 0.7333,
+      "strong_rate_positive": 0.6667,
+      "weak_rate_negative": 1.0
+    }
+  ],
+  "chosen_tau": 0.65,
+  "negatives_weak_rate": 1.0,
+  "positives_strong_rate": 0.6667,
+  "per_query": [
+    {
+      "id": "R-E-01",
+      "type": "E",
+      "target": "TBL-070",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-070",
+          "MET-006",
+          "MET-009"
+        ],
+        "dense": [
+          "TBL-070",
+          "TBL-079",
+          "TBL-074"
+        ],
+        "hybrid": [
+          "TBL-070",
+          "TBL-075",
+          "TBL-045"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7249
+    },
+    {
+      "id": "R-E-02",
+      "type": "E",
+      "target": "TBL-078",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-078",
+          "MET-026",
+          "TBL-019"
+        ],
+        "dense": [
+          "TBL-078",
+          "TBL-066",
+          "TBL-067"
+        ],
+        "hybrid": [
+          "TBL-078",
+          "TBL-054",
+          "TBL-069"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7326
+    },
+    {
+      "id": "R-E-03",
+      "type": "E",
+      "target": "TBL-009",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-009",
+          "TBL-006",
+          "TBL-007"
+        ],
+        "dense": [
+          "TBL-009",
+          "TBL-050",
+          "TBL-041"
+        ],
+        "hybrid": [
+          "TBL-009",
+          "TBL-006",
+          "TBL-008"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6751
+    },
+    {
+      "id": "R-E-04",
+      "type": "E",
+      "target": "TBL-014",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-014",
+          "TBL-049",
+          "TBL-077"
+        ],
+        "dense": [
+          "TBL-014",
+          "TBL-049",
+          "TBL-077"
+        ],
+        "hybrid": [
+          "TBL-014",
+          "TBL-049",
+          "TBL-077"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7635
+    },
+    {
+      "id": "R-E-05",
+      "type": "E",
+      "target": "TBL-037",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-037",
+          "TBL-043",
+          "TBL-038"
+        ],
+        "dense": [
+          "TBL-037",
+          "TBL-033",
+          "TBL-034"
+        ],
+        "hybrid": [
+          "TBL-037",
+          "TBL-043",
+          "TBL-034"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.8375
+    },
+    {
+      "id": "R-E-06",
+      "type": "E",
+      "target": "MET-035",
+      "ranks": {
+        "bm25": 1,
+        "dense": 5,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-035",
+          "RPT-0118",
+          "RPT-0209"
+        ],
+        "dense": [
+          "RPT-0183",
+          "RPT-0110",
+          "TBL-058"
+        ],
+        "hybrid": [
+          "MET-035",
+          "RPT-0183",
+          "RPT-0110"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.2772
+    },
+    {
+      "id": "R-E-07",
+      "type": "E",
+      "target": "MET-040",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-040"
+        ],
+        "dense": [
+          "MET-040",
+          "MET-003",
+          "RPT-0038"
+        ],
+        "hybrid": [
+          "MET-040",
+          "MET-003",
+          "RPT-0038"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.4368
+    },
+    {
+      "id": "R-E-08",
+      "type": "E",
+      "target": "MET-004",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-004",
+          "RPT-0118",
+          "RPT-0209"
+        ],
+        "dense": [
+          "MET-004",
+          "MET-032",
+          "RPT-0173"
+        ],
+        "hybrid": [
+          "MET-004",
+          "MET-032",
+          "RPT-0118"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.2811
+    },
+    {
+      "id": "R-E-09",
+      "type": "E",
+      "target": "MET-016",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-016",
+          "RPT-0118",
+          "RPT-0209"
+        ],
+        "dense": [
+          "MET-016",
+          "MET-039",
+          "MET-012"
+        ],
+        "hybrid": [
+          "MET-016",
+          "RPT-0012",
+          "RPT-0080"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.5554
+    },
+    {
+      "id": "R-E-10",
+      "type": "E",
+      "target": "MET-021",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-021"
+        ],
+        "dense": [
+          "RPT-0163",
+          "TBL-073",
+          "RPT-0221"
+        ],
+        "hybrid": [
+          "MET-021",
+          "RPT-0163",
+          "TBL-073"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.3146
+    },
+    {
+      "id": "R-E-11",
+      "type": "E",
+      "target": "RPT-0093",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": 7
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0093",
+          "RPT-0173",
+          "RPT-0234"
+        ],
+        "dense": [
+          "RPT-0204",
+          "TBL-043",
+          "TBL-047"
+        ],
+        "hybrid": [
+          "RPT-0204",
+          "RPT-0181",
+          "RPT-0088"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.274
+    },
+    {
+      "id": "R-E-12",
+      "type": "E",
+      "target": "RPT-0198",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0198",
+          "RPT-0040",
+          "RPT-0091"
+        ],
+        "dense": [
+          "RPT-0243",
+          "RPT-0204",
+          "RPT-0181"
+        ],
+        "hybrid": [
+          "RPT-0231",
+          "RPT-0181",
+          "RPT-0204"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.2764
+    },
+    {
+      "id": "R-E-13",
+      "type": "E",
+      "target": "RPT-0224",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0224",
+          "RPT-0173",
+          "RPT-0234"
+        ],
+        "dense": [
+          "RPT-0204",
+          "RPT-0243",
+          "TBL-063"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "RPT-0204",
+          "RPT-0243"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.2958
+    },
+    {
+      "id": "R-E-14",
+      "type": "E",
+      "target": "RPT-0032",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": 5
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0032",
+          "RPT-0173",
+          "RPT-0234"
+        ],
+        "dense": [
+          "TBL-043",
+          "TBL-020",
+          "TBL-047"
+        ],
+        "hybrid": [
+          "RPT-0204",
+          "RPT-0077",
+          "RPT-0243"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.2902
+    },
+    {
+      "id": "R-E-15",
+      "type": "E",
+      "target": "RPT-0029",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0029",
+          "RPT-0173",
+          "RPT-0234"
+        ],
+        "dense": [
+          "RPT-0204",
+          "TBL-077",
+          "RPT-0243"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "RPT-0204",
+          "RPT-0181"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.3041
+    },
+    {
+      "id": "R-P-01",
+      "type": "P",
+      "target": "RPT-0137",
+      "ranks": {
+        "bm25": 3,
+        "dense": null,
+        "hybrid": 8
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0033",
+          "RPT-0048",
+          "RPT-0137"
+        ],
+        "dense": [
+          "RPT-0033",
+          "RPT-0186",
+          "RPT-0048"
+        ],
+        "hybrid": [
+          "RPT-0033",
+          "RPT-0048",
+          "MET-024"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4351
+    },
+    {
+      "id": "R-P-02",
+      "type": "P",
+      "target": "RPT-0208",
+      "ranks": {
+        "bm25": 1,
+        "dense": 6,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0208",
+          "RPT-0005",
+          "RPT-0200"
+        ],
+        "dense": [
+          "RPT-0026",
+          "RPT-0147",
+          "RPT-0077"
+        ],
+        "hybrid": [
+          "RPT-0208",
+          "RPT-0147",
+          "RPT-0068"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4139
+    },
+    {
+      "id": "R-P-03",
+      "type": "P",
+      "target": "RPT-0212",
+      "ranks": {
+        "bm25": null,
+        "dense": 5,
+        "hybrid": 3
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0081",
+          "RPT-0147",
+          "MET-025"
+        ],
+        "dense": [
+          "RPT-0147",
+          "RPT-0216",
+          "RPT-0081"
+        ],
+        "hybrid": [
+          "RPT-0147",
+          "RPT-0081",
+          "RPT-0212"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.5701
+    },
+    {
+      "id": "R-P-04",
+      "type": "P",
+      "target": "RPT-0126",
+      "ranks": {
+        "bm25": 1,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0126",
+          "RPT-0137",
+          "MET-040"
+        ],
+        "dense": [
+          "RPT-0085",
+          "RPT-0221",
+          "TBL-037"
+        ],
+        "hybrid": [
+          "RPT-0085",
+          "RPT-0124",
+          "RPT-0186"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4403
+    },
+    {
+      "id": "R-P-05",
+      "type": "P",
+      "target": "RPT-0029",
+      "ranks": {
+        "bm25": 2,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0141",
+          "RPT-0029",
+          "RPT-0199"
+        ],
+        "dense": [
+          "RPT-0029",
+          "RPT-0216",
+          "RPT-0068"
+        ],
+        "hybrid": [
+          "RPT-0029",
+          "RPT-0141",
+          "RPT-0199"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4509
+    },
+    {
+      "id": "R-P-06",
+      "type": "P",
+      "target": "RPT-0238",
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0027",
+          "TBL-032",
+          "MET-034"
+        ],
+        "dense": [
+          "RPT-0023",
+          "RPT-0175",
+          "RPT-0043"
+        ],
+        "hybrid": [
+          "RPT-0216",
+          "RPT-0124",
+          "RPT-0027"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4149
+    },
+    {
+      "id": "R-P-07",
+      "type": "P",
+      "target": "RPT-0219",
+      "ranks": {
+        "bm25": null,
+        "dense": 7,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0245",
+          "RPT-0070",
+          "RPT-0091"
+        ],
+        "dense": [
+          "RPT-0241",
+          "RPT-0081",
+          "RPT-0085"
+        ],
+        "hybrid": [
+          "RPT-0091",
+          "RPT-0241",
+          "RPT-0124"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.488
+    },
+    {
+      "id": "R-P-08",
+      "type": "P",
+      "target": "RPT-0156",
+      "ranks": {
+        "bm25": 5,
+        "dense": 8,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0005",
+          "MET-007",
+          "MET-031"
+        ],
+        "dense": [
+          "RPT-0005",
+          "RPT-0058",
+          "RPT-0068"
+        ],
+        "hybrid": [
+          "RPT-0005",
+          "RPT-0156",
+          "RPT-0089"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4979
+    },
+    {
+      "id": "R-P-09",
+      "type": "P",
+      "target": "RPT-0223",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0223",
+          "RPT-0136",
+          "RPT-0017"
+        ],
+        "dense": [
+          "RPT-0223",
+          "TBL-062",
+          "MET-038"
+        ],
+        "hybrid": [
+          "RPT-0223",
+          "RPT-0136",
+          "RPT-0047"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4446
+    },
+    {
+      "id": "R-P-10",
+      "type": "P",
+      "target": "RPT-0229",
+      "ranks": {
+        "bm25": null,
+        "dense": 7,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "TBL-032",
+          "MET-038",
+          "MET-034"
+        ],
+        "dense": [
+          "TBL-062",
+          "RPT-0058",
+          "RPT-0025"
+        ],
+        "hybrid": [
+          "RPT-0186",
+          "TBL-060",
+          "TBL-032"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.5724
+    },
+    {
+      "id": "R-P-11",
+      "type": "P",
+      "target": "RPT-0013",
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "MET-039",
+          "MET-008",
+          "RPT-0169"
+        ],
+        "dense": [
+          "TBL-079",
+          "TBL-053",
+          "TBL-029"
+        ],
+        "hybrid": [
+          "TBL-079",
+          "TBL-053",
+          "TBL-010"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.3255
+    },
+    {
+      "id": "R-P-12",
+      "type": "P",
+      "target": "RPT-0108",
+      "ranks": {
+        "bm25": null,
+        "dense": 9,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0220",
+          "RPT-0101",
+          "RPT-0137"
+        ],
+        "dense": [
+          "RPT-0085",
+          "RPT-0047",
+          "TBL-037"
+        ],
+        "hybrid": [
+          "RPT-0101",
+          "RPT-0186",
+          "RPT-0085"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4548
+    },
+    {
+      "id": "R-P-13",
+      "type": "P",
+      "target": "RPT-0174",
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0043",
+          "RPT-0226",
+          "RPT-0248"
+        ],
+        "dense": [
+          "TBL-001",
+          "TBL-003",
+          "TBL-005"
+        ],
+        "hybrid": [
+          "RPT-0043",
+          "RPT-0008",
+          "TBL-036"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4836
+    },
+    {
+      "id": "R-P-14",
+      "type": "P",
+      "target": "RPT-0131",
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0052",
+          "RPT-0113",
+          "RPT-0043"
+        ],
+        "dense": [
+          "RPT-0231",
+          "RPT-0216",
+          "TBL-031"
+        ],
+        "hybrid": [
+          "RPT-0052",
+          "TBL-031",
+          "RPT-0043"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4875
+    },
+    {
+      "id": "R-P-15",
+      "type": "P",
+      "target": "RPT-0134",
+      "ranks": {
+        "bm25": 4,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0091",
+          "RPT-0038",
+          "RPT-0227"
+        ],
+        "dense": [
+          "TBL-036",
+          "RPT-0134",
+          "RPT-0038"
+        ],
+        "hybrid": [
+          "RPT-0038",
+          "RPT-0134",
+          "RPT-0227"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4869
+    },
+    {
+      "id": "R-D-01",
+      "type": "D",
+      "target": "RPT-0231",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0231",
+          "RPT-0164",
+          "RPT-0119"
+        ],
+        "dense": [
+          "RPT-0231",
+          "RPT-0164",
+          "RPT-0073"
+        ],
+        "hybrid": [
+          "RPT-0231",
+          "RPT-0164",
+          "RPT-0165"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7656
+    },
+    {
+      "id": "R-D-02",
+      "type": "D",
+      "target": "RPT-0176",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          5
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0176",
+          "RPT-0101",
+          "RPT-0123"
+        ],
+        "dense": [
+          "RPT-0176",
+          "TBL-067",
+          "RPT-0220"
+        ],
+        "hybrid": [
+          "RPT-0176",
+          "RPT-0101",
+          "RPT-0123"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6164
+    },
+    {
+      "id": "R-D-03",
+      "type": "D",
+      "target": "RPT-0185",
+      "ranks": {
+        "bm25": 2,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          1
+        ],
+        "dense": [
+          1
+        ],
+        "hybrid": [
+          1
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0144",
+          "RPT-0185",
+          "RPT-0015"
+        ],
+        "dense": [
+          "RPT-0144",
+          "RPT-0185",
+          "RPT-0015"
+        ],
+        "hybrid": [
+          "RPT-0144",
+          "RPT-0185",
+          "RPT-0015"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6478
+    },
+    {
+      "id": "R-D-04",
+      "type": "D",
+      "target": "RPT-0100",
+      "ranks": {
+        "bm25": 2,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          1
+        ],
+        "dense": [
+          1
+        ],
+        "hybrid": [
+          1
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0071",
+          "RPT-0100",
+          "MET-006"
+        ],
+        "dense": [
+          "RPT-0071",
+          "RPT-0100",
+          "MET-006"
+        ],
+        "hybrid": [
+          "RPT-0071",
+          "RPT-0100",
+          "MET-006"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.5864
+    },
+    {
+      "id": "R-D-05",
+      "type": "D",
+      "target": "RPT-0202",
+      "ranks": {
+        "bm25": 2,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          1
+        ],
+        "dense": [
+          1
+        ],
+        "hybrid": [
+          1
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0159",
+          "RPT-0202",
+          "RPT-0062"
+        ],
+        "dense": [
+          "RPT-0159",
+          "RPT-0202",
+          "RPT-0062"
+        ],
+        "hybrid": [
+          "RPT-0159",
+          "RPT-0202",
+          "RPT-0062"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6885
+    },
+    {
+      "id": "R-D-06",
+      "type": "D",
+      "target": "RPT-0138",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          7
+        ],
+        "hybrid": [
+          4
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0138",
+          "RPT-0091",
+          "RPT-0038"
+        ],
+        "dense": [
+          "RPT-0138",
+          "RPT-0149",
+          "RPT-0175"
+        ],
+        "hybrid": [
+          "RPT-0138",
+          "RPT-0149",
+          "RPT-0038"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.554
+    },
+    {
+      "id": "R-D-07",
+      "type": "D",
+      "target": "RPT-0187",
+      "ranks": {
+        "bm25": 2,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          1
+        ],
+        "dense": [
+          1
+        ],
+        "hybrid": [
+          1
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0127",
+          "RPT-0187",
+          "MET-033"
+        ],
+        "dense": [
+          "RPT-0127",
+          "RPT-0187",
+          "TBL-072"
+        ],
+        "hybrid": [
+          "RPT-0127",
+          "RPT-0187",
+          "TBL-072"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6193
+    },
+    {
+      "id": "R-D-08",
+      "type": "D",
+      "target": "RPT-0207",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          3
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0207",
+          "RPT-0209",
+          "RPT-0120"
+        ],
+        "dense": [
+          "RPT-0207",
+          "RPT-0120",
+          "RPT-0202"
+        ],
+        "hybrid": [
+          "RPT-0207",
+          "RPT-0120",
+          "RPT-0202"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6185
+    },
+    {
+      "id": "R-D-09",
+      "type": "D",
+      "target": "RPT-0102",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0102",
+          "RPT-0086",
+          "RPT-0039"
+        ],
+        "dense": [
+          "RPT-0102",
+          "RPT-0086",
+          "RPT-0077"
+        ],
+        "hybrid": [
+          "RPT-0102",
+          "RPT-0086",
+          "RPT-0039"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6703
+    },
+    {
+      "id": "R-D-10",
+      "type": "D",
+      "target": "RPT-0140",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0140",
+          "RPT-0130",
+          "RPT-0146"
+        ],
+        "dense": [
+          "RPT-0140",
+          "RPT-0130",
+          "RPT-0173"
+        ],
+        "hybrid": [
+          "RPT-0140",
+          "RPT-0130",
+          "RPT-0146"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7291
+    },
+    {
+      "id": "R-D-11",
+      "type": "D",
+      "target": "RPT-0249",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          5
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0249",
+          "RPT-0110",
+          "RPT-0132"
+        ],
+        "dense": [
+          "RPT-0249",
+          "RPT-0242",
+          "RPT-0085"
+        ],
+        "hybrid": [
+          "RPT-0249",
+          "RPT-0242",
+          "RPT-0085"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7343
+    },
+    {
+      "id": "R-D-12",
+      "type": "D",
+      "target": "RPT-0250",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0250",
+          "RPT-0225",
+          "RPT-0229"
+        ],
+        "dense": [
+          "RPT-0250",
+          "RPT-0225",
+          "RPT-0229"
+        ],
+        "hybrid": [
+          "RPT-0250",
+          "RPT-0225",
+          "RPT-0229"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.6979
+    },
+    {
+      "id": "R-D-13",
+      "type": "D",
+      "target": "RPT-0045",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          3
+        ],
+        "dense": [
+          2
+        ],
+        "hybrid": [
+          2
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0045",
+          "RPT-0072",
+          "RPT-0026"
+        ],
+        "dense": [
+          "RPT-0045",
+          "RPT-0026",
+          "RPT-0215"
+        ],
+        "hybrid": [
+          "RPT-0045",
+          "RPT-0026",
+          "RPT-0215"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7292
+    },
+    {
+      "id": "R-D-14",
+      "type": "D",
+      "target": "RPT-0070",
+      "ranks": {
+        "bm25": 1,
+        "dense": 2,
+        "hybrid": 2
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          2
+        ],
+        "dense": [
+          1
+        ],
+        "hybrid": [
+          1
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0070",
+          "RPT-0061",
+          "RPT-0047"
+        ],
+        "dense": [
+          "RPT-0061",
+          "RPT-0070",
+          "RPT-0047"
+        ],
+        "hybrid": [
+          "RPT-0061",
+          "RPT-0070",
+          "RPT-0047"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7038
+    },
+    {
+      "id": "R-D-15",
+      "type": "D",
+      "target": "RPT-0200",
+      "ranks": {
+        "bm25": 1,
+        "dense": 1,
+        "hybrid": 1
+      },
+      "forbidden_ranks": {
+        "bm25": [
+          8
+        ],
+        "dense": [
+          3
+        ],
+        "hybrid": [
+          3
+        ]
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0200",
+          "RPT-0102",
+          "RPT-0069"
+        ],
+        "dense": [
+          "RPT-0200",
+          "TBL-059",
+          "RPT-0189"
+        ],
+        "hybrid": [
+          "RPT-0200",
+          "RPT-0069",
+          "RPT-0189"
+        ]
+      },
+      "exact_match": true,
+      "top_dense_cosine": 0.7284
+    },
+    {
+      "id": "R-N-01",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0105",
+          "RPT-0030",
+          "RPT-0015"
+        ],
+        "dense": [
+          "TBL-011",
+          "RPT-0077",
+          "RPT-0030"
+        ],
+        "hybrid": [
+          "RPT-0030",
+          "RPT-0052",
+          "TBL-035"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.411
+    },
+    {
+      "id": "R-N-02",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0077",
+          "RPT-0155",
+          "RPT-0154"
+        ],
+        "dense": [
+          "RPT-0077",
+          "TBL-043",
+          "RPT-0216"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "RPT-0155",
+          "TBL-025"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.6068
+    },
+    {
+      "id": "R-N-03",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0005",
+          "RPT-0174",
+          "RPT-0158"
+        ],
+        "dense": [
+          "RPT-0147",
+          "RPT-0231",
+          "RPT-0207"
+        ],
+        "hybrid": [
+          "RPT-0005",
+          "RPT-0158",
+          "RPT-0147"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4828
+    },
+    {
+      "id": "R-N-04",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0158",
+          "RPT-0054",
+          "RPT-0022"
+        ],
+        "dense": [
+          "RPT-0158",
+          "RPT-0174",
+          "RPT-0022"
+        ],
+        "hybrid": [
+          "RPT-0158",
+          "RPT-0174",
+          "RPT-0022"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.5146
+    },
+    {
+      "id": "R-N-05",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0129",
+          "RPT-0133",
+          "RPT-0011"
+        ],
+        "dense": [
+          "RPT-0190",
+          "RPT-0050",
+          "TBL-068"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "RPT-0086",
+          "TBL-022"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.3945
+    },
+    {
+      "id": "R-N-06",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0143",
+          "MET-007",
+          "MET-030"
+        ],
+        "dense": [
+          "TBL-043",
+          "TBL-068",
+          "TBL-025"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "RPT-0086",
+          "TBL-025"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4569
+    },
+    {
+      "id": "R-N-07",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0158",
+          "RPT-0008",
+          "RPT-0205"
+        ],
+        "dense": [
+          "TBL-012",
+          "RPT-0119",
+          "RPT-0030"
+        ],
+        "hybrid": [
+          "RPT-0220",
+          "RPT-0212",
+          "RPT-0119"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4696
+    },
+    {
+      "id": "R-N-08",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0013",
+          "TBL-005",
+          "RPT-0202"
+        ],
+        "dense": [
+          "RPT-0176",
+          "RPT-0005",
+          "RPT-0076"
+        ],
+        "hybrid": [
+          "RPT-0202",
+          "RPT-0005",
+          "TBL-005"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.3855
+    },
+    {
+      "id": "R-N-09",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0158",
+          "RPT-0015",
+          "RPT-0174"
+        ],
+        "dense": [
+          "RPT-0158",
+          "RPT-0174",
+          "RPT-0119"
+        ],
+        "hybrid": [
+          "RPT-0158",
+          "RPT-0174",
+          "RPT-0095"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4639
+    },
+    {
+      "id": "R-N-10",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0052",
+          "RPT-0211",
+          "RPT-0164"
+        ],
+        "dense": [
+          "RPT-0052",
+          "TBL-047",
+          "RPT-0077"
+        ],
+        "hybrid": [
+          "RPT-0052",
+          "RPT-0211",
+          "RPT-0077"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4555
+    },
+    {
+      "id": "R-N-11",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0047",
+          "RPT-0170",
+          "RPT-0036"
+        ],
+        "dense": [
+          "RPT-0243",
+          "RPT-0207",
+          "RPT-0068"
+        ],
+        "hybrid": [
+          "RPT-0068",
+          "RPT-0072",
+          "RPT-0194"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.509
+    },
+    {
+      "id": "R-N-12",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0005",
+          "RPT-0019",
+          "RPT-0039"
+        ],
+        "dense": [
+          "RPT-0005",
+          "RPT-0026",
+          "RPT-0047"
+        ],
+        "hybrid": [
+          "RPT-0005",
+          "RPT-0047",
+          "RPT-0052"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4467
+    },
+    {
+      "id": "R-N-13",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0077",
+          "RPT-0011",
+          "RPT-0143"
+        ],
+        "dense": [
+          "RPT-0077",
+          "RPT-0243",
+          "RPT-0216"
+        ],
+        "hybrid": [
+          "RPT-0077",
+          "TBL-022",
+          "TBL-021"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.5998
+    },
+    {
+      "id": "R-N-14",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0071",
+          "RPT-0154",
+          "RPT-0100"
+        ],
+        "dense": [
+          "RPT-0154",
+          "TBL-003",
+          "RPT-0238"
+        ],
+        "hybrid": [
+          "RPT-0154",
+          "RPT-0155",
+          "RPT-0238"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.5001
+    },
+    {
+      "id": "R-N-15",
+      "type": "N",
+      "target": null,
+      "ranks": {
+        "bm25": null,
+        "dense": null,
+        "hybrid": null
+      },
+      "forbidden_ranks": {
+        "bm25": [],
+        "dense": [],
+        "hybrid": []
+      },
+      "top3": {
+        "bm25": [
+          "RPT-0090",
+          "RPT-0105",
+          "RPT-0129"
+        ],
+        "dense": [
+          "RPT-0051",
+          "RPT-0166",
+          "RPT-0105"
+        ],
+        "hybrid": [
+          "RPT-0105",
+          "RPT-0030",
+          "RPT-0160"
+        ]
+      },
+      "exact_match": false,
+      "top_dense_cosine": 0.4362
+    }
+  ]
+}
