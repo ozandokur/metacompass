@@ -1,8 +1,8 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 1 (kapı geçti, 🧑 insan kontrol noktası bekleniyor) · Son güncelleme: 2026-09-18 ·
-Son kapı: Faz 1 geçti (2026-09-18)
+Aktif faz: 2 · Son güncelleme: 2026-09-18 ·
+Son kapı: Faz 1 geçti (2026-09-18; kontrol noktası düzeltmeleri uygulandı)
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: — · τ: — (placeholder 0.45) · Model: — · Data seed: 42
@@ -31,12 +31,50 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
 - [Faz 1] Öğrenme notu: `docs/learn/01_synthetic_data_design.md`
 - [Faz 1] Kabul: I01–I17 yeşil ✅ · üretim < 30 sn, LLM/ağ yok ✅ (~1,5 sn) · data card üretildi,
   "synthetic" notu var ✅ · vocab'ta yasaklı terim yok ⚠️ (H5 dosyası yok, tarama atlandı)
+- [Faz 1 kontrol noktası] Ozan'ın düzeltmeleri: ayrılmış sahip oranı (I18), kazara yakın-kopya
+  isim/başlık kontrolü (I19), bölge varyantı anlamsal çakışması (I14 ek testi), kalıp tiki (I20).
+  Önce testler yazıldı ve kırmızı görüldü (6 + 1 başarısız), sonra üretici düzeltildi.
+  63 invariant testi 17 seed'in hepsinde yeşil. Önce/sonra (seed 42):
+  | ölçüm | önce | sonra |
+  |---|---|---|
+  | ayrılmış sahipli aktif rapor | %40,0 | %21,3 (I07 tabanı, 50/235) |
+  | ayrılmış sahipli tablo / metrik | %31,2 / %32,5 | %17,5 / %17,5 |
+  | kazara yakın-kopya rapor çifti (J>0,6) | 43 | 0 |
+  | yakın-kopya metrik çifti | 1 (Gross Margin % / Parts Gross Margin) | 0 (→ "Parts Margin %") |
+  | kümeler arası benzer talep başlığı | 0 (ama 17 seed'in 7'sinde >0) | 0 (17/17 seed) |
+  | en sık açılış: rapor açıklaması | "shows" %14,0 | %8,4 |
+  | en sık açılış: talep başlığı | "deep" %15,0 | %8,3 |
+  | en sık açılış: talep açıklaması | "please" %23,3 | %10,0 |
 
 ## Devam eden
-- Görev: Faz 1 insan kontrol noktası · Ozan `docs/data_card.md` örneklerini ve
-  `src/metacompass/data/vocab/*.json` dosyalarını inceleyecek.
+- Görev: Faz 2 — `retrieval/tokenize.py` · Yaklaşım: §5.3 kurallarını tablo tabanlı testlere
+  dök (girdi → beklenen token listesi), kırmızıyı gör, sonra regex tabanlı tokenizer yaz.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-18 · **Ozan onayları (Faz 1 kontrol noktası):** Python 3.13 sapması onaylandı (CI,
+  Dockerfile, README aynı sürümü söyler); `/data/`, yalnız `generate.py` muafiyeti ve torch CPU
+  index sapmaları onaylandı; E501 kapatma kabul edildi, uyarıyla: kapıyı geçmek için kural
+  gevşetme refleksi testlerde yasak (CLAUDE.md'ye işlendi); LICENSE adı doğru; H5, H6 ve remote
+  repoyu Ozan hallediyor, o zamana kadar push yok. Store testlerinde kırmızı koşumu atlamıştım;
+  bundan sonra her testin önce başarısız olduğu görülüyor (CLAUDE.md'ye işlendi).
+- 2026-09-18 · **Ayrılmış sahip oranı:** İlk gerekçem ("spesifikasyon dayatıyor") yanlıştı;
+  oran benim düzgün sahip dağılımımdan geliyordu. Artık aktif raporların sahibi bugün şirkette
+  olan biri; tek istisna zincir başlarının I07 gereği sahip olduğu **tam iki** rapor. Deprecated
+  raporların sahibi ayrılmış biri olabilir (gerçekçi, orana girmiyor).
+- 2026-09-18 · Tablo ve metrik sahiplerinde de ayrılmış oranı %17,5'e (80'de 14, 40'ta 7) tam
+  sayıyla sabitlendi · Ozan'ın gerekçesinin (L2, L5 ve A3) doğrudan uzantısı: L5 bildirim listesi
+  metrik sahiplerini, L2/MX tablo sahiplerini içeriyor · Alternatif: yalnızca raporlara uygulamak.
+- 2026-09-18 · Rapor isimleri: her konuya 2 alternatif isim kökü eklendi (aynı konuya farklı ekip
+  isimleri) + üretimde `_NameRegistry` her yeni ismi mevcut isimlerle karşılaştırıp J > 0,6 ise
+  reddediyor; türetilmiş isimler (yakın-kopya, replacement) yalnızca kendi kökenlerine benzeyebilir.
+  Jaccard, I14 ile aynı token tanımını kullanıyor (küçük harf, `[a-z0-9]+`, stopword atılmıyor).
+- 2026-09-18 · Talep başlıkları: küme içi benzerlik tasarım gereği serbest (aynı konunun
+  parafrazları), kümeler arası J > 0,6 üretimde reddediliyor.
+- 2026-09-18 · "Regional"/"Area Managers" yakın-kopya varyantı, konunun **herhangi** bir raporu
+  "by Region" ise kullanılmıyor · Jaccard 0,5 ile geçen ama anlamca aynı olan çift bulundu.
+- 2026-09-18 · Şablonlar "deste" ile dağıtılıyor (karışık turlar, her şablon eşit sayıda);
+  rapor açıklama şablonu 6 → 10, talep başlık kalıbı 8 → 12, talep açıklama kalıbı 5 → 10 ·
+  I20 eşiği: ilk kelime payı ≤ %15 (ilk kelime, iki kelimeden daha sert bir ölçü).
 - 2026-09-18 · Repo yerelde `git init -b main` ile başlatıldı; master doküman sohbetten
   `docs/plan/` içine kaydedildi · Dizin boştu, önkoşul (GitHub klonu) yapılmamıştı ·
   Alternatif: Ozan'ın repoyu oluşturmasını beklemek (işi bloklardı). GitHub repo'su
@@ -89,29 +127,32 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   ayrılmasını istiyor; oranı yapay düşürmek yerine data card'da "Known limits" altında yazılı.
 
 ## Spec sapmaları
-- **Python sürümü (§11.1, §12.5):** Spec CI/Docker için 3.11 diyor. `pip freeze` ile
-  sabitlenen numpy 2.5.3 ve scipy 1.18.1 Python ≥ 3.12 istiyor, yani 3.11'de kurulamaz.
-  Geçici karar: yerel = CI = Docker = Python 3.13; `requires-python = ">=3.12"`, ruff
-  hedefi py312. Alternatif: 3.11 için numpy/scipy'yi eski sürümlere sabitlemek (yerel ortamı
-  da düşürmek gerekir).
-- **`.gitignore` `data/` (Ek C.1):** Kök dışındaki `src/metacompass/data/` klasörünü de
-  yok sayardı. `/data/` (köke sabitli) kullanıldı.
-- **`_meta.json` string yasağı (§12.2):** `src/**` içinde tamamen yasak olursa üretici dosyayı
-  yazamaz. Yalnızca `src/metacompass/data/generate.py` (yazan) muaf; okuyucular yasaklı.
-- **Torch pini:** `requirements.txt` başına `--extra-index-url https://download.pytorch.org/whl/cpu`
+- **Python sürümü (§11.1, §12.5) — ONAYLANDI 2026-09-18:** Spec CI/Docker için 3.11 diyor.
+  `pip freeze` ile sabitlenen numpy 2.5.3 ve scipy 1.18.1 Python ≥ 3.12 istiyor, yani 3.11'de
+  kurulamaz. Karar: yerel = CI = Docker = Python 3.13; `requires-python = ">=3.12"`, ruff hedefi
+  py312; README ve CI 3.13 diyor, Dockerfile (Faz 8) `python:3.13-slim` kullanacak.
+  Reddedilen alternatif: Python 3.11 + eski numpy/scipy sürümlerine sabitlemek (yerel ortamı da
+  3.11'e düşürmek gerekirdi; iki ayrı yorumlayıcıyı eşzamanlı tutma maliyeti).
+- **`.gitignore` `data/` (Ek C.1) — ONAYLANDI:** Kök dışındaki `src/metacompass/data/`
+  klasörünü de yok sayardı. `/data/` (köke sabitli) kullanıldı.
+- **`_meta.json` string yasağı (§12.2) — ONAYLANDI:** `src/**` içinde tamamen yasak olursa
+  üretici dosyayı yazamaz. Yalnızca `src/metacompass/data/generate.py` (yazan) muaf.
+- **Torch pini — ONAYLANDI:** `requirements.txt` başına `--extra-index-url https://download.pytorch.org/whl/cpu`
   eklendi; aksi halde `torch==…+cpu` pini Linux'ta PyPI'dan çözülemez.
 - **Tek RNG kaynağı (§4.1):** Tek RNG yerine aşama başına türetilmiş `random.Random` örnekleri
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
-- [ ] Python 3.13 (CI/Docker) sapmasını onaylıyor musun, yoksa 3.11'e mi dönelim?
+- [ ] **%15–20 ayrılmış sahip bandı I07 ile birlikte tutturulamıyor.** Zincir başı sayısı 22
+  değil 25 (S1 12 + S2 6 + C2 3 + C3 2 + C4 2); I07 gereği 25 × 2 = 50 aktif rapor ayrılmış
+  kişilere ait olmak zorunda → taban 50/235 = %21,3. Geçici karar: oran tam tabanda (başka hiçbir
+  aktif raporun sahibi ayrılmış değil); I18 `share ≤ max(0,20, taban)` olarak yazıldı
+  (SPEC-DEVIATION yorumu testte). %20'nin altına inmek istersen spesifikasyon değişikliği gerekir,
+  ör. S1 başları için I07'yi ≥1 rapora indirmek (taban 38/235 = %16,2) — senin kararın.
 - [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) — Faz 4'ten önce gerekli.
-- [ ] H5: `docs/plan/forbidden_terms.txt` henüz yok; ilk push'tan önce doldurulmalı (sonra
-  tarama tüm dosyalar + commit geçmişi için tekrar koşulacak).
-- [ ] H6: `.env` henüz yok (Faz 4'e kadar gerekmiyor).
-- [ ] LICENSE'taki "Ozan Dokur" adı doğru mu?
-- [ ] 🧑 Faz 1 kontrol noktası: data card ve vocab gerçek bir veri ekibinin kataloğu gibi
-  okunuyor mu, fazla tekrarlı mı? ~%40 ayrılmış sahip oranı kabul mü?
+- [ ] H5: `docs/plan/forbidden_terms.txt` (Ozan hazırlıyor); push'tan önce tarama tüm dosyalar
+  ve commit geçmişi için tekrar koşulacak.
+- [ ] H6: `.env` ve GitHub remote (Ozan hazırlıyor). O zamana kadar push yok.
 
 ## Takıldığım yerler
 - (yok)

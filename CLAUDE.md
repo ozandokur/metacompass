@@ -27,9 +27,14 @@ LangChain/LangGraph/CrewAI/LlamaIndex/DSPy · LLM-as-judge · React · multiling
 column-level lineage · >7 tables · >6 tools
 
 ## Work loop (spec §13.2)
-read PROGRESS → find spec § → write approach → test first → implement → green →
-python scripts/check_all.py → update PROGRESS → local commit (Conventional Commits) → next.
-Stop and ask in the situations listed in spec §13.3.
+read PROGRESS → find spec § → write approach → test first → **run it and watch it fail** →
+implement → green → python scripts/check_all.py → update PROGRESS → local commit
+(Conventional Commits) → next. Stop and ask in the situations listed in spec §13.3.
+- Never skip the red run: a test that was never seen failing proves nothing.
+- Never relax a rule, threshold or lint setting to get a gate green; fix the cause. If a
+  rule itself is wrong, say so and ask first.
+- Before blaming the spec for a property of the data or code, check whether the spec
+  really forces it or whether it is my own design choice.
 
 ## Style
 - Talk to me in Turkish. Code, identifiers, commits, README in English.
@@ -51,5 +56,5 @@ streamlit run app/streamlit_app.py
 ## Local environment notes
 - Windows, Python 3.13 in `.venv`. Agent shells do not auto-activate it: call
   `.venv/Scripts/python.exe` explicitly (e.g. `.venv/Scripts/python.exe scripts/check_all.py`).
-- CI and Docker use Python 3.13 too (see PROGRESS.md → Spec sapmaları).
+- CI and Docker use Python 3.13 too (approved deviation, see PROGRESS.md → Spec sapmaları).
 - `requirements.txt` pins a `+cpu` torch build and carries the PyTorch CPU index URL.
