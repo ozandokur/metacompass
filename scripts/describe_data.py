@@ -77,7 +77,11 @@ def build_card(data_dir: Path) -> str:
     emp, rep, tab, req, met = (
         raw[k] for k in ["employees", "reports", "tables", "requests", "metrics"]
     )
-    owner_status = rep["owner_id"].map(emp.set_index("employee_id")["status"])
+    status_of = emp.set_index("employee_id")["status"]
+    owner_status = rep["owner_id"].map(status_of)
+    chains = meta["chains"]
+    n_heads = len(chains["S1"]) + len(chains["S2"])
+    n_heads += sum(len(chains[code]) for code in ("C2", "C3", "C4"))
     usage = rep["usage_30d"].astype(int)
     active = rep["status"] == "active"
 
@@ -136,9 +140,14 @@ def build_card(data_dir: Path) -> str:
         + f", max = {usage.max()}; {(usage[active] == 0).mean():.0%} of active reports had no views."
     )
     add("")
+    departed_active = int((active & owner_status.eq("left")).sum())
     add(
-        f"{owner_status.eq('left').mean():.0%} of reports are owned by someone who has left "
-        "the company. Attrition is deliberately high (see *Known limits*)."
+        f"{departed_active} of {int(active.sum())} active reports "
+        f"({departed_active / active.sum():.1%}) have an owner who has left the company. "
+        f"That is the floor set by the {n_heads} succession-chain heads, who must own two active "
+        "reports each; no other active report has a departed owner. For comparison, "
+        f"{tab['owner_id'].map(status_of).eq('left').mean():.1%} of tables and "
+        f"{met['owner_id'].map(status_of).eq('left').mean():.1%} of metrics have a departed owner."
     )
     add("")
     add("### Warehouse tables")
@@ -229,8 +238,9 @@ def build_card(data_dir: Path) -> str:
     for line in [
         "Text comes from templates and curated word lists, so wording repeats more than in a real catalog.",
         "Distributions are tidier than real life: exact status ratios, one owner per asset, no missing owners.",
-        "Attrition is deliberately high (38 of 120 people left) so that every succession structure is present; "
-        "as a result a large share of reports have a former employee as owner.",
+        "Attrition is deliberately high (38 of 120 people left) so that every succession structure is present. "
+        "Departed owners are kept to the minimum that structure forces (about a fifth of active reports), "
+        "and chain heads own exactly two active reports each, which is tidier than a real catalog.",
         "Lineage is table-level only (no column lineage) and every table belongs to one hand-designed DAG.",
         "Dates are consistent by construction, but seasonality and business cycles are not modelled.",
         "Everything is in English; names come from Faker's en_US locale.",

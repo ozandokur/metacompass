@@ -11,7 +11,7 @@ Seed `42` · generator `1.0` · reference date ("today") `2026-09-01`. This card
 | employees | 120 | a person, current or former, with manager and successor links |
 | reports | 250 | a BI report with owner, status, refresh state and usage |
 | tables | 80 | a warehouse table in the staging, intermediate or mart layer |
-| report_table_edges | 618 | a report reads a table |
+| report_table_edges | 571 | a report reads a table |
 | table_table_edges | 149 | data flows from a parent table into a child table |
 | metrics | 40 | a business metric with aliases, definition, formula and source tables |
 | requests | 300 | an analysis request to the data team |
@@ -45,17 +45,17 @@ Seed `42` · generator `1.0` · reference date ("today") `2026-09-01`. This card
 
 | department | rows | share |
 |---|---|---|
-| Aftersales | 50 | 20% |
-| Data & Analytics | 22 | 9% |
-| Finance | 35 | 14% |
-| Marketing | 33 | 13% |
+| Aftersales | 49 | 20% |
+| Data & Analytics | 21 | 8% |
+| Finance | 37 | 15% |
+| Marketing | 31 | 12% |
 | Operations | 22 | 9% |
 | Sales | 49 | 20% |
-| Supply Chain | 39 | 16% |
+| Supply Chain | 41 | 16% |
 
-`usage_30d` (views in the last 30 days) is long-tailed: p25 = 3, p50 = 16, p75 = 39, p90 = 88, p99 = 327, max = 701; 20% of active reports had no views.
+`usage_30d` (views in the last 30 days) is long-tailed: p25 = 3, p50 = 13, p75 = 35, p90 = 85, p99 = 298, max = 351; 20% of active reports had no views.
 
-40% of reports are owned by someone who has left the company. Attrition is deliberately high (see *Known limits*).
+50 of 235 active reports (21.3%) have an owner who has left the company. That is the floor set by the 25 succession-chain heads, who must own two active reports each; no other active report has a departed owner. For comparison, 17.5% of tables and 17.5% of metrics have a departed owner.
 
 ### Warehouse tables
 
@@ -67,10 +67,10 @@ Seed `42` · generator `1.0` · reference date ("today") `2026-09-01`. This card
 
 | update_frequency | rows | share |
 |---|---|---|
-| daily | 45 | 56% |
-| hourly | 22 | 28% |
+| daily | 52 | 65% |
+| hourly | 16 | 20% |
 | monthly | 4 | 5% |
-| weekly | 9 | 11% |
+| weekly | 8 | 10% |
 
 ### Requests
 
@@ -102,7 +102,7 @@ Total employees who left: 38.
 |---|---|---|
 | N1 | near-duplicate report names (e.g. *X* and *X – Detail*) | 20 |
 | N2 | deprecated reports, each pointing to an active replacement | 15 |
-| N3 | reports tagged with an abbreviation (GM, AOV, NPS, YoY, MTD, …) | 73 |
+| N3 | reports tagged with an abbreviation (GM, AOV, NPS, YoY, MTD, …) | 72 |
 | N4 | reports with a vague or stale description | 25 |
 | N5 | active reports whose last refresh failed | 19 |
 | N6 | analysis-request topic clusters with paraphrased titles | 60 |
@@ -114,12 +114,12 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | report | name | paired with | name |
 |---|---|---|---|
-| RPT-0005 | Weekly Vehicle Logistics Scorecard | RPT-0006 | Weekly Vehicle Logistics Scorecard – Regional |
-| RPT-0013 | Dealer Profitability Report YoY | RPT-0038 | Dealer Profitability Report YoY – Detail |
-| RPT-0037 | Monthly Customer Segmentation | RPT-0046 | Monthly Customer Segmentation – Area Managers |
-| RPT-0043 | Dealer Sales Performance Executive Summary | RPT-0051 | Dealer Sales Performance Executive Summary v2 |
-| RPT-0055 | Budget vs Actual by Region | RPT-0132 | Budget vs Actual by Region (New) |
-| RPT-0061 | Monthly Sales Pipeline | RPT-0128 | Monthly Sales Pipeline – Rebuilt |
+| RPT-0017 | Retail Sales Against Plan YoY | RPT-0041 | Retail Sales Against Plan YoY – Detail |
+| RPT-0026 | Parts Inventory Health Dashboard | RPT-0045 | Parts Inventory Health Dashboard – Area Managers |
+| RPT-0031 | Daily Operations Summary by Dealer | RPT-0053 | Daily Operations Summary by Dealer – Drilldown |
+| RPT-0028 | Demand Forecast Inputs Overview | RPT-0076 | Demand Forecast Inputs Overview 2.0 |
+| RPT-0034 | Weekly Failed Data Tests | RPT-0051 | Weekly Failed Data Tests – Rebuilt |
+| RPT-0059 | Weekly Unfilled Parts Orders | RPT-0123 | Weekly Unfilled Parts Orders 2.0 |
 
 ## Sample records
 
@@ -135,25 +135,25 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | report_id | name | department | owner_id | status | refresh_status | usage_30d | tags | description |
 |---|---|---|---|---|---|---|---|---|
-| RPT-0001 | Workshop Productivity Dashboard | Aftersales | EMP-021 | active | success | 118 | productivity\|workshop\|labour | How efficiently workshop time is turned into billed labour. Built for… |
-| RPT-0126 | Monthly Revenue Summary | Finance | EMP-035 | deprecated | disabled | 0 | finance\|revenue\|monthly | Shows total company revenue across vehicles, parts and service month … |
-| RPT-0250 | Parts Returns Scorecard by Dealer – Detail | Supply Chain | EMP-030 | active | success | 0 | parts\|returns\|credits\|dealer\|detail | Record-level detail behind the summary view of parts that dealers sen… |
+| RPT-0001 | Pricing and Discounts Overview | Sales | EMP-009 | active | success | 19 | incentives\|pricing\|discounts | How far below list price cars are actually sold, with drill-down to i… |
+| RPT-0126 | Company Revenue MTD | Finance | EMP-060 | active | success | 0 | revenue\|finance\|MTD | Total company revenue across vehicles, parts and service for the mont… |
+| RPT-0250 | Paid Media Results Executive Summary – Regional | Marketing | EMP-108 | active | success | 19 | leads\|campaigns\|media\|executive\|CPL | Regional version for area managers: what our advertising campaigns de… |
 
 ### tables
 
 | table_id | name | layer | schema_name | source_system | owner_id | row_count | update_frequency | description |
 |---|---|---|---|---|---|---|---|---|
-| TBL-001 | stg_dms_vehicle_sales | staging | staging | DMS | EMP-115 | 435204 | daily | Raw vehicle sales transactions exported nightly from the dealer manag… |
-| TBL-041 | int_parts_sales_lines | intermediate | intermediate | warehouse | EMP-115 | 29612 | daily | Parts order lines with category, invoiced revenue, cost and backorder… |
-| TBL-080 | fct_recalls | mart | marts_service | warehouse | EMP-079 | 1754603 | hourly | Recall status per affected vehicle with days open. |
+| TBL-001 | stg_dms_vehicle_sales | staging | staging | DMS | EMP-062 | 28369160 | hourly | Raw vehicle sales transactions exported nightly from the dealer manag… |
+| TBL-041 | int_parts_sales_lines | intermediate | intermediate | warehouse | EMP-118 | 28971 | hourly | Parts order lines with category, invoiced revenue, cost and backorder… |
+| TBL-080 | fct_recalls | mart | marts_service | warehouse | EMP-064 | 1553136 | daily | Recall status per affected vehicle with days open. |
 
 ### report_table_edges
 
 | report_id | table_id |
 |---|---|
-| RPT-0001 | TBL-066 |
-| RPT-0125 | TBL-077 |
-| RPT-0250 | TBL-069 |
+| RPT-0001 | TBL-057 |
+| RPT-0124 | TBL-058 |
+| RPT-0250 | TBL-075 |
 
 ### table_table_edges
 
@@ -167,23 +167,23 @@ N7 also covers `fct_budget_2026`, the only budget table, which holds the 2026 pl
 
 | metric_id | name | aliases | formula | source_table_ids | owner_id |
 |---|---|---|---|---|---|
-| MET-001 | Units Sold | units\|vehicle units\|sales volume | COUNT(DISTINCT fct_vehicle_sales.sale_id) WHERE units > 0 | ["TBL-065"] | EMP-069 |
-| MET-021 | Average Repair Time | ART\|repair turnaround | AVG(fct_service_orders.labor_hours) | ["TBL-066"] | EMP-099 |
-| MET-040 | Customer Lifetime Value | CLV\|LTV\|lifetime value |  | ["TBL-065", "TBL-066", "TBL-056"] | EMP-089 |
+| MET-001 | Units Sold | units\|vehicle units\|sales volume | COUNT(DISTINCT fct_vehicle_sales.sale_id) WHERE units > 0 | ["TBL-065"] | EMP-025 |
+| MET-021 | Average Repair Time | ART\|repair turnaround | AVG(fct_service_orders.labor_hours) | ["TBL-066"] | EMP-034 |
+| MET-040 | Customer Lifetime Value | CLV\|LTV\|lifetime value |  | ["TBL-065", "TBL-066", "TBL-056"] | EMP-101 |
 
 ### requests
 
 | request_id | title | status | department | created_date | closed_date | resulting_report_id | duplicate_of_request_id |
 |---|---|---|---|---|---|---|---|
-| REQ-0001 | Numbers on obsolete stock by warehouse | done | Supply Chain | 2021-02-04 | 2021-06-16 | RPT-0066 |  |
-| REQ-0151 | Deep dive into a weekly KPI pack on one page | done | Operations | 2025-01-18 | 2025-02-16 | RPT-0192 |  |
-| REQ-0300 | Deep dive into how fast dealers answer enquiries by lead source | duplicate | Sales | 2026-08-31 | 2026-09-01 |  | REQ-0255 |
+| REQ-0001 | Breakdown of missed service bookings by weekday | done | Aftersales | 2021-02-27 | 2021-06-25 | RPT-0073 |  |
+| REQ-0151 | Deep dive into customers not turning up per workshop | duplicate | Aftersales | 2024-11-12 | 2024-11-20 |  | REQ-0139 |
+| REQ-0300 | Average repair order value per workshop for review | duplicate | Aftersales | 2026-08-31 | 2026-09-01 |  | REQ-0251 |
 
 ## Known limits
 
 - Text comes from templates and curated word lists, so wording repeats more than in a real catalog.
 - Distributions are tidier than real life: exact status ratios, one owner per asset, no missing owners.
-- Attrition is deliberately high (38 of 120 people left) so that every succession structure is present; as a result a large share of reports have a former employee as owner.
+- Attrition is deliberately high (38 of 120 people left) so that every succession structure is present. Departed owners are kept to the minimum that structure forces (about a fifth of active reports), and chain heads own exactly two active reports each, which is tidier than a real catalog.
 - Lineage is table-level only (no column lineage) and every table belongs to one hand-designed DAG.
 - Dates are consistent by construction, but seasonality and business cycles are not modelled.
 - Everything is in English; names come from Faker's en_US locale.
