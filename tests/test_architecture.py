@@ -15,7 +15,9 @@ APP = ROOT / "app"
 EVAL = ROOT / "eval"
 SCRIPTS = ROOT / "scripts"
 
-# Frameworks and infrastructure that the scope lock (spec §2.2) rules out.
+# Frameworks and infrastructure that the scope lock (spec §2.2) rules out. The agent loop
+# is plain code (D18), so every agent or LLM-orchestration framework is banned, not only
+# the five the spec names.
 BANNED_TOP_LEVEL_IMPORTS = {
     "langchain",
     "langchain_core",
@@ -26,7 +28,21 @@ BANNED_TOP_LEVEL_IMPORTS = {
     "dspy",
     "faiss",
     "neo4j",
+    "autogen",
+    "autogen_agentchat",
+    "semantic_kernel",
+    "haystack",
+    "smolagents",
+    "pydantic_ai",
+    "agents",  # the OpenAI Agents SDK
+    "litellm",
+    "instructor",
 }
+
+# LLM provider SDKs. Spec §8.1: messages are provider-neutral everywhere else, and only the
+# provider client in agent/llm.py converts them, so only that module may import an SDK.
+PROVIDER_SDKS = {"anthropic", "openai", "google", "mistralai", "cohere", "groq"}
+PROVIDER_SDK_ALLOWED = {SRC / "agent" / "llm.py"}
 
 # eval/gold.py may only use pandas, json, the schema module and plain stdlib helpers
 # (spec §3.2). networkx and every other metacompass module are off limits, so the gold
@@ -121,6 +137,17 @@ def test_no_banned_frameworks_anywhere():
     for path in _python_files(SRC, APP, EVAL, SCRIPTS, ROOT / "tests"):
         for module in _imported_modules(path):
             if module.split(".")[0] in BANNED_TOP_LEVEL_IMPORTS:
+                offenders.append(f"{path.relative_to(ROOT)} imports {module}")
+    assert offenders == []
+
+
+def test_only_the_llm_module_imports_a_provider_sdk():
+    offenders = []
+    for path in _python_files(SRC, APP, EVAL, SCRIPTS):
+        if path in PROVIDER_SDK_ALLOWED:
+            continue
+        for module in _imported_modules(path):
+            if module.split(".")[0] in PROVIDER_SDKS:
                 offenders.append(f"{path.relative_to(ROOT)} imports {module}")
     assert offenders == []
 
