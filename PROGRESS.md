@@ -1,7 +1,7 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 0 · Son güncelleme: 2026-09-18 · Son kapı: —
+Aktif faz: 1 · Son güncelleme: 2026-09-18 · Son kapı: Faz 0 geçti (2026-09-18)
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: — · τ: — (placeholder 0.45) · Model: — · Data seed: 42
@@ -10,12 +10,19 @@ PROMPT_VERSION: — · τ: — (placeholder 0.45) · Model: — · Data seed: 42
 Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
 
 ## Tamamlananlar
-- (henüz yok)
+- [Faz 0] Paket iskeleti, pyproject, sabit requirements, .gitignore/.env.example/.dockerignore,
+  config.py + testleri (2ea7765)
+- [Faz 0] Kapı script'leri: check_all.py (ruff, format, pytest+cov, yasaklı terim, sır taraması),
+  check_forbidden_terms.py + testleri (72228cc)
+- [Faz 0] GitHub Actions iş akışı (d339f89) · LF satır sonu zorunluluğu (162d42e)
+- [Faz 0] Kabul: `pip install -e .` ✅ · `import metacompass` ✅ · check_all → 0 ✅ ·
+  yasaklı terim geçici dosyada yakalanıyor / dosya yokken 0 ✅ (test_check_scripts) ·
+  sır taraması `sk-` yakalıyor ✅ · git status temiz, data/ ve docs/plan/ takip dışı ✅
 
 ## Devam eden
-- Görev: Faz 0 — iskelet, araçlar, kapı script'leri · Yaklaşım: pyproject + src düzeni,
-  kapı script'leri (ruff, pytest+cov, yasaklı terim, sır taraması) test-önce yazıldı;
-  requirements pip freeze ile sabitlendi, runtime/dev ayrımı pip dry-run raporundan çıkarıldı.
+- Görev: Faz 1 — sentetik veri · Yaklaşım: önce schema.py (Pydantic satır modelleri, enum'lar,
+  ID regex'leri), sonra vocab JSON'ları, sonra I01–I17 testleri (kırmızı), sonra generate.py
+  tablo tablo; testler veriyi oturum başına geçici klasöre kendileri üretir (bayat data/ riski yok).
 
 ## Kararlar ve gerekçeleri
 - 2026-09-18 · Repo yerelde `git init -b main` ile başlatıldı; master doküman sohbetten
