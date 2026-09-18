@@ -1,10 +1,10 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 4 · Son güncelleme: 2026-09-18 · Son kapı: Faz 3 geçti (2026-09-18, Q-F3-1 → D24)
+Aktif faz: 5 · Son güncelleme: 2026-09-19 · Son kapı: Faz 4 (canlı adım hariç) geçti (2026-09-19)
 
 ## Dondurulmuş değerler
-PROMPT_VERSION: — · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
+PROMPT_VERSION: v1 (hash `config`/`prompts.PROMPT_HASHES`'te sabit) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
 yedek) · LLM: — · Data seed: 42 · Hepsi test koşumundan önce dondurulacak.
 
 ## Harcama
@@ -121,12 +121,45 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   yalnızca individual tablolar; dev L5 = 2 + 1), §9.4 (`impact_notify` gold'u), §9.8 (A5 notu),
   Ek C.4 (sabitler), §15 D24. `CLAUDE.md`'ye sabitler eklendi.
 
+- [Faz 4] Mimari testi: framework yasağı genişletildi (autogen, semantic_kernel, haystack,
+  smolagents, pydantic_ai, OpenAI Agents SDK, litellm, instructor) + sağlayıcı SDK'larını yalnızca
+  `agent/llm.py` import edebilir (d7c9ad3)
+- [Faz 4] `agent/llm.py`: LLMClient protokolü, FakeLLM, CachedLLM, `cost_usd` (0600417)
+- [Faz 4] `agent/answer.py`: FinalAnswer, `parse_final`, `enforce_grounding` (01b797a)
+- [Faz 4] `agent/prompts.py`: §8.4 prompt'u v1 + D24 broadcast satırı; A3/A4/A5 bölümleri (4336652)
+- [Faz 4] `agent/loop.py`: sınırlı döngü, §8.6'nın 12 senaryosu + 2 ek test, FakeLLM ile (53cee3d)
+- [Faz 4] Öğrenme notları: `07_tool_calling_loop`, `08_grounding_and_abstain`
+- [Faz 4] Kabul: 12 döngü senaryosu ağsız yeşil ✅ · grounding testleri ✅ · framework yok ✅ ·
+  **live smoke ❌ atlandı:** `.env` yok (H1–H3 boş). ProviderClient (görev 6) ve
+  `test_live_smoke.py` (görev 7) H1 gelince yazılacak; sağlayıcının güncel resmi dokümanına
+  bakılması gerekiyor (§8.1).
+
 ## Devam eden
-- Görev: Faz 4 — LLM istemcisi ve agent döngüsü · Yaklaşım: §8 sırasıyla llm → answer → prompts
-  → loop, hepsi test önce ve FakeLLM ile ağsız. `.env` yok (H1–H3 boş) → ProviderClient ve live
-  smoke atlanır, Ozan'a bildirilir.
+- Görev: Faz 5 — eval setleri, bağımsız gold, puanlama · Yaklaşım: §9.2–§9.6 ve D24'ün L5/MX
+  kuralları; builder doğrulamaları test önce; LLM gerekmiyor.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-19 · **Geçici kararlar (Faz 4, spec'te yok):**
+  - `PROMPT_VERSION` `config.py`'de; `prompts.py` onu kullanıyor · `AgentConfig` config'te,
+    agent paketini import etmesin (katman döngüsü olmasın).
+  - Tam prompt'un sha256'sı `PROMPT_HASHES[PROMPT_VERSION]`'a sabit · Metin değişirse test
+    kırılır, sürüm artırmak zorunlu olur (§8.4 kuralını kodla uygular).
+  - A5'te prompt `impact_analysis` adını hiç geçirmiyor (Prefer ve broadcast satırları düşüyor) ·
+    Model olmayan bir tool'a yönlendirilmesin; A3'teki spec notunun aynı mantığı.
+  - Grounding cevap **metnini** de tarıyor; yalnızca metinde geçen görülmemiş ID de
+    `[unverified]` olur ve `stripped_ids`'e girer · D12: uydurma ID kullanıcıya ulaşmamalı.
+    Spec yalnızca listeleri sayıyordu; uydurma ID oranı bu yüzden spec'in lafzından daha sıkı.
+  - Abstain cevabının `answer_ids`'inde EMP olması kodla engellenmiyor · Engellenseydi puanlamadaki
+    "abstain ∧ EMP yok" koşulu hep doğru çıkar, model hatası ölçülemezdi.
+  - `parse_final` kod bloğunu ve JSON'un etrafındaki cümleyi tolere ediyor; eksik alan veya yanlış
+    tip okunamaz sayılıyor → onarım turu.
+  - Agent, config'i registry'den alıyor (`registry.config`) · Prompt, tool listesi ve sınırlar tek
+    kaynaktan gelsin.
+  - Onarım ve zorlanmış final turları `max_llm_turns`'e sayılmıyor · En kötü durumda soru başına
+    11 başarılı LLM çağrısı (10 tur + 1 zorlanmış final), her biri en fazla 3 deneme.
+  - Başarısız LLM denemeleri iz'e yalnızca istisna tipiyle yazılıyor (mesaj sağlayıcı ayrıntısı
+    taşıyabilir); geri çekilme 1 sn, 2 sn.
+  - `AgentResult.tool_calls` yalnızca çalışan çağrıları sayar; `BUDGET` alanlar iz'de adım olarak var.
 - 2026-09-18 · **D24 (Ozan, Q-F3-1):** `impact_analysis` ölçeğe göre biçim değiştirir (≤ 20 kişi
   bireysel liste; > 20 ilk 10 + departman kırılımı; impact için çıktı sınırı 6.000) · Bireysel
   bildirim ölçekte anlamsızlaşıyor; 72 ID'lik bir liste L5'i kopyalama testine çevirirdi ·
@@ -325,7 +358,9 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   Öneri: (a). Test dosyasına dokunmadım; karar gelene kadar kapı kırmızı, commit yok.
 - [x] Faz 2 soruları (sızıntı, τ, ID yönlendirmesi, retrieval/test örtüşmesi, I07 bandı) — Ozan
   2026-09-18'de karara bağladı, yukarıda "Kararlar"da.
-- [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) — Faz 4'ün canlı adımından önce gerekli.
+- [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) + `.env` — Faz 4'ün canlı adımı (ProviderClient,
+  live smoke: iki soru, üst sınır $1, Ozan önceden onayladı) bunları bekliyor. 2026-09-19'da `.env`
+  yoktu; adım atlandı.
 - [ ] H5: `docs/plan/forbidden_terms.txt` (Ozan hazırlıyor); push'tan önce tarama tüm dosyalar
   ve commit geçmişi için tekrar koşulacak.
 - [ ] H6: `.env` ve GitHub remote (Ozan hazırlıyor). O zamana kadar push yok.
