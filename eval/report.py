@@ -9,8 +9,8 @@ Retrieval files:
   retrieval_bench_v1.json           the first benchmark, as recorded (leaky paraphrases)
   retrieval_bench_v1_rescored.json  the v1 set re-scored with the current metrics
 Agent files (run_eval.py):
-  <set>_<config>_r<repeat>_<gitsha>.jsonl   one scored AgentResult per line
-  spend_log.json                            cumulative spend
+  <set>_<config>_r<repeat>.jsonl   one scored AgentResult per line (git SHA inside)
+  quota_log.json                   free-tier requests and tokens per Pacific-time day (D25)
 
 Usage: python eval/report.py [--results-dir eval/results] [--set test] [--out eval/results.md]
 """
@@ -296,7 +296,7 @@ def render_results(
     runs: list[dict] | None = None,
     items: list[dict] | None = None,
     set_name: str = "test",
-    spend: dict | None = None,
+    quota: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -314,9 +314,15 @@ def render_results(
 
     has_full = bool(agent_report.complete(full))
     note = f"Question set `{set_name}`."
+    # The plan's repeats hold for the test set; a dev run is judged on the repeats it has.
+    repeats = None if set_name == "test" else max((line["repeat"] for line in full), default=1)
+    section(
+        "Run plan and free-tier limits",
+        agent_report.run_plan_section(runs, items, quota) if runs else None,
+    )
     section(
         "Agent — full system (3 repeats, mean ± std, 95% CI)",
-        [note, "", *agent_report.full_system_section(full, items)] if has_full else None,
+        [note, "", *agent_report.full_system_section(full, items, repeats)] if has_full else None,
     )
     if has_full:
         precision, recall, false_rate = agent_report.abstention(full, {i["id"]: i for i in items})
@@ -331,7 +337,7 @@ def render_results(
     section(
         "Ablation (leave-one-out)", agent_report.ablation_section(runs, items) if runs else None
     )
-    section("Operational", agent_report.operational_section(full, spend) if has_full else None)
+    section("Operational", agent_report.operational_section(full, quota) if has_full else None)
     section("Error analysis", agent_report.error_analysis(full, items) if has_full else None)
     section("Threats to validity", agent_report.THREATS)
     return "\n".join(lines)
@@ -347,9 +353,9 @@ def main(argv: list[str] | None = None) -> int:
     items = json.loads((ROOT / "eval" / f"{args.set}_set.json").read_text(encoding="utf-8"))[
         "items"
     ]
-    spend_path = args.results_dir / "spend_log.json"
-    spend = json.loads(spend_path.read_text(encoding="utf-8")) if spend_path.is_file() else None
-    page = render_results(load_retrieval(), runs, items, args.set, spend)
+    quota_path = args.results_dir / "quota_log.json"
+    quota = json.loads(quota_path.read_text(encoding="utf-8")) if quota_path.is_file() else None
+    page = render_results(load_retrieval(), runs, items, args.set, quota)
     args.out.write_bytes(page.encode("utf-8"))
     print(f"wrote {args.out} ({len(runs)} agent answers from {args.results_dir})")
     return 0

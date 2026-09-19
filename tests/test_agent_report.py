@@ -30,6 +30,7 @@ def line(item_id, correct, *, config="A0", repeat=1, abstained=False, stripped=(
             "answer": {"answer": "...", "answer_ids": [], "evidence_ids": [], "abstained": abstained},
             "stripped_ids": list(stripped), "tool_calls": tools, "steps": steps,
             "cost_usd": cost, "latency_ms": latency, "stopped_reason": stopped,
+            "input_tokens": 100, "output_tokens": 20,
         },
     }  # fmt: skip
 
@@ -54,6 +55,16 @@ def test_full_system_accuracy_is_mean_and_std_over_repeats():
     assert "| Overall | 3 | 0.89 ± 0.19 |" in text
 
 
+def test_answers_the_run_has_not_reached_yet_are_counted_from_the_plan():
+    # D25: a run that the daily quota stopped is resumed later; until then the page says so.
+    lines = full_runs()[:-1]  # repeat 3 of L6-001 not answered yet
+    text = "\n".join(agent_report.full_system_section(lines, ITEMS))
+    l6 = next(row for row in text.splitlines() if row.startswith("| L6 |"))
+    overall = next(row for row in text.splitlines() if row.startswith("| Overall |"))
+    assert l6.endswith("| 1 not answered yet |")
+    assert overall.endswith("| 1 not answered yet |")
+
+
 def test_bootstrap_interval_is_seeded_and_brackets_the_mean():
     per_question = [1.0, 1.0, 0.0, 1.0, 0.5]
     low, high = agent_report.bootstrap_ci(per_question)
@@ -76,13 +87,13 @@ def test_operational_numbers():
     assert ops["tools_per_q"] == pytest.approx(1.0)
     assert ops["tool_error_rate"] == pytest.approx(1 / 9)
     assert ops["p95_ms"] == 900
-    assert ops["cost_per_q"] == pytest.approx(0.01)
+    assert ops["tokens_per_q"] == pytest.approx(120)
     assert ops["stop_reasons"] == {"final": 9}
     assert ops["fabricated_rate"] == pytest.approx(1 / 9)
 
 
 def test_ablation_table_marks_what_did_not_run():
-    runs = full_runs() + [line("L6-001", False, config="A4", repeat=r) for r in (1, 2)]
+    runs = full_runs() + [line("L6-001", False, config="A4", repeat=1)]
     text = "\n".join(agent_report.ablation_section(runs, ITEMS))
     header, separator = text.splitlines()[:2]
     assert header.count("|") == separator.count("|")  # a valid markdown table
@@ -92,7 +103,20 @@ def test_ablation_table_marks_what_did_not_run():
     assert "0.83" in a0
     assert set(a1.strip("|").split("|")[1:]) == {" — "}  # never ran
     assert a4.split("|")[2].strip() == "—"  # A4 ran, but not on L1
-    assert a4.split("|")[7].strip() == "0.00"  # L6 column
+    assert a4.split("|")[7].strip() == "0.00"  # L6 column: 1.00 in A0, a real drop
+    assert "Tokens/q" in header and "$/q" not in header
+
+
+def test_ablation_differences_inside_the_full_systems_noise_are_marked():
+    # D25: ablations run once, so the A0 repeat-to-repeat std is the yardstick. A0 on L1 is
+    # 0.83 ± 0.29; an ablation at 1.00 differs by 0.17, inside that spread.
+    runs = full_runs() + [line("L1-001", True, config="A1"), line("L1-002", True, config="A1")]
+    text = "\n".join(agent_report.ablation_section(runs, ITEMS))
+    a1 = next(row for row in text.splitlines() if row.startswith("| A1 dense-only"))
+    cells = [c.strip() for c in a1.split("|")]
+    assert cells[2] == "1.00 ≈"  # L1
+    assert "+0.11 ≈" in cells  # overall 1.00 against A0's 0.89 ± 0.19
+    assert "≈" in text.split("\n\n")[-1]  # the legend explains the mark
 
 
 def test_a5_note_explains_the_tool_budget(capsys):
@@ -111,6 +135,22 @@ def test_error_analysis_picks_failures_from_the_raw_lines():
     assert "L1-001" not in text
 
 
+QUOTA = {
+    "limits": {"rpm": 10, "rpd": 250, "tpm": 250000},
+    "days": {"2026-09-18": {"requests": 240, "tokens": 900000},
+             "2026-09-19": {"requests": 40, "tokens": 150000}},
+}  # fmt: skip
+
+
+def test_run_plan_shows_the_free_tier_and_how_far_the_run_got():
+    text = "\n".join(agent_report.run_plan_section(full_runs(), ITEMS, QUOTA))
+    assert "| A0 full | 3 | all | 9 | 9 |" in text
+    assert "| A3 llm-walks-chain | 1 | L2, L5, MX | 0 | 0 |" in text
+    assert "test-model" in text and "free tier" in text
+    assert "10 requests/min" in text and "250 requests/day" in text
+    assert "280 requests over 2 days" in text
+
+
 def test_page_without_agent_runs_says_not_run():
     page = report.render_results(None)
     assert page.count(report.NOT_RUN) >= 5
@@ -125,3 +165,4 @@ def test_page_with_a_single_dry_run_has_every_section_filled():
     assert report.NOT_RUN not in agent_part.split("## Ablation")[0]
     assert "| L1 | 2 | 0.00 (1 repeat) |" in agent_part
     assert "`test-model`" in page and "`v1`" in page
+    assert "## Run plan and free-tier limits" in page

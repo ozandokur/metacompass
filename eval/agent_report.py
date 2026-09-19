@@ -2,16 +2,20 @@
 §9.8, §9.11).
 
 Every number here comes from eval/results/*.jsonl (one scored AgentResult per line) joined
-with the question set for the gold; nothing is typed in. Incomplete lines (the budget ran
-out) are left out of every rate and counted in the notes. Cells of configurations or
+with the question set for the gold; nothing is typed in. Cells of configurations or
 categories that never ran are "—".
+
+The run happens on a free tier (D25): a day's quota can stop it and a later run resumes
+it, so answers the plan asks for but the run has not reached yet are counted from the plan
+and shown as "not answered yet". Only the full system is repeated; its repeat-to-repeat
+standard deviation is the yardstick for reading one-run ablation differences ("≈").
 """
 
 import random
 import statistics
 from collections import Counter
 
-from configs import CATEGORIES, CONFIGS
+from configs import ALL_CATEGORIES, CATEGORIES, CONFIGS, REPEATS
 
 CATEGORY_ORDER = ("L1", "L2", "L3", "L4", "L5", "L6", "MX")
 DASH = "—"
@@ -20,7 +24,17 @@ BOOTSTRAP_SEED = 0
 
 
 def complete(lines: list[dict]) -> list[dict]:
-    return [line for line in lines if not line["incomplete"]]
+    # Lines written before D25 could be placeholders for questions the budget cut off.
+    return [line for line in lines if not line.get("incomplete", False)]
+
+
+def planned(items: list[dict], code: str, category: str | None = None, repeats=None) -> int:
+    """Answers the plan asks of one configuration (optionally for one category)."""
+    wanted = [category] if category else CATEGORIES[code]
+    n_items = sum(
+        1 for item in items if item["category"] in wanted and item["category"] in CATEGORIES[code]
+    )
+    return n_items * (REPEATS[code] if repeats is None else repeats)
 
 
 def fmt(value: float | None) -> str:
@@ -51,7 +65,7 @@ def bootstrap_ci(per_question: list[float]) -> tuple[float, float]:
     return means[int(0.025 * BOOTSTRAP_SAMPLES)], means[int(0.975 * BOOTSTRAP_SAMPLES) - 1]
 
 
-def _row(label: str, lines: list[dict]) -> str:
+def _row(label: str, lines: list[dict], expected: int) -> str:
     repeats = _by_repeat(complete(lines))
     per_repeat = [_accuracy(group) for group in repeats.values()]
     questions = sorted({line["item_id"] for line in complete(lines)})
@@ -66,18 +80,19 @@ def _row(label: str, lines: list[dict]) -> str:
         for q in questions
     ]
     low, high = bootstrap_ci(per_question)
-    missing = sum(line["incomplete"] for line in lines)
-    notes = f"{missing} incomplete" if missing else ""
+    missing = expected - len(complete(lines))
+    notes = f"{missing} not answered yet" if missing > 0 else ""
     return f"| {label} | {len(questions)} | {accuracy} | [{low:.2f}, {high:.2f}] | {notes} |"
 
 
-def full_system_section(lines: list[dict], items: list[dict]) -> list[str]:
+def full_system_section(lines: list[dict], items: list[dict], repeats=None) -> list[str]:
+    """Accuracy per category of the full system; `repeats` defaults to the test-set plan."""
     out = ["| Category | n | Accuracy | 95% CI | Notes |", "|---|---|---|---|---|"]
     for category in CATEGORY_ORDER:
         subset = [line for line in lines if line["category"] == category]
         if complete(subset):
-            out.append(_row(category, subset))
-    out.append(_row("Overall", lines))
+            out.append(_row(category, subset, planned(items, "A0", category, repeats)))
+    out.append(_row("Overall", lines, planned(items, "A0", repeats=repeats)))
     return out
 
 
@@ -115,50 +130,124 @@ def operational(lines: list[dict]) -> dict:
         "tool_error_rate": _share(len(errors), len(tool_steps)),
         "p50_ms": _percentile(latencies, 0.50),
         "p95_ms": _percentile(latencies, 0.95),
-        "cost_per_q": statistics.mean(r["cost_usd"] for r in results),
-        "total_cost": sum(r["cost_usd"] for r in results),
+        # The free tier costs nothing (D25); tokens are what the quota counts.
+        "tokens_per_q": statistics.mean(r["input_tokens"] + r["output_tokens"] for r in results),
         "fabricated_rate": _share(sum(bool(r["stripped_ids"]) for r in results), len(results)),
         "stop_reasons": dict(Counter(r["stopped_reason"] for r in results)),
     }
 
 
-def operational_section(lines: list[dict], spend: dict | None) -> list[str]:
+def _quota_used(quota: dict | None) -> str:
+    if not quota or not quota.get("days"):
+        return DASH
+    days = quota["days"].values()
+    requests, tokens = sum(d["requests"] for d in days), sum(d["tokens"] for d in days)
+    return f"{requests} requests over {len(quota['days'])} days ({tokens:,} tokens)"
+
+
+def operational_section(lines: list[dict], quota: dict | None) -> list[str]:
     ops = operational(lines)
     reasons = ", ".join(f"{k} {v}" for k, v in sorted(ops["stop_reasons"].items()))
-    total = f"{spend['total_usd']:.2f} USD (all runs)" if spend else f"{ops['total_cost']:.4f} USD"
     return [
-        "| Tools/q | Tool error rate | p50 ms | p95 ms | $/q | Total spend | Stop reasons |",
+        "| Tools/q | Tool error rate | p50 ms | p95 ms | Tokens/q | Quota used (all runs) | Stop reasons |",
         "|---|---|---|---|---|---|---|",
         f"| {ops['tools_per_q']:.2f} | {fmt(ops['tool_error_rate'])} | {ops['p50_ms']} | "
-        f"{ops['p95_ms']} | {ops['cost_per_q']:.4f} | {total} | {reasons} |",
+        f"{ops['p95_ms']} | {ops['tokens_per_q']:.0f} | {_quota_used(quota)} | {reasons} |",
     ]
+
+
+def run_plan_section(lines: list[dict], items: list[dict], quota: dict | None) -> list[str]:
+    """What the plan asks, how far the run got, and the free-tier limits that shaped it."""
+    out = [
+        "| Config | Repeats | Categories | Planned answers | Answered |",
+        "|---|---|---|---|---|",
+    ]
+    for code, config in CONFIGS.items():
+        cats = "all" if CATEGORIES[code] == ALL_CATEGORIES else ", ".join(CATEGORIES[code])
+        answered = len(complete([line for line in lines if line["config"] == code]))
+        out.append(
+            f"| {code} {config.name} | {REPEATS[code]} | {cats} | {planned(items, code)} | {answered} |"
+        )
+    models = ", ".join(sorted({str(line.get("model")) for line in lines})) or DASH
+    limits = (quota or {}).get("limits") or {}
+
+    def limit(key: str, unit: str) -> str:
+        return f"{limits[key]:,} {unit}" if limits.get(key) is not None else f"{DASH} {unit}"
+
+    out += [
+        "",
+        f"Model: `{models}`, on the Google AI Studio free tier: the runs cost nothing, and the "
+        f"limits are {limit('rpm', 'requests/min')}, {limit('rpd', 'requests/day')} and "
+        f"{limit('tpm', 'input tokens/min')}. Quota used: {_quota_used(quota)}.",
+        "",
+        "The limits shaped the plan (D25): the full system runs three times, every ablation "
+        "once, and a run the daily quota stops resumes the next day where it left off. "
+        "Ablation differences are therefore read against the full system's repeat-to-repeat "
+        "spread (the ≈ mark below). This records measuring under a constraint; it is not a "
+        "gap in the method.",
+    ]
+    return out
+
+
+def _spread(lines: list[dict]) -> tuple[float, float] | None:
+    """(mean, std) of accuracy over repeats, or None with fewer than two repeats."""
+    per_repeat = [_accuracy(group) for group in _by_repeat(complete(lines)).values()]
+    if len(per_repeat) < 2:
+        return None
+    return statistics.mean(per_repeat), statistics.stdev(per_repeat)
+
+
+def _against_full(value: float, full: tuple[float, float] | None) -> str:
+    """A one-run value, marked ≈ when it is within the full system's repeat spread."""
+    if full is not None and abs(value - full[0]) <= full[1]:
+        return f"{value:.2f} ≈"
+    return f"{value:.2f}"
 
 
 def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
     items_by_id = {i["id"]: i for i in items}
     header = (
-        "| Config | " + " | ".join(CATEGORY_ORDER) + " | Overall | Abstain P/R | False abstain |"
-        " Fabricated IDs | Tools/q | p95 ms | $/q |"
+        "| Config | " + " | ".join(CATEGORY_ORDER) + " | Overall | Δ Overall vs A0 | Abstain P/R |"
+        " False abstain | Fabricated IDs | Tools/q | Tokens/q | p95 ms |"
     )
-    out = [header, "|" + "---|" * (len(CATEGORY_ORDER) + 8)]
+    out = [header, "|" + "---|" * (len(CATEGORY_ORDER) + 9)]
+    full = [line for line in lines if line["config"] == "A0"]
     for code, config in CONFIGS.items():
         mine = [line for line in lines if line["config"] == code]
         cells = []
         for category in CATEGORY_ORDER:
             subset = [line for line in mine if line["category"] == category]
-            ran = category in CATEGORIES[code] and complete(subset)
-            cells.append(fmt(_accuracy(subset)) if ran else DASH)
+            if not (category in CATEGORIES[code] and complete(subset)):
+                cells.append(DASH)
+            elif code == "A0":
+                cells.append(fmt(_accuracy(subset)))
+            else:
+                baseline = _spread([line for line in full if line["category"] == category])
+                cells.append(_against_full(_accuracy(subset), baseline))
         if complete(mine):
             precision, recall, false_rate = abstention(mine, items_by_id)
             ops = operational(mine)
+            overall = _accuracy(mine)
+            delta = DASH
+            baseline = _spread(full)
+            if code != "A0" and baseline is not None:
+                difference = overall - baseline[0]
+                delta = f"{difference:+.2f}" + (" ≈" if abs(difference) <= baseline[1] else "")
             cells += [
-                fmt(_accuracy(mine)), f"{fmt(precision)}/{fmt(recall)}", fmt(false_rate),
-                fmt(ops["fabricated_rate"]), f"{ops['tools_per_q']:.2f}", str(ops["p95_ms"]),
-                f"{ops['cost_per_q']:.4f}",
+                fmt(overall), delta, f"{fmt(precision)}/{fmt(recall)}", fmt(false_rate),
+                fmt(ops["fabricated_rate"]), f"{ops['tools_per_q']:.2f}",
+                f"{ops['tokens_per_q']:.0f}", str(ops["p95_ms"]),
             ]  # fmt: skip
         else:
-            cells += [DASH] * 7
+            cells += [DASH] * 8
         out.append(f"| {code} {config.name} | " + " | ".join(cells) + " |")
+    out += [
+        "",
+        "Ablations ran once each (free tier, D25). ≈ marks a value within one standard "
+        "deviation of the full system's three repeats in the same column: such a difference "
+        "is not read as an effect of the ablated component. With fewer than two full-system "
+        "repeats there is no yardstick and nothing is marked.",
+    ]
     a5 = complete([line for line in lines if line["config"] == "A5"])
     if a5:
         stopped = sum(line["result"]["stopped_reason"] == "tool_budget" for line in a5)
@@ -230,6 +319,8 @@ THREATS = [
     "cross-checked against the tools, but it encodes the same reading of the spec.",
     "- **One model, one data seed.** Results may not carry over to another model or dataset; "
     "three repeats measure sampling noise, not model choice.",
+    "- **Ablations ran once (free tier, D25).** Only the full system has repeats; a one-run "
+    "ablation difference smaller than the full system's repeat spread is not read as an effect.",
     "- **Small categories.** 10–15 questions per category give wide confidence intervals.",
     "- **Broadcast impact questions are graded on department heads (D24),** not on every "
     "person to notify; the stated count is not scored yet.",
