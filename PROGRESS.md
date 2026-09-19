@@ -2,14 +2,16 @@
 
 ## Durum
 Aktif faz: 5 — **kontrol noktasında, Ozan bekleniyor** · Son güncelleme: 2026-09-19 · Son kapı:
-Faz 5 geçti (2026-09-19, 412 test) · Faz 4 canlı adımı H1–H3 bekliyor
+Faz 5 + D25 değişiklikleri geçti (2026-09-19, 438 test) · Faz 4 canlı adımı `.env`'i bekliyor
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: v1 (hash `config`/`prompts.PROMPT_HASHES`'te sabit) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
-yedek) · LLM: — · Data seed: 42 · Hepsi test koşumundan önce dondurulacak.
+yedek) · LLM: Gemini Flash, Google AI Studio ücretsiz katman (model kimliği `.env`'de; D25) ·
+Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42 · Hepsi test koşumundan önce dondurulacak.
 
-## Harcama
-Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
+## Harcama ve kota
+Para: $0 — proje sıfır parayla yapılıyor (D25). Kota: `eval/results/quota_log.json` (henüz koşum yok) ·
+Son koşum: —
 
 ## Tamamlananlar
 - [Faz 0] Paket iskeleti, pyproject, sabit requirements, .gitignore/.env.example/.dockerignore,
@@ -153,11 +155,97 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
 - [Faz 5] Kabul: gold bağımsızlık (mimari testi) ✅ · çapraz kontrolde uyuşmazlık yok ✅ · setler §9.2
   dağılımıyla birebir ✅ · kuru koşum uçtan uca ✅ · `review_sample.md` ✅
 
+- [D25, 2026-09-19] **Sıfır para, ücretsiz katman** (Ozan'ın kararı):
+  - Ayarlar: `LLM_RPM_LIMIT`, `LLM_RPD_LIMIT`, `LLM_TPM_LIMIT` (+ `.env.example`)
+  - `GeminiClient`, REST `generateContent` (5708d61)
+  - Döngü: kota durumu `llm_error` değil; her LLM adımı girdi bileşimini kaydediyor (9e56277)
+  - `QuotaGuardedLLM`: RPM/TPM throttle, RPD'de duruş, 429 ipucu / jitter'lı geri çekilme (40e43ca)
+  - Runner devam ettirilebilir; para koruması kaldırıldı; plan 665 (e7d4c73)
+  - Rapor: koşum planı ve limitler bölümü, plandan "not answered yet", A0 gürültüsüne göre ≈
+    işareti (4a74f94)
+  - Token bileşimi ölçümü (1e39300, 3c871cb); LF düzeltmesi (b0f3084); canlı smoke testi
+    (583ecd5); README + CLAUDE.md (48b8862)
+  - **Kaldırılan testler:** para korumasının testleri (`--confirm`, `--i-know-the-cost`, pilot
+    maliyet tahmini, bütçe dolunca `incomplete` satırı, spend_log). Test zayıflatma değil; Ozan'ın
+    kararıyla kaldırılan özelliğin testleriydi. Yerlerine devam ettirme, anında yazma ve kotada
+    temiz duruş testleri geldi.
+- [D25] **Token ölçümü** (`eval/measure_input.py` → `eval/results/input_composition.json`, yalnızca
+  dev seti). Her dev sorusu, gold'undan türetilen en kısa tool yoluyla, gerçek döngü ve registry'den
+  senaryolu modelle geçirildi. Karakterler token'a ~4 karakter/token ile çevrildi (tahmin; dev
+  pilotu gerçek sayıyı verecek).
+  | | değer |
+  |---|---|
+  | LLM turu / soru (en kısa yol) | 2,6 |
+  | input / soru | ~22.400 karakter ≈ **~5.600 token** |
+  | tool tanımları | **%60** (6 tool, 5.179 karakter, her turda yeniden gönderiliyor) |
+  | sistem prompt'u | %23 (1.988 karakter) |
+  | tool çıktıları | %14,5 |
+  | soru + modelin kendi turları | %2,3 |
+  Kategoriye göre ortalama girdi: L1 16,4k · L4 16,0k · L6 16,1k · L2 25,8k · L3 27,0k · L5 28,6k ·
+  MX 30,9k karakter. Kota hesabı: en kısa yolda 665 cevap ≥ ~1.730 çağrı. Gerçek agent daha çok tur
+  atar; ~4.000 çağrı tahminiyle uyumlu.
+- [D25] **Tool çıktısı ve tanımı bildirimi** (kırpılmadı, karar Ozan'ın):
+  1. Tool tanımlarındaki Pydantic `"title"` anahtarları 448 karakter (tanımların %9'u, ~110 token/tur).
+     Bilgi taşımıyorlar. En büyük kaldıraç çıktılar değil, her turda giden tanımlar.
+  2. `search_assets`: `signal` içindeki sayısal alanlar (`top_dense_cosine`, `dense_z`,
+     `exact_match`) çıktının ~%6'sı; model yalnızca `match_quality`'yi kullanıyor. `query`
+     (modelin kendi sorgusunun yankısı) %5,4.
+  3. `find_similar_past_work`: `signal` %7,6 (aynı gerekçe).
+  4. Her çıktıda `"truncated":false` ~%1; `trace_lineage`'da raporlar için `layer`, tablolar için
+     `status` null (~%3,4).
+  5. `impact_analysis`: `affected_reports` çıktının %54'ü (rapor başına ad, durum, kullanım, bildirilen
+     kişi, çözüm durumu); `notify` ile kısmen örtüşüyor ama "hangi raporlar bozulur" sorusunun cevabı
+     bu. Dokunulmamalı bence.
+  6. `resolve_owner`: `path` %50. Açıklama için gerekli, dokunulmamalı.
+  Not: 1–4 prompt/şema değişikliği sayılır. Uygulanırsa `PROMPT_VERSION` artar ve dev setinde
+  ölçülür (iterasyon hakkından düşer).
+
 ## Devam eden
-- Görev: Faz 5 kontrol noktası · Ozan'dan: `eval/review_sample.md` okuması (özellikle L6 ve MX),
-  aşağıdaki Q-F5-1…4 ve H1–H3.
+- Görev: Faz 5 kontrol noktası + `.env` bekleniyor · Ozan'dan: `eval/review_sample.md` okuması
+  (özellikle L6 ve MX), Q-F5-1…4, Q-D25-1…3 ve `.env`. `.env` gelince: `pytest -m live` (canlı
+  smoke, iki soru), sonra Faz 6'nın dev pilotu.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-19 · **D25 (Ozan): sıfır para.** Gemini Flash, Google AI Studio ücretsiz katman.
+  Fiyatlar 0, `EVAL_BUDGET_USD=0`. Para koruması yerine kota koruması; devam ettirilebilir
+  koşum; plan 665 (tekrar yalnızca A0'da); demo serbest metni varsayılan kapalı · Gerekçe: bütçe
+  sıfır; kısıt altında ölçüm yapılıp kaydediliyor · Bedel: ablation'lar tek koşum, küçük etkiler
+  ayırt edilemez. Spec güncellendi: §0.3 H1–H3, §8.1, §8.6, §9.8, §9.9, §9.10 (kota koruması),
+  §9.11, §10.2, §11.2, §16, Ek C.2, Ek C.4, §15 D25.
+- 2026-09-19 · **Geçici kararlar (D25 uygulaması, spec'te yok):**
+  - **SDK yerine REST (SPEC-DEVIATION):** `generateContent` httpx ile çağrılıyor · 429'un bekleme
+    ipucu (`Retry-After` veya gövdedeki `RetryInfo.retryDelay`) doğrudan okunabiliyor. Yeni bağımlılık
+    yok (httpx zaten sabit), dosya indirme yok · Alternatif: google-genai SDK (resmi, ama hata
+    ayrıntılarını sarıyor ve yeni bir pin gerektiriyor).
+  - **Interactions API yerine `generateContent`:** Doküman Interactions'ı yeni projeler için
+    öneriyor, `generateContent`'i "legacy ama tam destekli" diyor. Bizim döngü geçmişi kendisi
+    tutuyor ve önbellek anahtarı tam mesajlar; durumsuz `generateContent` buna birebir uyuyor.
+  - **Anahtar `x-goog-api-key` başlığında**, URL'de değil · URL'deki anahtar hata mesajı ve log
+    yoluyla sızabilirdi.
+  - **Model turu aynen geri gönderiliyor** (`LLMResponse.provider_state`) · Doküman "thought
+    bloklarını alındığı gibi geri gönder" diyor. İmzalı turlar kaybolmasın.
+  - **`functionResponse` `role: "user"` turunda**, ardışık tool sonuçları ve döngünün sonraki
+    talimatı tek turda birleşiyor · **Dokümanda doğrulayamadım** (sayfa Interactions'a taşınmış).
+    İlk canlı çağrıda doğrulanacak.
+  - Model ID'siz fonksiyon çağrısı döndürürse döngü yerel bir ID (`local-N`) veriyor ve cevapta
+    ID'yi göndermiyor.
+  - Token sayımı: input = `promptTokenCount` + `toolUsePromptTokenCount`, output =
+    `candidatesTokenCount` + `thoughtsTokenCount`.
+  - Tool sonucu Gemini'ye `payload_json`'un ayrıştırılmış nesnesi olarak gidiyor
+    (`functionResponse.response`); içerik birebir aynı.
+  - Throttle penceresi 60 sn + 1 sn pay; bir isteğin input'u önceden karakter/4 ile tahmin ediliyor;
+    pencere boşsa istek her zaman geçiyor. Jitter aralığı gecikmenin 0,5–1,5 katı; 5 başarısız
+    yeniden denemeden sonra `QuotaExhausted`.
+  - Sonuç dosyası adında SHA yok (`<set>_<config>_r<repeat>.jsonl`); SHA her satırda · Günlerce
+    süren bir koşum tek dosyada kalsın. Rapor meta satırı kullanılan SHA'ları listeliyor.
+  - `--no-resume` dolu bir dosyaya dokunmayı reddediyor (sessizce üzerine yazmıyor).
+  - Tek kota sarmalayıcı bütün tekrarlar boyunca yaşıyor (dakika penceresi tekrarlar arasında
+    sıfırlanmasın).
+  - `--env-file` bayrağı: testler gerçek `.env`'i asla okumaz (canlı çağrı riski yok).
+  - Rapor: `$/q` yerine token/soru; ablation hücreleri A0'ın aynı sütundaki tekrar std'si içindeyse
+    "≈". A0'da iki tekrardan azı varsa işaret yok.
+  - Demo (Faz 8) kararı spec §10.2'ye yazıldı; uygulama Faz 8'de. Demo serbest metni de
+    `QuotaGuardedLLM` ile sarılacak, çünkü kota proje başına paylaşılıyor.
 - 2026-09-19 · **Geçici kararlar (Faz 5, spec'te yok):**
   - Dev alt dağılımları: L1 = exact 1 · paraphrase 2 · disambiguation 1; L3 = metrik 1 · rapor 2 ·
     staging 1; L6 = maaş 1 · 2027 bütçe 1 · yakın-ıska 2 · hiç yapılmamış 1 · gelecek 1; MX = metrik 1 ·
@@ -371,6 +459,8 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   (spec dayatmıyordu); önce taban %21,3'e, sonra I07 gevşetmesiyle %13,6'ya indirildi.
 
 ## Spec sapmaları
+- **Sağlayıcı istemcisi SDK değil REST (§8.1, Ek C.3), 2026-09-19 — geçici, Q-D25-1:** Gerekçe
+  yukarıda. Kodda `SPEC-DEVIATION` yorumu var (`agent/llm.py:GeminiClient`).
 - **Python sürümü (§11.1, §12.5) — ONAYLANDI 2026-09-18:** Spec CI/Docker için 3.11 diyor.
   `pip freeze` ile sabitlenen numpy 2.5.3 ve scipy 1.18.1 Python ≥ 3.12 istiyor, yani 3.11'de
   kurulamaz. Karar: yerel = CI = Docker = Python 3.13; `requires-python = ">=3.12"`, ruff hedefi
@@ -416,9 +506,17 @@ Kümülatif: $0.00 / $— (H2 bekleniyor) · Son koşum: —
   Öneri: (a). Test dosyasına dokunmadım; karar gelene kadar kapı kırmızı, commit yok.
 - [x] Faz 2 soruları (sızıntı, τ, ID yönlendirmesi, retrieval/test örtüşmesi, I07 bandı) — Ozan
   2026-09-18'de karara bağladı, yukarıda "Kararlar"da.
-- [ ] H1–H3 (LLM sağlayıcı/model, bütçe, fiyatlar) + `.env` — Faz 4'ün canlı adımı (ProviderClient,
-  live smoke: iki soru, üst sınır $1, Ozan önceden onayladı) bunları bekliyor. 2026-09-19'da `.env`
-  yoktu; adım atlandı.
+- [x] H1–H3 — Ozan 2026-09-19'da karara bağladı (D25): Gemini Flash ücretsiz katman, fiyat 0, bütçe 0.
+- [ ] **`.env` (Ozan):** `LLM_PROVIDER=google`, `LLM_MODEL=<Flash model kimliği>`, `LLM_API_KEY`,
+  `LLM_PRICE_INPUT_PER_M=0`, `LLM_PRICE_OUTPUT_PER_M=0`, `EVAL_BUDGET_USD=0`, `LLM_RPM_LIMIT`,
+  `LLM_RPD_LIMIT`, `LLM_TPM_LIMIT` (AI Studio'nun rate limit sayfasındaki değerler). Gelince:
+  `pytest -m live`.
+- [ ] **Q-D25-1 — geçici karar:** Gemini istemcisi resmi SDK yerine REST. Onay veya SDK'ya dönüş
+  (dönüş, `pip install google-genai` indirmesi için izin gerektirir).
+- [ ] **Q-D25-2 — bildirim, karar Ozan'ın:** Tool tanımlarındaki `title` anahtarlarını ve
+  `search_assets`/`find_similar_past_work` sinyalindeki sayısal alanları kaldırmak. Tahmini kazanç
+  tur başına ~150–250 token. Prompt/şema değişikliği sayılır, dev setinde ölçülür.
+- [ ] **Q-D25-3 — doğrulama:** `functionResponse` rolü (`user`) ilk canlı çağrıda doğrulanacak.
 - [ ] H5: `docs/plan/forbidden_terms.txt` (Ozan hazırlıyor); push'tan önce tarama tüm dosyalar
   ve commit geçmişi için tekrar koşulacak.
 - [ ] H6: `.env` ve GitHub remote (Ozan hazırlıyor). O zamana kadar push yok.
