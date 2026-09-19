@@ -118,11 +118,43 @@ v1 as originally recorded (git `1d37885`, 2026-09-18; the metrics of that time):
 | dense | 0.53 | 0.60 | 0.13 | 0.27 | 0.67 | 1.00 | 0.54 | 100% |
 | hybrid | 0.67 | 0.73 | 0.20 | 0.40 | 0.67 | 1.00 | 0.61 | 100% |
 
+## Pre-registered reading rules (written before the test run)
+
+- **A4 measures the prompt more than the signal.** A4 switches off the abstain instructions and the match-quality signal together, and the retrieval benchmark showed that the signal is strong almost only when a query names an item exactly (learning note 04). A difference in A4 is read as the effect of the abstain prompt.
+- **L3 and L4 measure tool choice and transcription**, not multi-step reasoning: one right call answers them, and the rest is copying the IDs it returns.
+- **The broadcast impact sample is biased.** Broadcast questions come only from hub tables that reach some, not all, departments, so they lean to the smaller hubs; and on them individual notification accuracy is not measured, only the department heads (D24).
+- **When an ablation difference is real.** In a category: the 95% CIs of the ablation and of the full system do not overlap. Overall: the difference is at least 3 points and more than 2 times the standard deviation of the full system's three repeats. Anything less is not read as an effect of the ablated component.
+
 ## Run plan and free-tier limits
 
 ⏳ not run
 
+## Prompt versions and input size
+
+Prompt versions: **v1** is the spec §8.4 system prompt with the D24 broadcast line; **v2 = v1 + schema/payload simplification** (no automatic titles in the tool schemas, no numeric retrieval scores or query echo in tool results), made on the input measurement before any result was seen, so it does not count as one of the three dev iterations. The version pin covers the system prompt and the tool schemas.
+
+| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | System | Tool schemas | Tool results | Other |
+|---|---|---|---|---|---|---|---|
+| v1 | 2.6 | 22,429 | 5,607 | 23% | 60% | 14% | 2% |
+| v2 | 2.6 | 21,075 | 5,269 | 24% | 58% | 15% | 2% |
+
+Measured by `eval/measure_input.py`: each dev question's shortest tool path played through the real loop with a scripted model. Real token counts from the live runs replace the chars/4 estimate.
+
+## Trivial baselines (no LLM)
+
+| Baseline | L1 | L2 | L3 | L4 | L5 | L6 | MX | What it answers |
+|---|---|---|---|---|---|---|---|---|
+| always_abstain | 0.00 (n=15) | 0.00 (n=15) | 0.00 (n=15) | 0.00 (n=15) | 0.00 (n=10) | 1.00 (n=15) | 0.00 (n=15) | abstains on every question |
+| retrieval_top1 | 0.47 (n=15) | — | — | 0.13 (n=15) | — | — | — | the top search hit (L1) or past-work hit (L4), no reasoning |
+| recorded_owner | — | 0.20 (n=15) | — | — | — | — | — | the owner on record, no succession walk (the floor under A3) |
+| all_heads | — | — | — | — | 0.00 (n=3) | — | — | every department head, on the broadcast questions |
+| default_depth_lineage | — | — | 0.60 (n=15) | — | — | — | — | the right lineage call, always with depth 3 |
+
 ## Agent — full system (3 repeats, mean ± std, 95% CI)
+
+⏳ not run
+
+## Diagnostics (not scores)
 
 ⏳ not run
 
@@ -151,3 +183,5 @@ v1 as originally recorded (git `1d37885`, 2026-09-18; the metrics of that time):
 - **Small categories.** 10–15 questions per category give wide confidence intervals.
 - **Broadcast impact questions are graded on department heads (D24),** not on every person to notify; the stated count is not scored yet.
 - **The match signal mostly rests on exact names** (retrieval benchmark), so the abstain ablation largely measures the prompt.
+- **L3 leans to shallow targets.** Lineage golds are kept to 2–15 IDs, which removes the metrics and staging tables with the largest lineage; the L3 questions use depth 2: 6, depth 3: 8, depth 4: 1.
+- **Broadcast questions reach 21, 22, 28 people**, the small end of the hub tables (D24, Q-F5-2).
