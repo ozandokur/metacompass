@@ -1,8 +1,9 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 — dev pilotu · Son güncelleme: 2026-09-19 · Son kapı: dec0e49 geçti (2026-09-19,
-470 test) · Faz 5 kontrol noktası Ozan'ın 2026-09-19 kararlarıyla kapandı · Canlı smoke geçti.
+Aktif faz: 6 — dev pilotu **günlük kotada durdu; Q-QUOTA-1 Ozan'ın kararını bekliyor** · Son
+güncelleme: 2026-09-19 · Son kapı: bedb981 geçti (2026-09-19, 471 test) · Faz 5 kontrol noktası
+kapandı · Canlı smoke geçti.
 
 ## Dondurulmuş değerler
 PROMPT_VERSION: v2 (= v1 + şema/payload sadeleştirmesi, sonuç görülmeden; hash
@@ -13,10 +14,11 @@ Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42 · Dev pilotunda
 koşumundan önce git SHA ile birlikte dondurulacak.
 
 ## Harcama ve kota
-Para: $0 (D25). Kota: `eval/results/quota_log.json` · 2026-09-19: 6 istek / 13.925 token (canlı
-smoke). Log dışında kalanlar: ilk ham çağrı script'i ve model yoklamaları (~10 `generateContent`
-isteği, guard'ın dışından), token ölçümündeki `countTokens` çağrıları (üretim değil) · Son koşum:
-canlı smoke, 2026-09-19.
+Para: $0 (D25). Kota: `eval/results/quota_log.json` · 2026-09-19: guard'dan 8 istek / 17.883 token
+(canlı smoke 6 + pilotun ilk sorusunun 2 turu; bu iki tur dev önbelleğinde, yarın yeniden
+sorulmaz). Log dışında ~10–12 istek daha (ham çağrı script'i ve model yoklamaları). **Gözlenen
+günlük limit: `GenerateRequestsPerDayPerProjectPerModel-FreeTier` = 20** (429 gövdesinden;
+`.env` 1.500 diyor) · Son koşum: dev pilotu, 2026-09-19, 0/30 cevap, günlük kotada temiz durdu.
 
 ## Tamamlananlar
 - [Faz 0] Paket iskeleti, pyproject, sabit requirements, .gitignore/.env.example/.dockerignore,
@@ -283,9 +285,17 @@ canlı smoke, 2026-09-19.
   | diğer | %2 | %2 |
   chars/4 gerçeğin ~%5 altında (JSON'da token/karakter ~0,25–0,29). İki ölçüm de results.md'de.
 
+- [Faz 6] **Resume hatası düzeltildi** (bedb981): ilk pilot denemesi 30 soruyu da "cevaplanmış"
+  sayıp hiç sormadan bitti, çünkü aynı dosyada kuru koşumun (model "fake", prompt v1) satırları
+  vardı. Artık bir sonuç dosyası tek bir (model, API sürümü, prompt sürümü) tutuyor; uyuşmazlıkta
+  koşum çıkış kodu 2 ile reddediliyor. Kuru koşum dosyası `eval/results/scratch/dry_run/`'a taşındı.
+- [Faz 6] Öğrenme notu `docs/learn/10_preregistration_and_baselines.md` (ön kayıt, trivial
+  baseline'lar, teşhis puanları).
+
 ## Devam eden
-- Görev: Faz 6 adım 3 — dev pilotu (30 soru, `full`, 1 tekrar), sonra hata analizi ve en fazla 3
-  prompt iterasyonu (v3+). Kota dolarsa ertesi gün devam.
+- Görev: Faz 6 adım 3 — dev pilotu (30 soru, `full`, 1 tekrar). 2026-09-19'da ilk sorunun ikinci
+  turundan sonra günlük kota (20 istek) doldu. Komut aynen yeniden koşulunca kaldığı yerden
+  devam eder. **Q-QUOTA-1 karara bağlanmadan plan bu hızla ~4 ay sürer.**
 
 ## Kararlar ve gerekçeleri
 - 2026-09-19 · **Ozan'ın Faz 5 kontrol noktası kararları:**
@@ -601,9 +611,24 @@ canlı smoke, 2026-09-19.
   "en fazla bir"); farklı kümeler seçildi. Gerekçe Kararlar'da. Başka tercih varsa set yeniden
   üretilir (veri değil).
 - [ ] **Q-F5-2c — geçici karar:** broadcast gold'unda yasaklı ID = etkilenmeyen departman başkanları.
-- [ ] **Q-ENV-1 — bilgi:** `.env`'deki limitler (15/1.500/1M) eski 1.5 Flash değerlerine benziyor.
-  AI Studio'daki `gemini-3.7-flash` değerlerini yazarsan guard ilk dakikadan doğru hızda gider;
-  yazmazsan 429'dan öğrenir (birkaç boşa istek).
+- [ ] **Q-QUOTA-1 — DUR-VE-SOR (kota = D25'in bütçesi; plan bu kotayla yürümüyor):**
+  `gemini-3.7-flash`'ın ücretsiz katman günlük limiti **20 istek** (proje + model başına; 429
+  gövdesinden okundu). Canlı smoke'a göre cevap başına 2–4 LLM çağrısı var (en kısa yol 2,6).
+  | iş | cevap | çağrı (3–4/cevap) | 20/gün ile |
+  |---|---|---|---|
+  | dev pilotu | 30 | 90–120 | 5–6 gün |
+  | 3 prompt iterasyonu | 90 | 270–360 | 14–18 gün |
+  | test planı (A0×3 + A1–A5) | 665 | 2.000–2.660 | 100–133 gün |
+  Seçenekler: (a) AI Studio'nun rate-limit sayfasında (aistudio.google.com/rate-limit) günlük
+  limiti yüksek, Lite olmayan bir Flash modeli varsa ona geçmek (henüz hiçbir sonuç yok, ölçüm
+  zarar görmez; anahtarda gemini-2.5-flash, 3.5/3.6/3.7/3.8-flash var) · (b) ücretli katman,
+  D25'i geri alır: ~785 cevap × ~7,5k input + ~450 output token ≈ 5,9M in + 0,35M out;
+  `gemini-3.7-flash` 31.12.2026'ya kadar $0,75 / $3,75 per 1M → **~$6** (belirsizlikle $5–10) ·
+  (c) ücretsiz kalıp planı küçültmek (ör. A0 ×1 test + ablation'lar kategori alt kümelerinde);
+  ölçümü zayıflatır, results.md'de sınırlama olarak yazılır. Öneri: önce (a) kontrol; yoksa (b).
+- [ ] **Q-ENV-1 — bilgi:** `.env`'deki limitler (15/1.500/1M) gerçek değil; gözlenen RPD 20. Guard
+  `.env`'deki değeri kullanıyor. Sunucunun 429'u yine de koşumu temiz durduruyor (günde bir boşa
+  istek). Gerçek değerleri yazarsan guard 21. isteği hiç göndermez.
 - [x] **Q-F5-1, Q-F5-2, Q-F5-3, Q-F5-4, Q-D25-1, Q-D25-2 — kapandı 2026-09-19** (Ozan; Kararlar'da).
 - [x] **Q-D25-3 — kapandı:** `functionResponse` rolü `"user"` ilk canlı çağrıda doğrulandı.
 - [x] **`.env`, H5 (forbidden_terms), H6 (remote)** — Ozan 2026-09-19'da hazırladı; kontroller

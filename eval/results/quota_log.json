@@ -6,8 +6,11 @@
   },
   "days": {
     "2026-09-19": {
-      "requests": 6,
-      "tokens": 13925
+      "requests": 8,
+      "tokens": 17883
     }
+  },
+  "observed": {
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier": 20
   }
 }
