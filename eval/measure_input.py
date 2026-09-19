@@ -10,7 +10,13 @@ output down by field, to show what could be trimmed. Nothing is trimmed here.
 
 Only the dev set is used: token savings must not be designed by looking at the test set.
 
-Usage: python eval/measure_input.py [--data data/]
+With --count-tokens it also asks the model to count tokens (countTokens, no generation) for
+each source as v1 and v2 send it: the system prompt, the tool schemas with and without the
+automatic titles, the tool results with and without the numeric signal and query echo.
+Each source's tokens-per-character then turns the character composition of both versions
+into real token counts (eval/results/input_tokens.json).
+
+Usage: python eval/measure_input.py [--data data/] [--count-tokens]
   writes eval/results/input_composition_<PROMPT_VERSION>.json (v1 kept for comparison)
 """
 
@@ -22,15 +28,22 @@ from collections import defaultdict
 from pathlib import Path
 
 from configs import CONFIGS
-from metacompass.agent.llm import FakeLLM, LLMResponse, ToolCall
+from metacompass.agent.llm import FakeLLM, LLMResponse, ToolCall, gemini_request, make_llm
 from metacompass.agent.loop import Agent
+from metacompass.agent.prompts import build_system_prompt
 from metacompass.agent.quota import CHARS_PER_TOKEN
-from metacompass.config import PROMPT_VERSION
+from metacompass.config import PROMPT_VERSION, load_settings
 from metacompass.data.store import MetadataStore
 from metacompass.graph import build_lineage_graph
 from metacompass.retrieval.corpus import build_retrievers
 from metacompass.retrieval.embedders import HashEmbedder
-from metacompass.tools.registry import ToolRegistry, build_registry, payload_json
+from metacompass.tools.registry import (
+    TOOLS,
+    ToolRegistry,
+    build_registry,
+    payload_json,
+    tool_specs,
+)
 from runinfo import ROOT, git_sha
 
 SOURCES = ("system", "tools", "tool_results", "other")
@@ -154,6 +167,53 @@ def measure(registry: ToolRegistry, items: list[dict]) -> dict:
     }
 
 
+def compose_tokens(composition: dict, ratios: dict[str, float]) -> dict:
+    """Mean input tokens per question: each source's characters times its tokens per char."""
+    chars = composition["mean_input_chars_per_question"]
+    tokens = {s: chars * composition["share_by_source"][s] * ratios[s] for s in SOURCES}
+    total = sum(tokens.values())
+    return {
+        "tokens_per_question": total,
+        "tokens_by_source": {s: round(t) for s, t in tokens.items()},
+        "share_by_source": {s: t / total for s, t in tokens.items()},
+    }
+
+
+def _compact(value) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def token_ratios(client, registry: ToolRegistry, items: list[dict], system: str) -> dict:
+    """Tokens per character of each source, as v1 and v2 send it, counted by the model."""
+    base = [{"role": "user", "content": "x"}]
+
+    def extra(**parts) -> int:
+        with_part = gemini_request(parts.get("messages", base), parts.get("tools"), json_mode=False)
+        return client.count_tokens(with_part) - client.count_tokens(
+            gemini_request(base, None, False)
+        )
+
+    specs_v2 = tool_specs(CONFIGS["A0"])
+    specs_v1 = [
+        {**s, "parameters": TOOLS[s["name"]].input_model.model_json_schema()} for s in specs_v2
+    ]
+    results = {"v1": [], "v2": []}
+    for item in items:
+        for name, args in tool_path(item):
+            payload, _ = registry.call(name, args)
+            results["v1"].append(payload_json(payload))
+            results["v2"].append(payload_json(registry.for_llm(name, payload)))
+    system_tokens = extra(messages=[{"role": "system", "content": system}, *base])
+    ratios = {"system": system_tokens / len(system)}
+    for version, specs in (("v1", specs_v1), ("v2", specs_v2)):
+        ratios[f"tools_{version}"] = extra(tools=specs) / len(_compact(specs))
+        text = "\n".join(results[version])
+        ratios[f"tool_results_{version}"] = extra(
+            messages=[{"role": "user", "content": text}]
+        ) / len(text)
+    return ratios
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Measure the input composition of one question.")
     parser.add_argument("--data", type=Path, default=ROOT / "data")
@@ -162,6 +222,7 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         default=ROOT / "eval" / "results" / f"input_composition_{PROMPT_VERSION}.json",
     )
+    parser.add_argument("--count-tokens", action="store_true", help="also count real tokens")
     args = parser.parse_args(argv)
     store = MetadataStore.from_dir(args.data)
     retrievers = build_retrievers(store, HashEmbedder(dim=64), cache_dir=args.data / "cache")
@@ -176,6 +237,31 @@ def main(argv: list[str] | None = None) -> int:
           f"~{result['mean_input_tokens_per_question_estimate']} input tokens per question; "
           f"shares {share}")  # fmt: skip
     print(f"wrote {args.out}")
+    if args.count_tokens:
+        settings = load_settings()
+        client = make_llm(settings)
+        ratios = token_ratios(client, registry, items, build_system_prompt(CONFIGS["A0"]))
+        versions = {}
+        for version in ("v1", "v2"):
+            path = args.out.parent / f"input_composition_{version}.json"
+            composition = json.loads(path.read_text(encoding="utf-8"))
+            per_source = {
+                "system": ratios["system"], "tools": ratios[f"tools_{version}"],
+                "tool_results": ratios[f"tool_results_{version}"], "other": ratios["system"],
+            }  # fmt: skip
+            versions[version] = compose_tokens(composition, per_source)
+        tokens = {
+            "metadata": {"git_sha": git_sha(), "model": settings.llm_model, "set": "dev",
+                         "method": "countTokens per source x characters per source"},
+            "tokens_per_char": ratios,
+            "versions": versions,
+        }  # fmt: skip
+        out = args.out.parent / "input_tokens.json"
+        out.write_text(json.dumps(tokens, indent=2) + "\n", encoding="utf-8", newline="\n")
+        for version, v in versions.items():
+            print(f"{version}: {v['tokens_per_question']:.0f} real input tokens per question; "
+                  f"{ {k: round(x, 3) for k, x in v['share_by_source'].items()} }")  # fmt: skip
+        print(f"wrote {out}")
     return 0
 
 

@@ -274,3 +274,19 @@ def test_an_overloaded_model_is_waited_for_like_a_rate_limit():
     with pytest.raises(RateLimited) as error:
         client(handler).chat(conversation()[:2], None)
     assert error.value.quota_id == "UNAVAILABLE"
+
+
+def test_count_tokens_asks_the_model_to_count_a_request():
+    seen = {}
+
+    def handler(request):
+        seen["path"] = request.url.path
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, json={"totalTokens": 42})
+
+    body = gemini_request(conversation()[:2], TOOLS, json_mode=False)
+    assert client(handler).count_tokens(body) == 42
+    assert seen["path"].endswith("/models/gemini-flash:countTokens")
+    request = seen["body"]["generateContentRequest"]
+    assert request["model"] == "models/gemini-flash"
+    assert request["contents"] == body["contents"] and request["tools"] == body["tools"]

@@ -32,3 +32,19 @@ def test_shares_add_up_and_tool_results_are_counted(real_ctx):
     assert result["share_by_source"]["system"] > 0
     for tool in result["tools"].values():
         assert sum(tool["fields"].values()) <= 1.0 + 1e-9
+
+
+def test_token_composition_scales_each_source_by_its_own_ratio():
+    # Real tokens per source = characters x the model's tokens-per-character for that source
+    # (measured with countTokens); a version's shares then add up to one.
+    composition = {
+        "mean_input_chars_per_question": 1000,
+        "share_by_source": {"system": 0.2, "tools": 0.6, "tool_results": 0.15, "other": 0.05},
+    }
+    ratios = {"system": 0.25, "tools": 0.2, "tool_results": 0.3, "other": 0.25}
+    tokens = measure_input.compose_tokens(composition, ratios)
+    assert tokens["tokens_per_question"] == pytest.approx(
+        200 * 0.25 + 600 * 0.2 + 150 * 0.3 + 50 * 0.25
+    )
+    assert sum(tokens["share_by_source"].values()) == pytest.approx(1.0)
+    assert tokens["share_by_source"]["tools"] == pytest.approx(120 / 227.5, abs=1e-3)

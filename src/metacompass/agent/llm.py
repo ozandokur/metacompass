@@ -163,9 +163,10 @@ class CachedLLM:
 
 GEMINI_BASE = f"https://generativelanguage.googleapis.com/{GEMINI_API_VERSION}/models/{{model}}"
 GEMINI_URL = GEMINI_BASE + ":generateContent"
-# The role of the turn that carries functionResponse parts. The generateContent reference
-# pages checked on 2026-09-19 did not say it; "user" is tried first and the first live call
-# settles it (PROGRESS, Q-D25-3). The alternatives to try on a 400 are "function", "tool".
+# The role of the turn that carries functionResponse parts. The reference pages did not say
+# it; the first live call (2026-09-19, gemini-3.7-flash, v1beta) was accepted with "user"
+# on the first try (HTTP 200; the raw exchange is in PROGRESS), so "function" and "tool"
+# were never needed.
 FUNCTION_RESPONSE_ROLE = "user"
 # Tool calls the model sent without an ID get one of these, so the loop can pair results
 # with calls; they are left out again when the result is sent back.
@@ -334,6 +335,20 @@ class GeminiClient:
             raise ProviderError(
                 f"model {self.model!r} is not available (HTTP {response.status_code})"
             )
+
+    def count_tokens(self, body: dict) -> int:
+        """Tokens the model counts for a generateContent body (countTokens; no generation)."""
+        request = {"generateContentRequest": {"model": f"models/{self.model}", **body}}
+        response = self._http.post(
+            GEMINI_BASE.format(model=self.model) + ":countTokens",
+            headers=self._headers(),
+            json=request,
+        )
+        if response.status_code == 429:
+            raise _rate_limited(response)
+        if response.status_code != 200:
+            raise ProviderError(f"countTokens failed: HTTP {response.status_code}")
+        return int(response.json()["totalTokens"])
 
     def chat(
         self, messages: list[dict], tools: list[dict] | None, json_mode: bool = False
