@@ -64,14 +64,18 @@ DEFAULT_OUTPUT_CHAR_CAP 4000 · OUTPUT_CHAR_CAPS {"impact_analysis": 6000} ·
 NOTIFY_DETAIL_MAX 20 · NOTIFY_BROADCAST_TOP 10 (D24: impact_analysis switches to
 "broadcast" above 20 people; nobody is dropped, everyone is counted in the rollup).
 Tool results reach the LLM only through `registry.payload_json()`.
+D25 (zero money): Gemini Flash on the Google AI Studio free tier; prices 0, EVAL_BUDGET_USD 0.
+Quota, not money, bounds runs: LLM_RPM_LIMIT / LLM_RPD_LIMIT / LLM_TPM_LIMIT in .env,
+live model always CachedLLM(QuotaGuardedLLM(GeminiClient)), runs resume by default.
+Run plan 665 answers: REPEATS A0 3, A1–A5 1 (eval/configs.py).
 
 ## Commands
 python -m metacompass.data.generate --seed 42 --out data/
 python scripts/check_all.py            # gate
 python scripts/check_all.py --slow     # + real embedder tests
-pytest -m live                         # paid, only with approval
+pytest -m live                         # live API calls (free-tier quota)
 python eval/run_retrieval_bench.py
-python eval/run_eval.py --set dev --config full --repeat 1
+python eval/run_eval.py --set dev --config full --repeat 1   # resumes; stops cleanly at the daily quota
 python eval/report.py
 streamlit run app/streamlit_app.py
 
