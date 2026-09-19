@@ -9,6 +9,8 @@ A run spends quota, not money. Every answer is appended to
 version, git SHA and date. Starting again skips every question that file already holds,
 so a run that takes several days continues where the daily quota stopped it; when the
 quota is used up (or rate limiting does not clear), the run ends cleanly with exit code 0.
+A file holding answers from another model, API version or prompt version is refused
+(exit 2), never resumed: one file, one thing measured. Move it aside first.
 Test runs go to eval/results/ (committed); dev runs and dry runs to eval/results/scratch/.
 
 The live model is always wrapped as CachedLLM(QuotaGuardedLLM(provider)): repeating a run
@@ -52,6 +54,9 @@ RESULTS = ROOT / "eval" / "results"
 SCRATCH = RESULTS / "scratch"
 QUOTA_LOG = RESULTS / "quota_log.json"
 MAX_LLM_ERRORS_IN_A_ROW = 3
+# What must be the same for two answers to belong to one run; the git SHA may move between
+# the days of a resumed run (it is recorded on every line).
+RUN_IDENTITY = ("model", "api_version", "prompt_version")
 
 
 class ProviderDown(Exception):
@@ -74,6 +79,16 @@ def completed_ids(path: Path) -> set[str]:
         return set()
     rows = path.read_text(encoding="utf-8").splitlines()
     return {json.loads(row)["item_id"] for row in rows if row.strip()}
+
+
+def foreign_identities(path: Path, base_line: dict) -> set[tuple]:
+    """(model, api_version, prompt_version) of lines in path that another run wrote."""
+    if not path.is_file():
+        return set()
+    mine = tuple(base_line[key] for key in RUN_IDENTITY)
+    rows = [json.loads(row) for row in path.read_text(encoding="utf-8").splitlines() if row]
+    found = {tuple(row.get(key) for key in RUN_IDENTITY) for row in rows}
+    return found - {mine}
 
 
 def answer_all(agent, items: list[dict], *, path: Path, base_line: dict) -> int:
@@ -146,6 +161,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"refused: {taken[0]} already has answers; move it away or drop --no-resume",
                   file=sys.stderr)  # fmt: skip
             return 2
+    identity = {
+        "model": "fake" if dry_run else settings.llm_model,
+        "api_version": "fake" if dry_run else GEMINI_API_VERSION,
+        "prompt_version": CONFIGS[code].prompt_version,
+    }
+    for path in paths.values():
+        # A dry run's lines once made a live run skip every question as "answered".
+        foreign = foreign_identities(path, identity)
+        if foreign:
+            print(f"refused: {path} holds answers from (model, api, prompt) {sorted(foreign)}, "
+                  f"not {tuple(identity.values())}; one file must not mix them. Move it aside.",
+                  file=sys.stderr)  # fmt: skip
+            return 2
     try:
         provider = dry_run_llm() if dry_run else make_llm(settings)
         if not dry_run:
@@ -184,11 +212,8 @@ def main(argv: list[str] | None = None) -> int:
             salt = "dev" if args.set == "dev" else f"repeat-{repeat}"
             llm = CachedLLM(guarded, args.data / "cache" / "llm", cache_salt=salt)
         base_line = {
-            "set": args.set, "config": code, "repeat": repeat,
-            "model": "fake" if dry_run else settings.llm_model,
-            "api_version": "fake" if dry_run else GEMINI_API_VERSION,
-            "prompt_version": CONFIGS[code].prompt_version, "git_sha": sha,
-            "date": date.today().isoformat(),
+            "set": args.set, "config": code, "repeat": repeat, **identity,
+            "git_sha": sha, "date": date.today().isoformat(),
         }  # fmt: skip
         agent = Agent(llm, registry, prices=prices)
         try:

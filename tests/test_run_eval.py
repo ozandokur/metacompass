@@ -162,3 +162,15 @@ def test_three_failed_llm_calls_in_a_row_stop_the_run(tmp_path):
         run_eval.answer_all(agent, items(1), path=path, base_line=BASE)
     assert len(agent.asked) == 3
     assert run_eval.completed_ids(path) == set()
+
+
+def test_answers_from_another_model_or_prompt_are_never_resumed(generated_dir, tmp_path, capsys):
+    # A dry run's lines (model "fake") once made a live run skip every question. A file that
+    # holds answers from another model, API or prompt version must stop the run, not count.
+    path = tmp_path / "dev_A0_r1.jsonl"
+    old = {"item_id": "dev-L1-01", "model": "other-model", "api_version": "fake",
+           "prompt_version": run_eval.CONFIGS["A0"].prompt_version}  # fmt: skip
+    path.write_text(json.dumps(old) + "\n", encoding="utf-8")
+    assert dry_run(generated_dir, tmp_path) == 2
+    assert "other-model" in capsys.readouterr().err
+    assert path.read_text(encoding="utf-8").splitlines() == [json.dumps(old)]
