@@ -143,11 +143,63 @@ def test_calls_are_deterministic_and_small(real_ctx, name, args):
     assert len(payload_json(first)) <= output_char_cap(name)
 
 
-def test_the_llm_gets_exactly_the_json_the_size_limit_was_checked_on(real_ctx):
-    # The tools measure their output cap on model_dump_json(); the message sent to
-    # the LLM must be that same text, not a roomier json.dumps() with spaces.
+def test_the_llm_text_never_exceeds_what_the_size_limit_was_checked_on(real_ctx):
+    # The tools measure their output cap on model_dump_json(). Since v2 the LLM gets a slimmer
+    # view (no numeric signal, no query echo), serialised the same compact way, so it can
+    # only be shorter.
     out = search_assets(real_ctx, query="dealer sales performance by region", top_k=10)
-    payload, _ = make(real_ctx).call(
+    reg = make(real_ctx)
+    payload, _ = reg.call(
         "search_assets", {"query": "dealer sales performance by region", "top_k": 10}
     )
-    assert payload_json(payload) == out.model_dump_json()
+    assert payload_json(payload) == out.model_dump_json()  # the trace keeps everything
+    text = payload_json(reg.for_llm("search_assets", payload))
+    assert len(text) < len(out.model_dump_json()) <= output_char_cap("search_assets")
+
+
+def test_tool_schemas_carry_no_automatic_titles(mini_ctx):
+    # Pydantic adds "title" to every schema and property; it is serialisation noise, not
+    # meaning, and it was re-sent on every turn (v2, Q-D25-2).
+    specs = make(mini_ctx).specs()
+
+    def keywords(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "properties":
+                    for prop in value.values():
+                        yield from keywords(prop)
+                else:
+                    yield key
+                    yield from keywords(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from keywords(value)
+
+    for spec in specs:
+        assert "title" not in set(keywords(spec["parameters"])), spec["name"]
+        Draft202012Validator.check_schema(spec["parameters"])
+    search = next(s for s in specs if s["name"] == "search_assets")
+    assert set(search["parameters"]["properties"]) == {
+        "query", "asset_type", "department", "include_deprecated", "top_k",
+    }  # fmt: skip
+
+
+def test_the_llm_view_drops_only_the_numeric_signal_and_the_query_echo(mini_ctx):
+    reg = make(mini_ctx)
+    payload, ids = reg.call("search_assets", {"query": "parts returns"})
+    view = reg.for_llm("search_assets", payload)
+    assert set(payload["signal"]) == {"match_quality", "exact_match", "top_dense_cosine", "dense_z"}
+    assert set(view["signal"]) == {"match_quality", "exact_match"}
+    assert "query" in payload and "query" not in view
+    assert view["hits"] == payload["hits"]
+    past, _ = reg.call("find_similar_past_work", {"description": "parts returns"})
+    assert set(reg.for_llm("find_similar_past_work", past)["signal"]) == {
+        "match_quality", "exact_match",
+    }  # fmt: skip
+    owner, _ = reg.call("resolve_owner", {"asset_id": "RPT-0002"})
+    assert reg.for_llm("resolve_owner", owner) == owner  # other tools are untouched
+    error, _ = reg.call("get_record", {"record_id": "RPT-0999"})
+    assert reg.for_llm("get_record", error) == error
+    hidden = make(mini_ctx, show_match_quality=False)
+    slim, _ = hidden.call("search_assets", {"query": "parts returns"})
+    assert "signal" not in hidden.for_llm("search_assets", slim)  # A4 still hides it all

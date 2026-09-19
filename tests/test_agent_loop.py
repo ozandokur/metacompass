@@ -254,3 +254,14 @@ def test_each_llm_step_records_what_its_input_is_made_of(mini_ctx):
     }  # fmt: skip
     assert second.input_chars["tool_results"] == len(payload_json(expected))
     assert second.input_chars["other"] > len(QUESTION)  # the question plus the model's call
+
+
+def test_the_llm_gets_the_slim_view_and_the_trace_keeps_the_signal(mini_ctx):
+    agent, llm, _ = make(
+        mini_ctx, [tool("search_assets", query="parts returns"), final([], abstained=True)]
+    )
+    result = agent.run("Is there a parts returns report?")
+    sent = json.loads(llm.requests[1]["messages"][-1]["content"])
+    assert "query" not in sent and "dense_z" not in sent["signal"]
+    step = next(s for s in result.steps if s.kind == "tool")
+    assert set(step.signal) == {"match_quality", "exact_match", "top_dense_cosine", "dense_z"}

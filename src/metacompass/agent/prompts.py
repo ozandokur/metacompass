@@ -7,7 +7,11 @@ match_quality line; A5 (no impact_analysis) drops the lines that name that tool.
 is pinned by hash to PROMPT_VERSION, so a wording change cannot slip in without a new version.
 """
 
+import hashlib
+import json
+
 from metacompass.config import AgentConfig
+from metacompass.tools.registry import tool_specs
 
 INTRO = """You are MetaCompass, an assistant that answers questions about the BI metadata of
 Northwind Motors: reports, tables, metrics, employees and past analysis requests."""
@@ -66,9 +70,12 @@ REPAIR_INSTRUCTION = (
     '{"answer": str, "answer_ids": [str], "evidence_ids": [str], "abstained": bool}'
 )
 
-# sha256 of build_system_prompt(AgentConfig()) for each version (tests/test_prompts.py).
+# The pin of each version (tests/test_prompts.py). v1 hashed the system prompt alone; from
+# v2 on the hash is model_input_digest: the system prompt and the tool schemas together,
+# because both reach the model and either can change an answer.
 PROMPT_HASHES = {
     "v1": "275a731e189910e71533efe86b0426f83cf74ec68831f71af90db4ed3092c2f8",
+    "v2": "ac72a5eb8e165241a5610df712df69c6bf419d319232d96bd16171658cc09e0f",
 }
 
 
@@ -96,3 +103,11 @@ def build_system_prompt(config: AgentConfig) -> str:
     sections.append("\n".join(tool_use))
     sections.append(OUTPUT)
     return "\n\n".join(sections)
+
+
+def model_input_digest(config: AgentConfig) -> str:
+    """sha256 of what the model is given before the question: system prompt + tool schemas."""
+    specs = json.dumps(
+        tool_specs(config), sort_keys=True, ensure_ascii=False, separators=(",", ":")
+    )
+    return hashlib.sha256((build_system_prompt(config) + "\n" + specs).encode("utf-8")).hexdigest()

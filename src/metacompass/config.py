@@ -113,7 +113,9 @@ def load_settings(env_file: Path | None = None, environ: dict[str, str] | None =
 # Bumped with every wording change of the system prompt (spec §8.4), and changed only on
 # dev-set results. It lives here rather than in agent/prompts.py so that AgentConfig does
 # not make the config module depend on the agent package.
-PROMPT_VERSION = "v1"
+# v2 = v1 + schema/payload simplification (Q-D25-2), made before any result was seen; it
+# does not count as one of the three dev iterations.
+PROMPT_VERSION = "v2"
 
 # The six tools, in the order the LLM sees them (spec §7).
 ALL_SIX_TOOLS = (

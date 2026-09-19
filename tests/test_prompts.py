@@ -1,8 +1,6 @@
 """System prompt builder (spec §8.4): flagged sections, ablation variants, version pinning."""
 
-import hashlib
-
-from metacompass.agent.prompts import PROMPT_HASHES, build_system_prompt
+from metacompass.agent.prompts import PROMPT_HASHES, build_system_prompt, model_input_digest
 from metacompass.config import ALL_SIX_TOOLS, PROMPT_VERSION, AgentConfig
 
 
@@ -53,9 +51,11 @@ def test_tool_budget_in_the_prompt_is_the_configured_one():
     assert "Use at most 5 tool calls." in prompt(max_tool_calls=5)
 
 
-def test_prompt_version_is_pinned_to_the_prompt_text():
-    # Any wording change must come with a new PROMPT_VERSION and a PROGRESS note (§8.4).
-    assert PROMPT_VERSION == "v1"
+def test_prompt_version_is_pinned_to_what_the_model_sees():
+    # Any change to the system prompt or the tool schemas must come with a new
+    # PROMPT_VERSION and a PROGRESS note (§8.4). Since v2 the pin covers both; v2 is v1
+    # plus the schema/payload simplification (Q-D25-2), made before any result was seen.
+    assert PROMPT_VERSION == "v2"
     assert AgentConfig().prompt_version == PROMPT_VERSION
-    digest = hashlib.sha256(prompt().encode("utf-8")).hexdigest()
-    assert PROMPT_HASHES[PROMPT_VERSION] == digest
+    assert PROMPT_HASHES[PROMPT_VERSION] == model_input_digest(AgentConfig())
+    assert "v1" in PROMPT_HASHES  # history is kept

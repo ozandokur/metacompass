@@ -62,6 +62,8 @@ class Step(BaseModel):
     output_tokens: int = 0
     # LLM turns: characters of the input by source, to see where the tokens go (D25).
     input_chars: dict[str, int] | None = None
+    # Search tools: the full match signal, which the model itself sees only in part (v2).
+    signal: dict | None = None
 
 
 class AgentResult(BaseModel):
@@ -198,7 +200,7 @@ class Agent:
                             "role": "tool",
                             "tool_call_id": call.id,
                             "name": call.name,
-                            "content": payload_json(payload),
+                            "content": payload_json(self.registry.for_llm(call.name, payload)),
                         }
                     )
                 if over_budget:
@@ -224,7 +226,7 @@ class Agent:
         )
         run.steps.append(
             Step(kind="tool", name=call.name, arguments=call.arguments, summary=summary,
-                 duration_ms=_ms(started))
+                 duration_ms=_ms(started), signal=payload.get("signal"))
         )  # fmt: skip
         return payload
 

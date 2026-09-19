@@ -10,7 +10,8 @@ output down by field, to show what could be trimmed. Nothing is trimmed here.
 
 Only the dev set is used: token savings must not be designed by looking at the test set.
 
-Usage: python eval/measure_input.py [--data data/] [--out eval/results/input_composition.json]
+Usage: python eval/measure_input.py [--data data/]
+  writes eval/results/input_composition_<PROMPT_VERSION>.json (v1 kept for comparison)
 """
 
 import argparse
@@ -24,6 +25,7 @@ from configs import CONFIGS
 from metacompass.agent.llm import FakeLLM, LLMResponse, ToolCall
 from metacompass.agent.loop import Agent
 from metacompass.agent.quota import CHARS_PER_TOKEN
+from metacompass.config import PROMPT_VERSION
 from metacompass.data.store import MetadataStore
 from metacompass.graph import build_lineage_graph
 from metacompass.retrieval.corpus import build_retrievers
@@ -131,7 +133,7 @@ def measure(registry: ToolRegistry, items: list[dict]) -> dict:
         )
         for name, args in calls:
             payload, _ = registry.call(name, args)
-            per_tool[name].append(payload)
+            per_tool[name].append(registry.for_llm(name, payload))  # what the model reads
     totals = {s: sum(q[s] for q in per_question) for s in SOURCES}
     all_chars = sum(totals.values())
     mean_chars = all_chars / len(per_question)
@@ -156,14 +158,17 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Measure the input composition of one question.")
     parser.add_argument("--data", type=Path, default=ROOT / "data")
     parser.add_argument(
-        "--out", type=Path, default=ROOT / "eval" / "results" / "input_composition.json"
+        "--out",
+        type=Path,
+        default=ROOT / "eval" / "results" / f"input_composition_{PROMPT_VERSION}.json",
     )
     args = parser.parse_args(argv)
     store = MetadataStore.from_dir(args.data)
     retrievers = build_retrievers(store, HashEmbedder(dim=64), cache_dir=args.data / "cache")
     registry = build_registry(store, retrievers, build_lineage_graph(store), CONFIGS["A0"])
     items = json.loads((ROOT / "eval" / "dev_set.json").read_text(encoding="utf-8"))["items"]
-    result = {"metadata": {"git_sha": git_sha(), "set": "dev", "chars_per_token": CHARS_PER_TOKEN},
+    result = {"metadata": {"git_sha": git_sha(), "prompt_version": PROMPT_VERSION, "set": "dev",
+                           "chars_per_token": CHARS_PER_TOKEN},
               **measure(registry, items)}  # fmt: skip
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     share = result["share_by_source"]

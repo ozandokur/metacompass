@@ -123,6 +123,52 @@ SIGNAL_NOTE = (
 )
 
 
+# Retrieval scores the model is never told how to use (v2, Q-D25-2): kept in the trace,
+# left out of what the model reads. match_quality and exact_match stay.
+NUMERIC_SIGNAL_FIELDS = ("top_dense_cosine", "dense_z")
+
+
+def without_titles(schema):
+    """A JSON schema without Pydantic's automatic "title" keywords (v2, Q-D25-2).
+
+    They repeat each field name in title case, carry no meaning for the model, and were
+    re-sent on every turn. Property names are kept even if one were called "title".
+    """
+    if isinstance(schema, list):
+        return [without_titles(value) for value in schema]
+    if not isinstance(schema, dict):
+        return schema
+    out = {}
+    for key, value in schema.items():
+        if key == "title":
+            continue
+        if key == "properties":
+            out[key] = {name: without_titles(prop) for name, prop in value.items()}
+        else:
+            out[key] = without_titles(value)
+    return out
+
+
+def tool_specs(config: AgentConfig) -> list[dict]:
+    """The tool definitions the LLM sees under this configuration."""
+    specs = []
+    for name in ALL_SIX_TOOLS:  # fixed order, whatever order the config lists them in
+        if name not in config.tools_enabled:
+            continue
+        tool = TOOLS[name]
+        description = tool.description
+        if name in SEARCH_TOOLS and config.show_match_quality:
+            description += SIGNAL_NOTE
+        specs.append(
+            {
+                "name": name,
+                "description": description,
+                "parameters": without_titles(tool.input_model.model_json_schema()),
+            }
+        )
+    return specs
+
+
 def payload_json(payload: dict) -> str:
     """The text the LLM receives for a tool result.
 
@@ -143,22 +189,25 @@ class ToolRegistry:
         self.config = config
 
     def specs(self) -> list[dict]:
-        specs = []
-        for name in ALL_SIX_TOOLS:  # fixed order, whatever order the config lists them in
-            if name not in self.config.tools_enabled:
-                continue
-            tool = TOOLS[name]
-            description = tool.description
-            if name in SEARCH_TOOLS and self.config.show_match_quality:
-                description += SIGNAL_NOTE
-            specs.append(
-                {
-                    "name": name,
-                    "description": description,
-                    "parameters": tool.input_model.model_json_schema(),
-                }
-            )
-        return specs
+        return tool_specs(self.config)
+
+    def for_llm(self, name: str, payload: dict) -> dict:
+        """What the model reads of a tool result: the payload minus what it has no use for.
+
+        The search tools drop the numeric retrieval scores and the echo of the model's own
+        query (v2, Q-D25-2); the full payload stays in the trace. Everything else, errors
+        included, goes to the model unchanged.
+        """
+        if name not in SEARCH_TOOLS or "error" in payload:
+            return payload
+        view = {key: value for key, value in payload.items() if key != "query"}
+        if "signal" in view:
+            view["signal"] = {
+                key: value
+                for key, value in view["signal"].items()
+                if key not in NUMERIC_SIGNAL_FIELDS
+            }
+        return view
 
     def call(self, name: str, args: dict) -> tuple[dict, list[str]]:
         """Run one tool call. Returns (payload, record IDs in it); never raises."""
