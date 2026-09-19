@@ -87,10 +87,12 @@ def test_impact_notify_individual_and_broadcast(mini_raw, monkeypatch):
     }  # fmt: skip
     # With a lower threshold the same three people become a broadcast to their department
     # heads: EMP-002 and EMP-004 are in Sales (head EMP-002), EMP-003 heads Data & Analytics.
+    # Operations is not affected, so announcing to its head (EMP-001) is wrong: without that,
+    # "tell every head" would pass every broadcast question (geçici karar, Q-F5-2b).
     monkeypatch.setattr(gold, "NOTIFY_DETAIL_MAX", 2)
     assert g(spec, mini_raw) == {
-        "answer_ids": ["EMP-002", "EMP-003"], "forbidden_ids": [], "should_abstain": False,
-        "min_mentioned_count": 3,
+        "answer_ids": ["EMP-002", "EMP-003"], "forbidden_ids": ["EMP-001"],
+        "should_abstain": False, "min_mentioned_count": 3,
     }  # fmt: skip
 
 

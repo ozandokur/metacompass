@@ -267,10 +267,15 @@ def compute_gold(gold_spec: dict, raw: dict[str, pd.DataFrame], meta: dict) -> d
             return _answer(notified)
         # Broadcast (D24): the answer is who to announce to, the department heads of
         # everyone affected; the answer text is expected to say how many people that is.
+        # The heads of departments nobody affected works in are forbidden: without that,
+        # "tell every head" would pass every broadcast question (geçici karar, Q-F5-2b).
         people = _people(raw)
         heads = _heads(people)
         departments = {people[p]["department"] for p in notified}
-        return _answer([heads[d] for d in departments], min_mentioned_count=len(notified))
+        unaffected = [head for department, head in heads.items() if department not in departments]
+        return _answer(
+            [heads[d] for d in departments], unaffected, min_mentioned_count=len(notified)
+        )
 
     if kind == "abstain":
         return {"answer_ids": [], "forbidden_ids": [], "should_abstain": True}

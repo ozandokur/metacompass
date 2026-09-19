@@ -210,12 +210,22 @@ def test_scoring_rule_per_category(qsets):
     }  # fmt: skip
     for _, item in _all(qsets):
         rule = item["scoring"]
+        single = len(item["gold"]["answer_ids"]) == 1
         if item["category"] in expected:
             assert rule == expected[item["category"]], item["id"]
         elif item["category"] == "L5":
             assert rule == ("set_f1" if item["subtype"] == "individual" else "contains_all")
         else:
-            assert rule == ("set_f1" if item["subtype"] == "metric_owners" else "contains_all")
+            # Q-F5-1b: F1 on one ID collapses to exact match and puts "right person plus one
+            # more" (F1 0.67) with "no idea"; a single-ID gold is scored contains_all.
+            set_rule = item["subtype"] == "metric_owners" and not single
+            assert rule == ("set_f1" if set_rule else "contains_all"), item["id"]
+
+
+def test_no_set_f1_question_has_a_single_gold_id(qsets):
+    for _, item in _all(qsets):
+        if item["scoring"] == "set_f1":
+            assert len(item["gold"]["answer_ids"]) > 1, item["id"]
 
 
 def test_answerable_questions_have_gold_and_l6_abstains(qsets):
@@ -264,8 +274,33 @@ def test_l5_questions_follow_the_notify_modes(qsets, data):
                 departments = raw["employees"]["department"].nunique()
                 assert len(item["gold"]["answer_ids"]) < departments, item["id"]
                 assert str(len(people)) in item["notes"]
+                # Announcing to a department nobody in it needs to hear about is wrong.
+                heads = set(item["gold"]["answer_ids"]) | set(item["gold"]["forbidden_ids"])
+                assert len(heads) == departments and item["gold"]["forbidden_ids"], item["id"]
         individual = [layer[i["gold_spec"]["table_id"]] for i in l5 if i["subtype"] == "individual"]
         assert "mart" in individual and any(x != "mart" for x in individual), name
+        broadcast = [tuple(i["gold"]["answer_ids"]) for i in l5 if i["subtype"] == "broadcast"]
+        assert len(set(broadcast)) == len(broadcast), name  # different department sets
+
+
+def test_the_coo_is_in_as_few_broadcast_golds_as_the_data_allows(qsets, data):
+    # Q-F5-2: EMP-001 (COO, the root) must not be a free point in every broadcast answer.
+    # The data offers three distinct head sets and two of them contain EMP-001, so with
+    # three distinct test questions the fewest possible is 2 (geçici karar, Q-F5-2b).
+    raw, meta = data
+    minimum = question_sets.fewest_coo_broadcasts(raw, meta, len(
+        [i for i in qsets["test"] if i["subtype"] == "broadcast"]))  # fmt: skip
+    test_golds = [i["gold"]["answer_ids"] for i in qsets["test"] if i["subtype"] == "broadcast"]
+    assert sum("EMP-001" in g for g in test_golds) == minimum
+    assert minimum == 2
+
+
+def test_disambiguation_questions_ask_in_plain_words(qsets):
+    # Q-F5-1a: "Which report is X, the version limited to my territory?" read badly.
+    for _, item in _all(qsets):
+        if item["subtype"] == "disambiguation" and "near duplicate" in item["notes"]:
+            assert item["question"].startswith("Is there "), item["question"]
+            assert "the version" not in item["question"] and ", the " not in item["question"]
 
 
 def test_mx_chains_are_linked_and_use_individual_tables(qsets, data):
@@ -356,3 +391,18 @@ def test_review_sample_shows_three_questions_per_category(qsets, data):
     text = question_sets.review_sample(qsets["test"], data[0])
     for category in ("L1", "L2", "L3", "L4", "L5", "L6", "MX"):
         assert text.count(f"| {category}-") == 3, category
+    # Q-F5-1c: the stated count is a note the scorer never reads; it has its own column.
+    assert "| unscored note |" in text
+    assert "must mention" not in text.split("| unscored note |")[0]
+
+
+def test_lineage_candidate_counts_add_up(data):
+    # Q-F5-4: how many L3 targets the 2-15 ID rule removes, and whether the kept ones are
+    # the shallow part of the graph.
+    raw, meta = data
+    report = question_sets.lineage_candidates(raw, meta)
+    assert set(report) == {"metric_upstream", "report_upstream", "staging_downstream"}
+    for stats in report.values():
+        assert stats["kept"] + stats["too_few"] + stats["too_many"] == stats["candidates"]
+        assert stats["kept"] >= 1
+        assert set(stats["full_lineage_size"]) == {"kept", "removed"}

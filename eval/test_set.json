@@ -33,8 +33,8 @@
       "budget_2027": 1,
       "accuracy": 1,
       "near_miss": 4,
-      "never_done": 3,
-      "null_formula": 3,
+      "never_done": 4,
+      "null_formula": 2,
       "future": 2
     },
     "MX": {
@@ -268,7 +268,7 @@
       "id": "L1-011",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "Which report is Parts Inventory Health Dashboard, the version limited to my territory?",
+      "question": "Is there an area-manager version of Parts Inventory Health Dashboard?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0156",
@@ -294,7 +294,7 @@
       "id": "L1-012",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "I need the current version of CSAT Monitor Dashboard by Region. Which report is it?",
+      "question": "CSAT Monitor Dashboard by Region looks out of date. Which report should I use instead?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0048",
@@ -320,7 +320,7 @@
       "id": "L1-013",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "Transaction Price Analysis Tracker by Model looks out of date. Which report should I use instead?",
+      "question": "I need the current version of Transaction Price Analysis Tracker by Model. Which report is it?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0086",
@@ -346,7 +346,7 @@
       "id": "L1-014",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "I am after Dealer Net Margin Executive Summary, the record-level one for exporting. Which report is that?",
+      "question": "Is there a transaction-level version of Dealer Net Margin Executive Summary that I can export?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0166",
@@ -372,7 +372,7 @@
       "id": "L1-015",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "I am after Recall Campaign Progress Report by Region, the drill-down companion. Which report is that?",
+      "question": "Is there a drill-down version of Recall Campaign Progress Report by Region where I can open single dealers?",
       "gold_spec": {
         "type": "asset_by_description",
         "target_id": "RPT-0079",
@@ -1778,26 +1778,30 @@
       "id": "L5-008",
       "category": "L5",
       "subtype": "broadcast",
-      "question": "We are deprecating int_parts_sales_lines. Who should I notify?",
+      "question": "We are deprecating stg_warranty_labor_codes. Who should I notify?",
       "gold_spec": {
         "type": "impact_notify",
-        "table_id": "TBL-041"
+        "table_id": "TBL-024"
       },
       "gold": {
         "answer_ids": [
           "EMP-001",
           "EMP-005",
           "EMP-031",
+          "EMP-041",
+          "EMP-053",
           "EMP-057"
         ],
-        "forbidden_ids": [],
+        "forbidden_ids": [
+          "EMP-032"
+        ],
         "should_abstain": false,
-        "min_mentioned_count": 21
+        "min_mentioned_count": 28
       },
       "scoring": "contains_all",
-      "primary_target": "TBL-041",
+      "primary_target": "TBL-024",
       "allow_id_in_question": false,
-      "notes": "21 people to notify (broadcast); layer intermediate"
+      "notes": "28 people to notify (broadcast); layer staging"
     },
     {
       "id": "L5-009",
@@ -1815,7 +1819,11 @@
           "EMP-031",
           "EMP-057"
         ],
-        "forbidden_ids": [],
+        "forbidden_ids": [
+          "EMP-032",
+          "EMP-041",
+          "EMP-053"
+        ],
         "should_abstain": false,
         "min_mentioned_count": 22
       },
@@ -1828,28 +1836,30 @@
       "id": "L5-010",
       "category": "L5",
       "subtype": "broadcast",
-      "question": "int_service_orders_enriched is going to be rebuilt. Whom do I have to warn?",
+      "question": "int_leads_scored is going to be rebuilt. Whom do I have to warn?",
       "gold_spec": {
         "type": "impact_notify",
-        "table_id": "TBL-038"
+        "table_id": "TBL-045"
       },
       "gold": {
         "answer_ids": [
-          "EMP-001",
           "EMP-005",
+          "EMP-032",
+          "EMP-053"
+        ],
+        "forbidden_ids": [
+          "EMP-001",
           "EMP-031",
           "EMP-041",
-          "EMP-053",
           "EMP-057"
         ],
-        "forbidden_ids": [],
         "should_abstain": false,
-        "min_mentioned_count": 28
+        "min_mentioned_count": 21
       },
       "scoring": "contains_all",
-      "primary_target": "TBL-038",
+      "primary_target": "TBL-045",
       "allow_id_in_question": false,
-      "notes": "28 people to notify (broadcast); layer intermediate"
+      "notes": "21 people to notify (broadcast); layer intermediate"
     },
     {
       "id": "L6-001",
@@ -2044,6 +2054,25 @@
     {
       "id": "L6-011",
       "category": "L6",
+      "subtype": "never_done",
+      "question": "Has anyone analyzed carbon emissions per delivered vehicle?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "never_done"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "topic:carbon emissions per delivered vehicle",
+      "allow_id_in_question": false,
+      "notes": "no request cluster covers this"
+    },
+    {
+      "id": "L6-012",
+      "category": "L6",
       "subtype": "null_formula",
       "question": "How exactly is Dealer Profitability Index calculated?",
       "gold_spec": {
@@ -2061,7 +2090,7 @@
       "notes": "formula is null"
     },
     {
-      "id": "L6-012",
+      "id": "L6-013",
       "category": "L6",
       "subtype": "null_formula",
       "question": "What is the exact formula for Customer Lifetime Value?",
@@ -2076,25 +2105,6 @@
       },
       "scoring": "abstain",
       "primary_target": "MET-040",
-      "allow_id_in_question": false,
-      "notes": "formula is null"
-    },
-    {
-      "id": "L6-013",
-      "category": "L6",
-      "subtype": "null_formula",
-      "question": "What is the exact formula for Market Share?",
-      "gold_spec": {
-        "type": "abstain",
-        "reason": "null_formula"
-      },
-      "gold": {
-        "answer_ids": [],
-        "forbidden_ids": [],
-        "should_abstain": true
-      },
-      "scoring": "abstain",
-      "primary_target": "MET-010",
       "allow_id_in_question": false,
       "notes": "formula is null"
     },
@@ -2165,7 +2175,7 @@
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "scoring": "set_f1",
+      "scoring": "contains_all",
       "primary_target": "MET-009",
       "allow_id_in_question": false,
       "notes": "source tables TBL-070"
@@ -2313,7 +2323,7 @@
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "scoring": "set_f1",
+      "scoring": "contains_all",
       "primary_target": "MET-026",
       "allow_id_in_question": false,
       "notes": "source tables TBL-078"

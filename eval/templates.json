@@ -340,10 +340,23 @@
         "I need the current version of {name}. Which report is it?",
         "{name} looks out of date. Which report should I use instead?"
       ],
-      "near_duplicate": [
-        "I am after {name}, {cue}. Which report is that?",
-        "Which report is {name}, {cue}?"
-      ]
+      "near_duplicate_by_variant": {
+        "regional": [
+          "Is there a regional version of {name}, with a page per region?"
+        ],
+        "detail": [
+          "Is there a transaction-level version of {name} that I can export?"
+        ],
+        "extended": [
+          "Is there a version of {name} that goes further back in time?"
+        ],
+        "area_managers": [
+          "Is there an area-manager version of {name}?"
+        ],
+        "drilldown": [
+          "Is there a drill-down version of {name} where I can open single dealers?"
+        ]
+      }
     },
     "L2": {
       "report_neutral": [

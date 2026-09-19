@@ -90,3 +90,15 @@ def test_abstain(given, correct):
 def test_unknown_rule_is_an_error():
     with pytest.raises(ValueError):
         score(item("vibes", []), ans())
+
+
+def test_the_broadcast_count_note_is_never_scored():
+    # Q-F5-1c: min_mentioned_count is written down for later, not scored (D24).
+    plain = item("contains_all", ["EMP-001", "EMP-005"], ["EMP-032"])
+    noted = {**plain, "gold": {**plain["gold"], "min_mentioned_count": 52}}
+    for answer in (
+        ans(["EMP-001", "EMP-005"]),
+        ans(["EMP-001"]),
+        ans(["EMP-001", "EMP-005", "EMP-032"]),
+    ):
+        assert score(noted, answer) == score(plain, answer)

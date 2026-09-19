@@ -13,6 +13,7 @@ spec; it is a provisional decision recorded in PROGRESS.md.
 import json
 import random
 from collections import Counter
+from itertools import combinations
 
 import pandas as pd
 
@@ -40,8 +41,8 @@ TEST_PLAN = {
         "budget_2027": 1,
         "accuracy": 1,
         "near_miss": 4,
-        "never_done": 3,
-        "null_formula": 3,
+        "never_done": 4,
+        "null_formula": 2,
         "future": 2,
     },  # fmt: skip
     "MX": {"metric_owners": 5, "deprecated_replacement": 5, "request_report": 5},
@@ -52,8 +53,15 @@ DEV_PLAN = {
     "L3": {"metric_upstream": 1, "report_upstream": 2, "staging_downstream": 1},
     "L4": {"topic": 4},
     "L5": {"individual": 2, "broadcast": 1},
-    # All three null-formula metrics go to the test set (spec §9.2 asks for 3 there).
-    "L6": {"salary": 1, "budget_2027": 1, "near_miss": 2, "never_done": 1, "future": 1},
+    # Q-F5-3: two of the three null-formula metrics are asked in the test set, one here.
+    "L6": {
+        "salary": 1,
+        "budget_2027": 1,
+        "near_miss": 1,
+        "never_done": 1,
+        "null_formula": 1,
+        "future": 1,
+    },  # fmt: skip
     "MX": {"metric_owners": 1, "deprecated_replacement": 1, "request_report": 2},
 }
 PLANS = {"test": TEST_PLAN, "dev": DEV_PLAN}
@@ -82,14 +90,18 @@ NOTIFY_DETAIL_MAX = 20  # spec §7.7 (D24), restated like in gold.py
 SCORING = {"L1": "contains_all", "L2": "contains_all", "L3": "set_f1", "L4": "contains_any"}
 
 
-def scoring_rule(category: str, subtype: str) -> str:
+def scoring_rule(category: str, subtype: str, gold_size: int) -> str:
     if category in SCORING:
-        return SCORING[category]
-    if category == "L5":
-        return "set_f1" if subtype == "individual" else "contains_all"
-    if category == "L6":
+        rule = SCORING[category]
+    elif category == "L5":
+        rule = "set_f1" if subtype == "individual" else "contains_all"
+    elif category == "L6":
         return "abstain"
-    return "set_f1" if subtype == "metric_owners" else "contains_all"
+    else:
+        rule = "set_f1" if subtype == "metric_owners" else "contains_all"
+    # Q-F5-1b: F1 on a single ID is exact match that puts "the right person plus one more"
+    # (F1 0.67) next to "no idea"; one gold ID is scored contains_all.
+    return "contains_all" if rule == "set_f1" and gold_size == 1 else rule
 
 
 # ---------------------------------------------------------------------- the data, as lookups
@@ -186,6 +198,51 @@ def _walk_text(data: _Data, owner: str) -> str:
         person = nxt
         steps.append(f"{via} {person} ({data.people[person]['status']})")
     return " -> ".join(steps)
+
+
+# ---------------------------------------------------------------------- broadcast targets
+
+
+def broadcast_candidates(raw, meta) -> dict[str, tuple[str, ...]]:
+    """Hub tables (more than NOTIFY_DETAIL_MAX people) whose gold leaves out at least one
+    department head, with that gold. For 22 of the 33 hubs the gold is every head, which
+    a "tell all heads" guess would name without reading anything."""
+    departments = raw["employees"]["department"].nunique()
+    out = {}
+    for tid in sorted(raw["tables"]["table_id"]):
+        if len(gold.impact_notify(raw, tid)["people"]) <= NOTIFY_DETAIL_MAX:
+            continue
+        heads = tuple(
+            gold.compute_gold({"type": "impact_notify", "table_id": tid}, raw, meta)["answer_ids"]
+        )
+        if len(heads) < departments:
+            out[tid] = heads
+    return out
+
+
+def _coo_plans(raw, meta, n: int) -> list[tuple[int, tuple[tuple[str, ...], ...]]]:
+    """Every choice of n different head sets, with how many contain the COO (EMP-001)."""
+    sets = sorted(set(broadcast_candidates(raw, meta).values()))
+    return sorted((sum("EMP-001" in h for h in combo), combo) for combo in combinations(sets, n))
+
+
+def fewest_coo_broadcasts(raw, meta, n: int) -> int:
+    """The fewest broadcast golds that must name the COO when n of them differ (Q-F5-2)."""
+    return _coo_plans(raw, meta, n)[0][0]
+
+
+def choose_broadcast_tables(raw, meta, n: int, rng: random.Random) -> list[str]:
+    """n hub tables with pairwise different head sets and the COO in as few as possible.
+
+    The two Q-F5-2 wishes can clash: in the seed-42 data only three head sets exist and two
+    contain EMP-001, so three different sets name the COO twice. Different sets win (one
+    memorised answer must not fit two questions); the COO count is the lowest left.
+    """
+    candidates = broadcast_candidates(raw, meta)
+    fewest = _coo_plans(raw, meta, n)[0][0]
+    plans = [combo for count, combo in _coo_plans(raw, meta, n) if count == fewest]
+    combo = rng.choice(plans)
+    return [rng.choice(sorted(t for t, h in candidates.items() if h == heads)) for heads in combo]
 
 
 # ---------------------------------------------------------------------- building
@@ -356,11 +413,12 @@ class _Builder:
                 question = drng.choice(tpl["deprecated_current"]).format(name=d.name(other))
                 note = f"deprecated {other} -> replacement {target}"
             else:
-                cue = drng.choice(
-                    self.t["near_duplicate_cues"][self.meta["near_duplicate_variants"][target]]
-                )
-                question = drng.choice(tpl["near_duplicate"]).format(name=d.name(other), cue=cue)
-                note = f"near duplicate of {other}, variant={self.meta['near_duplicate_variants'][target]}"
+                # Q-F5-1a: asked the way a person would ("Is there an area-manager version of
+                # X?"), one phrasing per variant; the retrieval set keeps its own cues.
+                variant = self.meta["near_duplicate_variants"][target]
+                templates = tpl["near_duplicate_by_variant"][variant]
+                question = drng.choice(templates).format(name=d.name(other))
+                note = f"near duplicate of {other}, variant={variant}"
             return {
                 "question": question,
                 "gold_spec": {
@@ -602,19 +660,19 @@ class _Builder:
                     if t not in self.used and (d.tables.at[t, "layer"] == "mart") == (layer == "mart")
                 )  # fmt: skip
                 self._add(set_name, "L5", question(tid, "individual"))
-        # A broadcast gold is the set of department heads to announce to. For 22 of the 33
-        # hub tables that is every head, which a "tell all heads" guess gets right without
-        # reading anything; only tables that reach some departments tell a guess from an answer.
-        broadcast = [
-            t for t, n in d.notified.items()
-            if n > NOTIFY_DETAIL_MAX and len(self._gold_heads(t)) < len(d.heads)
-        ]  # fmt: skip
+        # Broadcast (Q-F5-2): the three test questions ask about three different department
+        # sets, with the COO (EMP-001) in as few of them as the data allows; the dev question
+        # takes any table left.
         brng = self._rng("L5", "broadcast")
-        self._fill("L5", "broadcast", broadcast, lambda t, s, i: question(t, "broadcast"), brng)
-
-    def _gold_heads(self, table_id: str) -> list[str]:
-        spec = {"type": "impact_notify", "table_id": table_id}
-        return gold.compute_gold(spec, self.raw, self.meta)["answer_ids"]
+        test_tables = choose_broadcast_tables(
+            self.raw, self.meta, TEST_PLAN["L5"]["broadcast"], brng
+        )
+        for tid in test_tables:
+            self._add("test", "L5", question(tid, "broadcast"))
+        rest = sorted(set(broadcast_candidates(self.raw, self.meta)) - set(test_tables))
+        brng.shuffle(rest)
+        for tid in rest[: DEV_PLAN["L5"]["broadcast"]]:
+            self._add("dev", "L5", question(tid, "broadcast"))
 
     # -- L6
 
@@ -783,14 +841,15 @@ class _Builder:
             )  # stable within a subtype
             for n, draft in enumerate(drafts, start=1):
                 item_id = f"{category}-{n:03d}" if set_name == "test" else f"dev-{category}-{n:02d}"
+                item_gold = gold.compute_gold(draft["gold_spec"], self.raw, self.meta)
                 out.append({
                     "id": item_id,
                     "category": category,
                     "subtype": draft["subtype"],
                     "question": draft["question"],
                     "gold_spec": draft["gold_spec"],
-                    "gold": gold.compute_gold(draft["gold_spec"], self.raw, self.meta),
-                    "scoring": scoring_rule(category, draft["subtype"]),
+                    "gold": item_gold,
+                    "scoring": scoring_rule(category, draft["subtype"], len(item_gold["answer_ids"])),
                     "primary_target": draft["primary_target"],
                     "allow_id_in_question": draft.get("allow_id_in_question", False),
                     "notes": draft["notes"],
@@ -838,7 +897,9 @@ def validate_question_set(name, items, raw, meta, templates, retrieval_targets) 
         item_gold = item["gold"]
         if gold.compute_gold(item["gold_spec"], raw, meta) != item_gold:
             raise ValueError(f"{where}: gold does not match its gold_spec")
-        if item["scoring"] != scoring_rule(item["category"], item["subtype"]):
+        if item["scoring"] != scoring_rule(
+            item["category"], item["subtype"], len(item_gold["answer_ids"])
+        ):
             raise ValueError(f"{where}: wrong scoring rule")
         if not item["allow_id_in_question"] and any(
             i in item["question"] for i in item_gold["answer_ids"]
@@ -881,6 +942,11 @@ def validate_question_set(name, items, raw, meta, templates, retrieval_targets) 
             departments = raw["employees"]["department"].nunique()
             if broadcast and len(item_gold["answer_ids"]) >= departments:
                 raise ValueError(f"{where}: broadcast gold is every department head")
+            if broadcast and not item_gold["forbidden_ids"]:
+                raise ValueError(f"{where}: broadcast gold forbids no department head")
+    golds = [tuple(i["gold"]["answer_ids"]) for i in items if i["subtype"] == "broadcast"]
+    if len(set(golds)) != len(golds):
+        raise ValueError(f"{name}: two broadcast questions share one department set")
 
 
 # ---------------------------------------------------------------------- output
@@ -921,8 +987,8 @@ def review_sample(items: list[dict], raw) -> str:
         "Three questions per category. Read L6 for 'does this look answerable?' and MX for "
         "'would a real user ask this?'. Generated by eval/build_sets.py; not committed.",
         "",
-        "| id | subtype | question | gold | scoring | notes |",
-        "|---|---|---|---|---|---|",
+        "| id | subtype | question | gold | scoring | unscored note | notes |",
+        "|---|---|---|---|---|---|---|",
     ]
     for category in CATEGORIES:
         chosen, seen = [], set()
@@ -934,10 +1000,76 @@ def review_sample(items: list[dict], raw) -> str:
         chosen += [i for i in pool if i not in chosen][: 3 - len(chosen)]
         for item in chosen:
             answer = "; ".join(label(i) for i in item["gold"]["answer_ids"]) or "(abstain)"
-            if "min_mentioned_count" in item["gold"]:
-                answer += f"; must mention {item['gold']['min_mentioned_count']} people"
+            if item["gold"]["forbidden_ids"]:
+                answer += " — forbidden: " + "; ".join(
+                    label(i) for i in item["gold"]["forbidden_ids"]
+                )
+            # Q-F5-1c: the stated count is a note for later, not part of what is scored.
+            count = item["gold"].get("min_mentioned_count")
+            unscored = f"should mention {count} people" if count else ""
             question = item["question"].replace("|", "/")
             lines.append(
-                f"| {item['id']} | {item['subtype']} | {question} | {answer} | {item['scoring']} | {item['notes']} |"
+                f"| {item['id']} | {item['subtype']} | {question} | {answer} | {item['scoring']} "
+                f"| {unscored} | {item['notes']} |"
             )
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------- diagnostics
+
+
+def lineage_candidates(raw, meta) -> dict:
+    """What the 2-15 ID rule does to the L3 target pool (Q-F5-4).
+
+    For each L3 subtype: how many candidates there are, how many keep at least one allowed
+    depth, how many are removed for too few or too many IDs at every depth, which depths the
+    kept ones allow, and the median size of their full lineage (depth 6), kept against
+    removed. If the kept targets have much smaller full lineage, L3 leans to the shallow
+    part of the graph and results.md must say so.
+    """
+    data = _Data(raw, meta)
+    low, high = LINEAGE_GOLD_SIZE
+
+    def size(spec: dict) -> int:
+        return len(gold.compute_gold(spec, raw, meta)["answer_ids"])
+
+    pools = {
+        "metric_upstream": (
+            [m for m in sorted(data.metrics.index) if m not in data.null_formula],
+            lambda n, depth: {"type": "upstream_tables", "node_id": n, "depth": depth},
+            (METRIC_UPSTREAM_DEPTH,),
+        ),
+        "report_upstream": (
+            data.active_reports(),
+            lambda n, depth: {"type": "upstream_tables", "node_id": n, "depth": depth},
+            REPORT_UPSTREAM_DEPTHS,
+        ),
+        "staging_downstream": (
+            [t for t in sorted(data.tables.index) if data.tables.at[t, "layer"] == "staging"],
+            lambda n, depth: {"type": "downstream_reports", "table_id": n, "depth": depth},
+            STAGING_DOWNSTREAM_DEPTHS,
+        ),
+    }
+    report = {}
+    for subtype, (nodes, spec_of, depths) in pools.items():
+        stats = {"candidates": len(nodes), "kept": 0, "too_few": 0, "too_many": 0}
+        allowed_depths: Counter = Counter()
+        full = {"kept": [], "removed": []}
+        for node in nodes:
+            sizes = {depth: size(spec_of(node, depth)) for depth in depths}
+            ok = [depth for depth, n in sizes.items() if low <= n <= high]
+            full_size = size(spec_of(node, 6))
+            if ok:
+                stats["kept"] += 1
+                allowed_depths.update(ok)
+                full["kept"].append(full_size)
+            else:
+                stats["too_few" if max(sizes.values()) < low else "too_many"] += 1
+                full["removed"].append(full_size)
+        stats["allowed_depths"] = dict(sorted(allowed_depths.items()))
+        stats["full_lineage_size"] = {
+            key: (sorted(values)[len(values) // 2] if values else None)
+            for key, values in full.items()
+        }
+        report[subtype] = stats
+    return report

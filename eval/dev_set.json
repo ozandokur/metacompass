@@ -30,8 +30,9 @@
     "L6": {
       "salary": 1,
       "budget_2027": 1,
-      "near_miss": 2,
+      "near_miss": 1,
       "never_done": 1,
+      "null_formula": 1,
       "future": 1
     },
     "MX": {
@@ -111,27 +112,27 @@
       "id": "dev-L1-04",
       "category": "L1",
       "subtype": "disambiguation",
-      "question": "I am after Business Line Profitability Scorecard by Model, the record-level one for exporting. Which report is that?",
+      "question": "Is there a regional version of Parts Returns, with a page per region?",
       "gold_spec": {
         "type": "asset_by_description",
-        "target_id": "RPT-0207",
+        "target_id": "RPT-0031",
         "forbidden_ids": [
-          "RPT-0190"
+          "RPT-0009"
         ]
       },
       "gold": {
         "answer_ids": [
-          "RPT-0207"
+          "RPT-0031"
         ],
         "forbidden_ids": [
-          "RPT-0190"
+          "RPT-0009"
         ],
         "should_abstain": false
       },
       "scoring": "contains_all",
-      "primary_target": "RPT-0207",
+      "primary_target": "RPT-0031",
       "allow_id_in_question": false,
-      "notes": "near duplicate of RPT-0190, variant=detail"
+      "notes": "near duplicate of RPT-0009, variant=regional"
     },
     {
       "id": "dev-L2-01",
@@ -545,25 +546,30 @@
       "id": "dev-L5-03",
       "category": "L5",
       "subtype": "broadcast",
-      "question": "If I change the schema of stg_crm_test_drives, which reports break and who needs to know?",
+      "question": "If I change the schema of int_service_orders_enriched, which reports break and who needs to know?",
       "gold_spec": {
         "type": "impact_notify",
-        "table_id": "TBL-015"
+        "table_id": "TBL-038"
       },
       "gold": {
         "answer_ids": [
+          "EMP-001",
           "EMP-005",
-          "EMP-032",
-          "EMP-053"
+          "EMP-031",
+          "EMP-041",
+          "EMP-053",
+          "EMP-057"
         ],
-        "forbidden_ids": [],
+        "forbidden_ids": [
+          "EMP-032"
+        ],
         "should_abstain": false,
-        "min_mentioned_count": 21
+        "min_mentioned_count": 28
       },
       "scoring": "contains_all",
-      "primary_target": "TBL-015",
+      "primary_target": "TBL-038",
       "allow_id_in_question": false,
-      "notes": "21 people to notify (broadcast); layer staging"
+      "notes": "28 people to notify (broadcast); layer intermediate"
     },
     {
       "id": "dev-L6-01",
@@ -625,25 +631,6 @@
     {
       "id": "dev-L6-04",
       "category": "L6",
-      "subtype": "near_miss",
-      "question": "Who owns the Service Loyalty Matrix Dashboard?",
-      "gold_spec": {
-        "type": "abstain",
-        "reason": "near_miss"
-      },
-      "gold": {
-        "answer_ids": [],
-        "forbidden_ids": [],
-        "should_abstain": true
-      },
-      "scoring": "abstain",
-      "primary_target": "name:Service Loyalty Matrix Dashboard",
-      "allow_id_in_question": false,
-      "notes": "fragment=Loyalty Matrix; no such report"
-    },
-    {
-      "id": "dev-L6-05",
-      "category": "L6",
       "subtype": "never_done",
       "question": "Was there ever a request about social media sentiment about the brand?",
       "gold_spec": {
@@ -659,6 +646,25 @@
       "primary_target": "topic:social media sentiment about the brand",
       "allow_id_in_question": false,
       "notes": "no request cluster covers this"
+    },
+    {
+      "id": "dev-L6-05",
+      "category": "L6",
+      "subtype": "null_formula",
+      "question": "What is the exact formula for Market Share?",
+      "gold_spec": {
+        "type": "abstain",
+        "reason": "null_formula"
+      },
+      "gold": {
+        "answer_ids": [],
+        "forbidden_ids": [],
+        "should_abstain": true
+      },
+      "scoring": "abstain",
+      "primary_target": "MET-010",
+      "allow_id_in_question": false,
+      "notes": "formula is null"
     },
     {
       "id": "dev-L6-06",
@@ -708,7 +714,7 @@
         "forbidden_ids": [],
         "should_abstain": false
       },
-      "scoring": "set_f1",
+      "scoring": "contains_all",
       "primary_target": "MET-030",
       "allow_id_in_question": false,
       "notes": "source tables TBL-071"
