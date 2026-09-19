@@ -1,0 +1,82 @@
+{
+  "metadata": {
+    "git_sha": "d617c3c",
+    "set": "test",
+    "embedder": "bge-small-en-v1.5"
+  },
+  "baselines": {
+    "always_abstain": {
+      "description": "abstains on every question",
+      "accuracy": {
+        "L1": {
+          "accuracy": 0.0,
+          "n": 15
+        },
+        "L2": {
+          "accuracy": 0.0,
+          "n": 15
+        },
+        "L3": {
+          "accuracy": 0.0,
+          "n": 15
+        },
+        "L4": {
+          "accuracy": 0.0,
+          "n": 15
+        },
+        "L5": {
+          "accuracy": 0.0,
+          "n": 10
+        },
+        "L6": {
+          "accuracy": 1.0,
+          "n": 15
+        },
+        "MX": {
+          "accuracy": 0.0,
+          "n": 15
+        }
+      }
+    },
+    "retrieval_top1": {
+      "description": "the top search hit (L1) or past-work hit (L4), no reasoning",
+      "accuracy": {
+        "L1": {
+          "accuracy": 0.4666666666666667,
+          "n": 15
+        },
+        "L4": {
+          "accuracy": 0.13333333333333333,
+          "n": 15
+        }
+      }
+    },
+    "recorded_owner": {
+      "description": "the owner on record, no succession walk (the floor under A3)",
+      "accuracy": {
+        "L2": {
+          "accuracy": 0.2,
+          "n": 15
+        }
+      }
+    },
+    "all_heads": {
+      "description": "every department head, on the broadcast questions",
+      "accuracy": {
+        "L5": {
+          "accuracy": 0.0,
+          "n": 3
+        }
+      }
+    },
+    "default_depth_lineage": {
+      "description": "the right lineage call, always with depth 3",
+      "accuracy": {
+        "L3": {
+          "accuracy": 0.6,
+          "n": 15
+        }
+      }
+    }
+  }
+}
