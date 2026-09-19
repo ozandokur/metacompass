@@ -1,5 +1,6 @@
-"""The eval runner (spec §9.9, §9.10): which questions run, the budget guard, and a dry run
-of the whole pipeline with the fake LLM."""
+"""The eval runner (spec §9.9, §9.10 as changed by D25): which questions run, writing each
+answer as soon as it exists, resuming where a run stopped, and stopping cleanly when the
+free-tier quota is used up."""
 
 import json
 
@@ -7,15 +8,20 @@ import pytest
 
 import run_eval
 from metacompass.agent.answer import abstained_answer
+from metacompass.agent.llm import FakeLLM, LLMResponse, QuotaExhausted
 from metacompass.agent.loop import AgentResult
 
 
 def items(n_per_category: int = 2) -> list[dict]:
     return [
-        {"id": f"{c}-{i}", "category": c, "subtype": "x", "question": f"q {c} {i}"}
+        {
+            "id": f"{c}-{i}", "category": c, "subtype": "x", "question": f"q {c} {i}",
+            "gold": {"answer_ids": [], "forbidden_ids": [], "should_abstain": True},
+            "scoring": "abstain",
+        }
         for c in ("L1", "L2", "L3", "L4", "L5", "L6", "MX")
         for i in range(n_per_category)
-    ]
+    ]  # fmt: skip
 
 
 def test_select_items_follows_the_config_categories():
@@ -26,118 +32,106 @@ def test_select_items_follows_the_config_categories():
     assert {i["category"] for i in narrowed} == {"L6"}
 
 
-SPEND = {"total_usd": 2.0, "runs": []}
+class Agent:
+    """Stands in for the agent; runs out of quota after `quota` answers."""
 
-
-def guard(**overrides):
-    kwargs = {
-        "set_name": "test", "dry_run": False, "confirm": True, "know_cost": False,
-        "estimate": 1.0, "spend": SPEND, "budget": 25.0,
-    }  # fmt: skip
-    run_eval.guard(**{**kwargs, **overrides})
-
-
-def test_guard_lets_an_affordable_confirmed_run_through():
-    guard()  # 1.0 of 23.0 remaining
-
-
-@pytest.mark.parametrize(
-    ("overrides", "message"),
-    [
-        ({"budget": None}, "EVAL_BUDGET_USD"),
-        ({"confirm": False}, "--confirm"),
-        ({"estimate": None}, "pilot"),
-        ({"estimate": 12.0}, "--i-know-the-cost"),  # over half of the 23.0 left
-        ({"spend": {"total_usd": 25.0, "runs": []}}, "budget"),
-    ],
-)
-def test_guard_refuses(overrides, message):
-    with pytest.raises(run_eval.RunRefused, match=message):
-        guard(**overrides)
-
-
-def test_guard_allows_what_the_rules_allow():
-    guard(estimate=12.0, know_cost=True)  # the extra flag accepts the cost
-    guard(set_name="dev", confirm=False, estimate=None)  # the dev pilot needs no approval
-    guard(dry_run=True, confirm=False, budget=None, estimate=None)  # no money, no guard
-
-
-def test_pilot_cost_comes_from_the_latest_dev_full_run():
-    spend = {
-        "total_usd": 3.0,
-        "runs": [
-            {"set": "dev", "config": "A0", "questions": 30, "cost_usd": 0.6},
-            {"set": "dev", "config": "A1", "questions": 30, "cost_usd": 3.0},
-            {"set": "dev", "config": "A0", "questions": 30, "cost_usd": 0.9},
-        ],
-    }
-    assert run_eval.pilot_cost_per_question(spend) == pytest.approx(0.03)
-    assert run_eval.pilot_cost_per_question({"total_usd": 0.0, "runs": []}) is None
-
-
-class PricedAgent:
-    """Stands in for the agent: every answer costs the same."""
-
-    def __init__(self, cost: float) -> None:
-        self.cost = cost
+    def __init__(self, quota: int | None = None) -> None:
+        self.quota, self.asked = quota, []
 
     def run(self, question: str) -> AgentResult:
+        if self.quota is not None and len(self.asked) == self.quota:
+            raise QuotaExhausted("daily requests used up")
+        self.asked.append(question)
         return AgentResult(
             question=question, config_name="full", answer=abstained_answer("-"), steps=[],
             stopped_reason="final", stripped_ids=[], tool_calls=0, input_tokens=10,
-            output_tokens=5, cost_usd=self.cost, latency_ms=1,
+            output_tokens=5, cost_usd=0.0, latency_ms=1,
         )  # fmt: skip
 
 
-def test_a_run_stops_once_the_budget_is_spent_and_marks_the_rest():
-    questions = [
-        {**i, "gold": {"answer_ids": [], "forbidden_ids": [], "should_abstain": True},
-         "scoring": "abstain"}
-        for i in items(1)
-    ]  # fmt: skip
-    lines, spent = run_eval.run_items(
-        PricedAgent(0.4), questions, set_name="dev", code="A0", repeat=1, budget_left=1.0
-    )
-    assert [line["incomplete"] for line in lines] == [False] * 3 + [True] * 4
-    assert spent == pytest.approx(1.2)
+BASE = {"set": "dev", "config": "A0", "repeat": 1}
+
+
+def test_each_answer_is_on_disk_before_the_next_question(tmp_path):
+    path = tmp_path / "dev_A0_r1.jsonl"
+    with pytest.raises(QuotaExhausted):
+        run_eval.answer_all(Agent(quota=3), items(1), path=path, base_line=BASE)
+    lines = [json.loads(row) for row in path.read_text(encoding="utf-8").splitlines()]
+    assert [line["item_id"] for line in lines] == ["L1-0", "L2-0", "L3-0"]
     assert lines[0]["score"]["correct"] is True
-    assert "result" not in lines[-1]
+    assert (lines[0]["set"], lines[0]["config"], lines[0]["repeat"]) == ("dev", "A0", 1)
 
 
-def test_record_spend_adds_up():
-    spend = run_eval.record_spend(
-        {"total_usd": 1.0, "runs": []}, {"set": "dev", "config": "A0", "cost_usd": 0.25}
-    )
-    assert spend["total_usd"] == pytest.approx(1.25)
-    assert spend["runs"][-1]["cost_usd"] == 0.25
+def test_a_second_run_answers_only_what_is_missing(tmp_path):
+    path = tmp_path / "dev_A0_r1.jsonl"
+    with pytest.raises(QuotaExhausted):
+        run_eval.answer_all(Agent(quota=3), items(1), path=path, base_line=BASE)
+    done = run_eval.completed_ids(path)
+    assert done == {"L1-0", "L2-0", "L3-0"}
+    todo = [i for i in items(1) if i["id"] not in done]
+    second = Agent()
+    assert run_eval.answer_all(second, todo, path=path, base_line=BASE) == 4
+    assert second.asked == ["q L4 0", "q L5 0", "q L6 0", "q MX 0"]
+    ids = [json.loads(row)["item_id"] for row in path.read_text(encoding="utf-8").splitlines()]
+    assert sorted(ids) == sorted(i["id"] for i in items(1))  # every question exactly once
 
 
-def test_dry_run_goes_end_to_end_without_network_or_money(generated_dir, tmp_path):
-    spend_log = tmp_path / "spend_log.json"
-    code = run_eval.main(
+def test_completed_ids_of_a_missing_file_is_empty(tmp_path):
+    assert run_eval.completed_ids(tmp_path / "nothing.jsonl") == set()
+
+
+def dry_run(generated_dir, tmp_path, *extra) -> int:
+    return run_eval.main(
         [
             "--set", "dev", "--config", "full", "--llm", "fake", "--embedder", "hash",
             "--data", str(generated_dir), "--out-dir", str(tmp_path), "--limit", "3",
-            "--spend-log", str(spend_log),
+            "--env-file", str(tmp_path / "no.env"), *extra,
         ]
     )  # fmt: skip
-    assert code == 0
-    (path,) = tmp_path.glob("dev_A0_r1_*.jsonl")
-    lines = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+
+
+def test_dry_run_goes_end_to_end_and_resumes_to_nothing(generated_dir, tmp_path, capsys):
+    assert dry_run(generated_dir, tmp_path) == 0
+    path = tmp_path / "dev_A0_r1.jsonl"
+    lines = [json.loads(row) for row in path.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 3
     for line in lines:
         assert (line["model"], line["prompt_version"]) == ("fake", "v1")
         assert line["git_sha"] and line["date"]
         assert line["result"]["stopped_reason"] == "final"
         assert isinstance(line["score"]["correct"], bool)
-        assert line["result"]["cost_usd"] == 0.0
-    assert not spend_log.exists()  # a dry run spends nothing and logs nothing
+    assert dry_run(generated_dir, tmp_path) == 0  # resume is the default: nothing left
+    assert len(path.read_text(encoding="utf-8").splitlines()) == 3
+    assert "0 to answer" in capsys.readouterr().out
 
 
-def test_a_live_test_run_without_confirm_is_refused(tmp_path, capsys):
-    code = run_eval.main(
-        ["--set", "test", "--config", "full", "--llm", "provider", "--out-dir", str(tmp_path)]
+def test_no_resume_refuses_to_overwrite_answers(generated_dir, tmp_path, capsys):
+    assert dry_run(generated_dir, tmp_path) == 0
+    assert dry_run(generated_dir, tmp_path, "--no-resume") == 2
+    assert "already has" in capsys.readouterr().err
+
+
+def test_an_exhausted_quota_ends_the_run_cleanly(generated_dir, tmp_path, monkeypatch, capsys):
+    answer = json.dumps({"answer": "-", "answer_ids": [], "evidence_ids": [], "abstained": True})
+    done = LLMResponse(
+        content=answer, tool_calls=[], input_tokens=1, output_tokens=1, raw_model="f"
     )
+    monkeypatch.setattr(
+        run_eval, "dry_run_llm", lambda: FakeLLM([done, done, QuotaExhausted("day over")])
+    )
+    assert dry_run(generated_dir, tmp_path) == 0  # a quota stop is not an error
+    assert len((tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8").splitlines()) == 2
+    assert "quota" in capsys.readouterr().out
+
+
+def test_a_live_run_without_llm_settings_is_refused(generated_dir, tmp_path, capsys):
+    code = run_eval.main(
+        [
+            "--set", "dev", "--config", "full", "--llm", "provider", "--embedder", "hash",
+            "--data", str(generated_dir), "--out-dir", str(tmp_path),
+            "--env-file", str(tmp_path / "no.env"),
+        ]
+    )  # fmt: skip
     assert code == 2
-    assert "--confirm" in capsys.readouterr().err
-    assert list(tmp_path.iterdir()) == []
+    assert "LLM_" in capsys.readouterr().err
+    assert list(tmp_path.glob("*.jsonl")) == []

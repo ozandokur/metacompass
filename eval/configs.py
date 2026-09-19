@@ -1,6 +1,6 @@
-"""The evaluated agent configurations (spec §9.8): the full system and five leave-one-out
-ablations. Each ablation changes one component against the full system, never a stack of
-them (D16), and runs only on the categories where that component matters.
+"""The evaluated agent configurations (spec §9.8, updated by D25): the full system and five
+leave-one-out ablations. Each ablation changes one component against the full system,
+never a stack of them (D16), and runs only on the categories where that component matters.
 """
 
 from metacompass.config import ALL_SIX_TOOLS, AgentConfig
@@ -29,7 +29,9 @@ CATEGORIES = {
     "A4": ALL_CATEGORIES,
     "A5": ("L5", "MX"),
 }
-REPEATS = {"A0": 3, "A1": 2, "A2": 2, "A3": 2, "A4": 2, "A5": 2}
+# D25: on the free tier only the full system is repeated (3x); its repeat-to-repeat spread
+# is the yardstick for reading one-run ablation differences. 665 runs in all.
+REPEATS = {"A0": 3, "A1": 1, "A2": 1, "A3": 1, "A4": 1, "A5": 1}
 ALIASES = {"full": "A0"}
 
 

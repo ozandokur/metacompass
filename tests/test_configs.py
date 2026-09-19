@@ -42,5 +42,7 @@ def test_categories_repeats_and_total_runs_match_the_spec():
         code: configs.REPEATS[code] * sum(i["category"] in configs.CATEGORIES[code] for i in items)
         for code in configs.CONFIGS
     }
-    assert runs == {"A0": 300, "A1": 200, "A2": 200, "A3": 80, "A4": 200, "A5": 50}
-    assert sum(runs.values()) == 1030  # spec §9.8
+    # D25 (free tier): only the full system repeats; its spread is the noise yardstick.
+    assert configs.REPEATS == {"A0": 3, "A1": 1, "A2": 1, "A3": 1, "A4": 1, "A5": 1}
+    assert runs == {"A0": 300, "A1": 100, "A2": 100, "A3": 40, "A4": 100, "A5": 25}
+    assert sum(runs.values()) == 665
