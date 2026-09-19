@@ -14,6 +14,11 @@ Test runs go to eval/results/ (committed); dev runs and dry runs to eval/results
 The live model is always wrapped as CachedLLM(QuotaGuardedLLM(provider)): repeating a run
 is free, and the guard throttles to the RPM/TPM limits and stops at the daily limit.
 `--llm fake` runs the whole pipeline with a scripted model that always abstains.
+
+An answer that ended in llm_error (the provider failed three times) is not written: it is
+an abstention the agent never chose, and on an unanswerable question it would score as a
+correct one. The question stays unanswered and the next run asks it again; three such
+failures in a row stop the run, because then something is wrong with the provider.
 """
 
 import argparse
@@ -27,13 +32,14 @@ from metacompass.agent.llm import (
     CachedLLM,
     FakeLLM,
     LLMResponse,
+    ProviderError,
     QuotaExhausted,
     RateLimited,
     make_llm,
 )
 from metacompass.agent.loop import Agent
 from metacompass.agent.quota import QuotaGuardedLLM, QuotaLimits, QuotaLog
-from metacompass.config import PROJECT_ROOT, load_settings
+from metacompass.config import GEMINI_API_VERSION, PROJECT_ROOT, load_settings
 from metacompass.data.store import MetadataStore
 from metacompass.graph import build_lineage_graph
 from metacompass.retrieval.corpus import build_retrievers
@@ -45,6 +51,11 @@ from scoring import score
 RESULTS = ROOT / "eval" / "results"
 SCRATCH = RESULTS / "scratch"
 QUOTA_LOG = RESULTS / "quota_log.json"
+MAX_LLM_ERRORS_IN_A_ROW = 3
+
+
+class ProviderDown(Exception):
+    """Several questions in a row ended in llm_error: stop and look, do not carry on."""
 
 
 def load_set(set_name: str) -> list[dict]:
@@ -71,9 +82,15 @@ def answer_all(agent, items: list[dict], *, path: Path, base_line: dict) -> int:
     QuotaExhausted passes through: the question being asked is simply not written, and the
     next run asks it again.
     """
-    answered = 0
+    answered = failures = 0
     for item in items:
         result = agent.run(item["question"])
+        if result.stopped_reason == "llm_error":
+            failures += 1
+            if failures == MAX_LLM_ERRORS_IN_A_ROW:
+                raise ProviderDown(f"{failures} questions in a row ended in llm_error")
+            continue
+        failures = 0
         line = {
             **base_line,
             "item_id": item["id"],
@@ -131,7 +148,9 @@ def main(argv: list[str] | None = None) -> int:
             return 2
     try:
         provider = dry_run_llm() if dry_run else make_llm(settings)
-    except ValueError as missing:
+        if not dry_run:
+            provider.check_model()  # a wrong model name fails here, not on every question
+    except (ValueError, ProviderError) as missing:
         print(f"refused: {missing}", file=sys.stderr)
         return 2
 
@@ -167,12 +186,17 @@ def main(argv: list[str] | None = None) -> int:
         base_line = {
             "set": args.set, "config": code, "repeat": repeat,
             "model": "fake" if dry_run else settings.llm_model,
+            "api_version": "fake" if dry_run else GEMINI_API_VERSION,
             "prompt_version": CONFIGS[code].prompt_version, "git_sha": sha,
             "date": date.today().isoformat(),
         }  # fmt: skip
         agent = Agent(llm, registry, prices=prices)
         try:
             answered = answer_all(agent, todo, path=path, base_line=base_line)
+        except ProviderDown as down:
+            print(f"stopped: {down}. The unanswered questions stay open for the next run.",
+                  file=sys.stderr)  # fmt: skip
+            return 1
         except (QuotaExhausted, RateLimited) as stop:
             left = len(todo) - (len(completed_ids(path)) - len(done))
             print(f"stopped on the free-tier quota ({stop}); {left} questions left in repeat "

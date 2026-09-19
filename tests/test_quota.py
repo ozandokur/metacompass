@@ -117,3 +117,15 @@ def test_the_log_is_written_with_lf(tmp_path):
     llm, _, _ = guarded(tmp_path, [ok()], clock)
     llm.chat(MESSAGES, None)
     assert b"\r\n" not in (tmp_path / "quota_log.json").read_bytes()
+
+
+def test_a_daily_quota_429_stops_at_once_and_is_remembered(tmp_path):
+    clock = Clock()
+    daily = RateLimited(30.0, quota_id="GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+                        quota_value=250)  # fmt: skip
+    llm, inner, _ = guarded(tmp_path, [daily], clock, rpd=1500)
+    with pytest.raises(QuotaExhausted, match="daily"):
+        llm.chat(MESSAGES, None)
+    assert (clock.slept, len(inner.requests)) == ([], 1)  # no pointless retries
+    saved = json.loads((tmp_path / "quota_log.json").read_text(encoding="utf-8"))
+    assert saved["observed"] == {"GenerateRequestsPerDayPerProjectPerModel-FreeTier": 250}

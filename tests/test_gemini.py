@@ -15,7 +15,7 @@ from metacompass.agent.llm import (
     gemini_response,
     make_llm,
 )
-from metacompass.config import Settings
+from metacompass.config import GEMINI_API_VERSION, Settings
 
 TOOLS = [
     {
@@ -74,6 +74,14 @@ def test_request_maps_the_conversation_to_generate_content():
     assert body["generationConfig"] == {"temperature": 0.0, "responseMimeType": "application/json"}
 
 
+def test_the_role_of_function_responses_is_configurable():
+    body = gemini_request(conversation(), TOOLS, json_mode=False, function_response_role="function")
+    user, model, results, instruction = body["contents"]
+    assert results["role"] == "function"
+    assert [list(p) for p in results["parts"]] == [["functionResponse"], ["functionResponse"]]
+    assert instruction == {"role": "user", "parts": [{"text": "No more tools."}]}
+
+
 def test_request_without_tools_or_json_mode():
     body = gemini_request(conversation()[:2], None, json_mode=False)
     assert "tools" not in body
@@ -98,7 +106,8 @@ def test_a_model_turn_is_sent_back_exactly_as_it_came():
 def test_calls_the_model_gave_no_id_are_answered_without_one():
     response = gemini_response(
         {"candidates": [{"content": {"role": "model", "parts": [
-            {"functionCall": {"name": "get_record", "args": {"record_id": "RPT-0001"}}}]}}]},
+            {"functionCall": {"name": "get_record", "args": {"record_id": "RPT-0001"}}}]}}],
+         "usageMetadata": USAGE},
         "gemini-flash",
     )  # fmt: skip
     call = response.tool_calls[0]
@@ -142,9 +151,24 @@ def test_response_parsing():
     assert response.provider_state == {"content": data["candidates"][0]["content"]}
 
 
-def test_a_blocked_answer_has_no_content():
-    response = gemini_response({"candidates": [], "usageMetadata": {}}, "gemini-flash")
-    assert (response.content, response.tool_calls) == (None, [])
+USAGE = {"promptTokenCount": 10, "candidatesTokenCount": 2}
+
+
+@pytest.mark.parametrize(
+    ("data", "message"),
+    [
+        # A blocked prompt: no candidate at all. Never an empty answer the loop would abstain on.
+        ({"candidates": [], "promptFeedback": {"blockReason": "SAFETY"}, "usageMetadata": USAGE},
+         "SAFETY"),
+        ({"candidates": [{"finishReason": "MAX_TOKENS"}], "usageMetadata": USAGE}, "MAX_TOKENS"),
+        ({"candidates": [{"content": {"role": "model", "parts": [{"text": "x"}]}}]}, "usage"),
+        ({"candidates": [{"content": {"role": "model", "parts": [{"functionCall": {"args": {}}}]}}],
+          "usageMetadata": USAGE}, "unexpected"),
+    ],
+)  # fmt: skip
+def test_an_unexpected_response_is_an_error_not_an_empty_answer(data, message):
+    with pytest.raises(ProviderError, match=message):
+        gemini_response(data, "gemini-flash")
 
 
 def client(handler) -> GeminiClient:
@@ -159,11 +183,16 @@ def test_client_posts_with_the_key_in_a_header_not_the_url():
         seen["url"], seen["key"] = str(request.url), request.headers.get("x-goog-api-key")
         seen["body"] = json.loads(request.content)
         return httpx.Response(
-            200, json={"candidates": [{"content": {"role": "model", "parts": [{"text": "hi"}]}}]}
+            200,
+            json={
+                "candidates": [{"content": {"role": "model", "parts": [{"text": "hi"}]}}],
+                "usageMetadata": USAGE,
+            },
         )
 
     out = client(handler).chat(conversation()[:2], TOOLS)
-    assert seen["url"].endswith("/v1beta/models/gemini-flash:generateContent")
+    assert seen["url"].endswith(f"/{GEMINI_API_VERSION}/models/gemini-flash:generateContent")
+    assert GEMINI_API_VERSION == "v1beta"  # pinned; results.md names it
     assert "secret-key-123" not in seen["url"]
     assert seen["key"] == "secret-key-123"
     assert seen["body"]["contents"][0]["parts"][0]["text"] == "What is RPT-0001?"
@@ -205,3 +234,31 @@ def test_make_llm_builds_the_configured_provider():
         make_llm(Settings(llm_provider="other", llm_model="m", llm_api_key="k"))
     with pytest.raises(ValueError, match="LLM_"):
         make_llm(Settings())
+
+
+def test_429_carries_which_quota_ran_out():
+    body = {"error": {"code": 429, "details": [
+        {"@type": "type.googleapis.com/google.rpc.QuotaFailure", "violations": [
+            {"quotaId": "GenerateRequestsPerDayPerProjectPerModel-FreeTier", "quotaValue": "250"}]},
+        {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "12s"}]}}  # fmt: skip
+
+    def handler(request):
+        return httpx.Response(429, json=body)
+
+    with pytest.raises(RateLimited) as error:
+        client(handler).chat(conversation()[:2], None)
+    assert error.value.quota_id == "GenerateRequestsPerDayPerProjectPerModel-FreeTier"
+    assert error.value.quota_value == 250
+    assert error.value.retry_after == 12.0
+
+
+def test_the_model_is_checked_before_a_run():
+    def handler(request):
+        if request.url.path.endswith("/models/gemini-flash"):
+            return httpx.Response(200, json={"name": "models/gemini-flash"})
+        return httpx.Response(404, json={"error": {"status": "NOT_FOUND"}})
+
+    http = httpx.Client(transport=httpx.MockTransport(handler))
+    GeminiClient("gemini-flash", "k", http=http).check_model()
+    with pytest.raises(ProviderError, match="not available"):
+        GeminiClient("gemini-1.5-flash", "k", http=http).check_model()

@@ -56,6 +56,11 @@ NOTIFY_DETAIL_MAX = 20
 NOTIFY_BROADCAST_TOP = 10
 
 
+# Gemini API version the provider client calls (D25). Pinned so a result names the exact
+# endpoint it came from; results.md prints it.
+GEMINI_API_VERSION = "v1beta"
+
+
 def output_char_cap(tool_name: str) -> int:
     return OUTPUT_CHAR_CAPS.get(tool_name, DEFAULT_OUTPUT_CHAR_CAP)
 

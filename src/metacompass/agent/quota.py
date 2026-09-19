@@ -58,14 +58,23 @@ class QuotaLog:
     def used_today(self) -> dict:
         return self._load()["days"].get(self.today(), {"requests": 0, "tokens": 0})
 
+    def observe(self, quota_id: str, value: int) -> None:
+        """Remember a limit the provider reported in a 429 (it may differ from .env)."""
+        data = self._load()
+        data.setdefault("observed", {})[quota_id] = value
+        self._save(data)
+
+    def _save(self, data: dict) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+
     def record(self, tokens: int, limits: QuotaLimits) -> None:
         data = self._load()
         day = data["days"].setdefault(self.today(), {"requests": 0, "tokens": 0})
         day["requests"] += 1
         day["tokens"] += tokens
         data["limits"] = asdict(limits)
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
+        self._save(data)
 
 
 def estimate_input_tokens(messages: list[dict], tools: list[dict] | None) -> int:
@@ -120,6 +129,11 @@ class QuotaGuardedLLM:
             try:
                 response = self.inner.chat(messages, tools, json_mode)
             except RateLimited as refused:
+                if refused.quota_id and refused.quota_value is not None:
+                    self.log.observe(refused.quota_id, refused.quota_value)
+                if refused.quota_id and "PerDay" in refused.quota_id:
+                    # Retrying cannot help before midnight Pacific.
+                    raise QuotaExhausted(f"daily quota {refused.quota_id} used up") from None
                 if attempt == len(BACKOFF):
                     raise QuotaExhausted("still rate limited after 5 retries") from None
                 delay = refused.retry_after

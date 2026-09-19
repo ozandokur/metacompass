@@ -33,18 +33,20 @@ def test_select_items_follows_the_config_categories():
 
 
 class Agent:
-    """Stands in for the agent; runs out of quota after `quota` answers."""
+    """Stands in for the agent; runs out of quota after `quota` answers. `reasons` scripts
+    the stop reason of each answer (default: all "final")."""
 
-    def __init__(self, quota: int | None = None) -> None:
-        self.quota, self.asked = quota, []
+    def __init__(self, quota: int | None = None, reasons: list[str] | None = None) -> None:
+        self.quota, self.asked, self.reasons = quota, [], list(reasons or [])
 
     def run(self, question: str) -> AgentResult:
         if self.quota is not None and len(self.asked) == self.quota:
             raise QuotaExhausted("daily requests used up")
         self.asked.append(question)
+        reason = self.reasons.pop(0) if self.reasons else "final"
         return AgentResult(
             question=question, config_name="full", answer=abstained_answer("-"), steps=[],
-            stopped_reason="final", stripped_ids=[], tool_calls=0, input_tokens=10,
+            stopped_reason=reason, stripped_ids=[], tool_calls=0, input_tokens=10,
             output_tokens=5, cost_usd=0.0, latency_ms=1,
         )  # fmt: skip
 
@@ -96,7 +98,8 @@ def test_dry_run_goes_end_to_end_and_resumes_to_nothing(generated_dir, tmp_path,
     lines = [json.loads(row) for row in path.read_text(encoding="utf-8").splitlines()]
     assert len(lines) == 3
     for line in lines:
-        assert (line["model"], line["prompt_version"]) == ("fake", "v1")
+        assert (line["model"], line["api_version"]) == ("fake", "fake")
+        assert line["prompt_version"] == run_eval.CONFIGS["A0"].prompt_version
         assert line["git_sha"] and line["date"]
         assert line["result"]["stopped_reason"] == "final"
         assert isinstance(line["score"]["correct"], bool)
@@ -141,3 +144,21 @@ def test_result_lines_end_in_lf_on_every_platform(tmp_path):
     path = tmp_path / "dev_A0_r1.jsonl"
     run_eval.answer_all(Agent(), items(1)[:2], path=path, base_line=BASE)
     assert b"\r\n" not in path.read_bytes()
+
+
+def test_a_failed_llm_call_is_not_scored_and_the_question_is_asked_again_later(tmp_path):
+    # An llm_error answer is an abstention the agent never chose; on an L6 question it would
+    # score as a correct abstain. It is not written, so a later run asks again.
+    path = tmp_path / "dev_A0_r1.jsonl"
+    agent = Agent(reasons=["final", "llm_error", "final"])
+    assert run_eval.answer_all(agent, items(1)[:3], path=path, base_line=BASE) == 2
+    assert run_eval.completed_ids(path) == {"L1-0", "L3-0"}
+
+
+def test_three_failed_llm_calls_in_a_row_stop_the_run(tmp_path):
+    path = tmp_path / "dev_A0_r1.jsonl"
+    agent = Agent(reasons=["llm_error"] * 5)
+    with pytest.raises(run_eval.ProviderDown):
+        run_eval.answer_all(agent, items(1), path=path, base_line=BASE)
+    assert len(agent.asked) == 3
+    assert run_eval.completed_ids(path) == set()

@@ -21,7 +21,7 @@ from typing import Protocol
 import httpx
 from pydantic import BaseModel
 
-from metacompass.config import Settings
+from metacompass.config import GEMINI_API_VERSION, Settings
 
 
 class ToolCall(BaseModel):
@@ -42,11 +42,16 @@ class LLMResponse(BaseModel):
 
 
 class RateLimited(Exception):
-    """The provider answered 429. `retry_after` is its own hint in seconds, if it gave one."""
+    """The provider answered 429. `retry_after` is its own hint in seconds, if it gave one;
+    `quota_id` and `quota_value` name the quota that ran out and its limit, if it said."""
 
-    def __init__(self, retry_after: float | None) -> None:
-        super().__init__(f"rate limited (retry after {retry_after})")
+    def __init__(
+        self, retry_after: float | None, quota_id: str | None = None, quota_value: int | None = None
+    ) -> None:
+        super().__init__(f"rate limited ({quota_id or 'quota unknown'}, retry after {retry_after})")
         self.retry_after = retry_after
+        self.quota_id = quota_id
+        self.quota_value = quota_value
 
 
 class QuotaExhausted(Exception):
@@ -156,7 +161,12 @@ class CachedLLM:
 # ---------------------------------------------------------------------- Gemini
 
 
-GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_BASE = f"https://generativelanguage.googleapis.com/{GEMINI_API_VERSION}/models/{{model}}"
+GEMINI_URL = GEMINI_BASE + ":generateContent"
+# The role of the turn that carries functionResponse parts. The generateContent reference
+# pages checked on 2026-09-19 did not say it; "user" is tried first and the first live call
+# settles it (PROGRESS, Q-D25-3). The alternatives to try on a 400 are "function", "tool".
+FUNCTION_RESPONSE_ROLE = "user"
 # Tool calls the model sent without an ID get one of these, so the loop can pair results
 # with calls; they are left out again when the result is sent back.
 LOCAL_ID_PREFIX = "local-"
@@ -172,7 +182,11 @@ def _append(contents: list[dict], role: str, part: dict) -> None:
 
 
 def gemini_request(
-    messages: list[dict], tools: list[dict] | None, json_mode: bool, temperature: float = 0.0
+    messages: list[dict],
+    tools: list[dict] | None,
+    json_mode: bool,
+    temperature: float = 0.0,
+    function_response_role: str = FUNCTION_RESPONSE_ROLE,
 ) -> dict:
     """The generateContent request body for a provider-neutral conversation."""
     contents: list[dict] = []
@@ -185,7 +199,7 @@ def gemini_request(
             response = {"name": message["name"], "response": json.loads(message["content"])}
             if not message["tool_call_id"].startswith(LOCAL_ID_PREFIX):
                 response = {"id": message["tool_call_id"], **response}
-            _append(contents, "user", {"functionResponse": response})
+            _append(contents, function_response_role, {"functionResponse": response})
         elif role == "assistant":
             state = message.get("provider_state") or {}
             if "content" in state:
@@ -218,22 +232,38 @@ def gemini_request(
 
 
 def gemini_response(data: dict, model: str) -> LLMResponse:
-    """An LLMResponse from a generateContent answer. No candidate (a blocked prompt) means
-    no content and no calls, which the loop treats as an unreadable answer."""
+    """An LLMResponse from a generateContent answer.
+
+    Anything but the expected shape is a ProviderError, never an empty answer: a blocked
+    prompt, a candidate without content, missing usage counts or a malformed call would
+    otherwise reach the loop as "no answer" and turn into an abstention nobody chose. The
+    loop retries a ProviderError and then reports llm_error, which is not scored.
+    """
     candidates = data.get("candidates") or []
-    content = candidates[0].get("content", {}) if candidates else {}
-    parts = content.get("parts", [])
-    text = "".join(p["text"] for p in parts if "text" in p and not p.get("thought"))
-    calls = [
-        ToolCall(
-            id=part["functionCall"].get("id") or f"{LOCAL_ID_PREFIX}{i}",
-            name=part["functionCall"]["name"],
-            arguments=part["functionCall"].get("args", {}),
-        )
-        for i, part in enumerate(parts)
-        if "functionCall" in part
-    ]
-    usage = data.get("usageMetadata", {})
+    if not candidates:
+        reason = (data.get("promptFeedback") or {}).get("blockReason", "no reason given")
+        raise ProviderError(f"Gemini returned no candidate ({reason})")
+    content = candidates[0].get("content") or {}
+    parts = content.get("parts")
+    if not parts:
+        reason = candidates[0].get("finishReason", "no reason given")
+        raise ProviderError(f"Gemini returned a candidate without content ({reason})")
+    usage = data.get("usageMetadata")
+    if not usage or "promptTokenCount" not in usage:
+        raise ProviderError("Gemini returned no usage counts")
+    try:
+        text = "".join(p["text"] for p in parts if "text" in p and not p.get("thought"))
+        calls = [
+            ToolCall(
+                id=part["functionCall"].get("id") or f"{LOCAL_ID_PREFIX}{i}",
+                name=part["functionCall"]["name"],
+                arguments=part["functionCall"].get("args", {}),
+            )
+            for i, part in enumerate(parts)
+            if "functionCall" in part
+        ]
+    except (KeyError, TypeError, AttributeError) as error:
+        raise ProviderError(f"Gemini returned an unexpected part ({error!r})") from None
     return LLMResponse(
         content=text or None,
         tool_calls=calls,
@@ -242,28 +272,33 @@ def gemini_response(data: dict, model: str) -> LLMResponse:
         input_tokens=usage.get("promptTokenCount", 0) + usage.get("toolUsePromptTokenCount", 0),
         output_tokens=usage.get("candidatesTokenCount", 0) + usage.get("thoughtsTokenCount", 0),
         raw_model=data.get("modelVersion", model),
-        provider_state={"content": content} if content else None,
+        provider_state={"content": content},
     )
 
 
-def _retry_after(response: httpx.Response) -> float | None:
-    """The server's wait hint on a 429: the Retry-After header, else RetryInfo.retryDelay."""
+def _rate_limited(response: httpx.Response) -> RateLimited:
+    """A 429 as RateLimited: the wait hint (Retry-After header, else RetryInfo.retryDelay)
+    and, if the body names it, the quota that ran out (QuotaFailure.violations)."""
+    retry_after = quota_id = quota_value = None
     header = response.headers.get("retry-after")
-    if header is not None:
-        try:
-            return float(header)
-        except ValueError:
-            pass
+    if header is not None and header.replace(".", "", 1).isdigit():
+        retry_after = float(header)
     try:
         details = response.json().get("error", {}).get("details", [])
     except ValueError:
-        return None
+        details = []
     for detail in details:
-        if detail.get("@type", "").endswith("RetryInfo"):
+        kind = detail.get("@type", "")
+        if kind.endswith("RetryInfo") and retry_after is None:
             match = re.fullmatch(r"([0-9.]+)s", detail.get("retryDelay", ""))
             if match:
-                return float(match.group(1))
-    return None
+                retry_after = float(match.group(1))
+        elif kind.endswith("QuotaFailure") and detail.get("violations"):
+            violation = detail["violations"][0]
+            quota_id = violation.get("quotaId")
+            value = str(violation.get("quotaValue", ""))
+            quota_value = int(value) if value.isdigit() else None
+    return RateLimited(retry_after, quota_id, quota_value)
 
 
 class GeminiClient:
@@ -276,22 +311,41 @@ class GeminiClient:
     """
 
     def __init__(
-        self, model: str, api_key: str, *, http: httpx.Client | None = None, timeout: float = 120.0
+        self,
+        model: str,
+        api_key: str,
+        *,
+        http: httpx.Client | None = None,
+        timeout: float = 120.0,
+        function_response_role: str = FUNCTION_RESPONSE_ROLE,
     ) -> None:
         self.model = model
         self._api_key = api_key
         self._http = http or httpx.Client(timeout=timeout)
+        self.function_response_role = function_response_role
+
+    def _headers(self) -> dict:
+        return {"x-goog-api-key": self._api_key}
+
+    def check_model(self) -> None:
+        """Fail before a run, not on its first question, if the model does not exist."""
+        response = self._http.get(GEMINI_BASE.format(model=self.model), headers=self._headers())
+        if response.status_code != 200:
+            raise ProviderError(
+                f"model {self.model!r} is not available (HTTP {response.status_code})"
+            )
 
     def chat(
         self, messages: list[dict], tools: list[dict] | None, json_mode: bool = False
     ) -> LLMResponse:
+        body = gemini_request(
+            messages, tools, json_mode, function_response_role=self.function_response_role
+        )
         response = self._http.post(
-            GEMINI_URL.format(model=self.model),
-            headers={"x-goog-api-key": self._api_key},
-            json=gemini_request(messages, tools, json_mode),
+            GEMINI_URL.format(model=self.model), headers=self._headers(), json=body
         )
         if response.status_code == 429:
-            raise RateLimited(_retry_after(response))
+            raise _rate_limited(response)
         if response.status_code >= 400:
             try:
                 reason = response.json().get("error", {}).get("status", "")
