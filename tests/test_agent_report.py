@@ -103,7 +103,7 @@ def test_ablation_table_marks_what_did_not_run():
     assert "0.83" in a0
     assert set(a1.strip("|").split("|")[1:]) == {" — "}  # never ran
     assert a4.split("|")[2].strip() == "—"  # A4 ran, but not on L1
-    assert a4.split("|")[7].strip() == "0.00"  # L6 column: 1.00 in A0, a real drop
+    assert a4.split("|")[7].strip() == "0.00 ▼"  # L6: 1.00 in A0, the CIs do not overlap
     assert "Tokens/q" in header and "$/q" not in header
 
 
@@ -166,3 +166,100 @@ def test_page_with_a_single_dry_run_has_every_section_filled():
     assert "| L1 | 2 | 0.00 (1 repeat) |" in agent_part
     assert "`test-model`" in page and "`v1`" in page
     assert "## Run plan and free-tier limits" in page
+
+
+# ---------------------------------------------------------------------- diagnostics
+
+
+DIAG_ITEMS = [
+    {"id": "L1-001", "category": "L1", "subtype": "exact", "question": "q",
+     "gold_spec": {"type": "asset_by_description", "target_id": "RPT-0001"},
+     "gold": {"answer_ids": ["RPT-0001"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L3-001", "category": "L3", "subtype": "report_upstream", "question": "q",
+     "gold_spec": {"type": "upstream_tables", "node_id": "RPT-0009", "depth": 2},
+     "gold": {"answer_ids": ["TBL-001", "TBL-002"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L4-001", "category": "L4", "subtype": "topic", "question": "q",
+     "gold_spec": {"type": "similar_requests", "topic_key": "k"},
+     "gold": {"answer_ids": ["REQ-0001", "REQ-0002"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L5-001", "category": "L5", "subtype": "individual", "question": "q",
+     "gold_spec": {"type": "impact_notify", "table_id": "TBL-005"},
+     "gold": {"answer_ids": ["EMP-001", "EMP-002"], "forbidden_ids": [], "should_abstain": False}},
+]  # fmt: skip
+
+
+def diag_line(item_id, answer_ids, correct, calls=(), repeat=1):
+    base = line(item_id, correct, repeat=repeat)
+    base["result"]["answer"]["answer_ids"] = list(answer_ids)
+    base["result"]["steps"] = [
+        {"kind": "tool", "name": name, "arguments": args, "summary": "{}"} for name, args in calls
+    ]
+    return base
+
+
+def test_over_inclusive_answers_are_told_apart_from_wrong_ones():
+    lines = [
+        diag_line("L1-001", ["RPT-0001"], True),
+        diag_line("L1-001", ["RPT-0001", "RPT-0002"], True, repeat=2),  # right, plus one more
+        diag_line("L1-001", ["RPT-0003"], False, repeat=3),  # simply wrong
+    ]
+    diagnostics = agent_report.diagnostics(lines, DIAG_ITEMS)
+    assert diagnostics["L1"]["over_inclusive_rate"] == pytest.approx(1 / 3)
+
+
+def test_tool_arguments_separate_reasoning_from_transcription():
+    right = ("trace_lineage", {"node_id": "RPT-0009", "direction": "upstream", "depth": 2})
+    wrong_depth = ("trace_lineage", {"node_id": "RPT-0009", "direction": "upstream", "depth": 3})
+    lines = [
+        diag_line("L3-001", ["TBL-001"], False, [right]),  # right call, lost in the answer
+        diag_line("L3-001", ["TBL-001", "TBL-002"], True, [right], repeat=2),
+        diag_line("L3-001", ["TBL-001"], False, [wrong_depth], repeat=3),  # wrong call
+        diag_line("L5-001", ["EMP-001", "EMP-002"], True, [("impact_analysis", {"table_id": "TBL-005"})]),
+    ]  # fmt: skip
+    d = agent_report.diagnostics(lines, DIAG_ITEMS)
+    assert d["L3"]["tool_args_correct"] == pytest.approx(2 / 3)
+    assert d["L3"]["accuracy_when_args_correct"] == pytest.approx(1 / 2)
+    assert d["L5"]["tool_args_correct"] == 1.0
+
+
+def test_in_cluster_precision_counts_the_share_of_right_requests():
+    lines = [
+        diag_line("L4-001", ["REQ-0001", "REQ-0009"], True),  # half right
+        diag_line("L4-001", ["REQ-0001", "REQ-0002"], True, repeat=2),  # all right
+    ]
+    assert agent_report.diagnostics(lines, DIAG_ITEMS)["L4"][
+        "in_cluster_precision"
+    ] == pytest.approx(0.75)
+
+
+def test_diagnostics_section_says_it_is_not_the_score():
+    lines = [diag_line("L1-001", ["RPT-0001"], True)]
+    text = "\n".join(agent_report.diagnostics_section(lines, DIAG_ITEMS))
+    assert "do not change the scores" in text
+    assert "| L1 |" in text
+
+
+# ---------------------------------------------------------------------- pre-registered effects
+
+
+def test_an_ablation_effect_needs_three_points_and_twice_the_noise():
+    # Pre-registered: overall difference >= 0.03 AND > 2 x A0 repeat std. A0 overall here is
+    # 0.89 ± 0.19, so no one-run difference short of 0.38 counts.
+    runs = full_runs() + [line(i, False, config="A2") for i in ("L1-001", "L1-002", "L6-001")]
+    text = "\n".join(agent_report.ablation_section(runs, ITEMS))
+    a2 = next(row for row in text.splitlines() if row.startswith("| A2 bm25-only"))
+    assert "-0.89 ▼" in a2  # 0.89 > 2 x 0.19 = 0.38 and >= 0.03
+    assert "effect" in text  # the legend names the rule
+
+
+def test_the_pre_registration_cannot_change_after_the_fact():
+    text = "\n".join(report.PREREGISTERED)
+    assert "A4" in text and "prompt" in text
+    assert "3 points" in text and "2 times" in text
+    assert report.preregistration_digest() == report.PREREGISTERED_DIGEST
+
+
+def test_page_names_the_api_version_and_the_prompt_versions():
+    lines = [dict(line(i["id"], True), api_version="v1beta") for i in ITEMS]
+    page = report.render_results(None, runs=lines, items=ITEMS)
+    assert "API `v1beta`" in page
+    assert "v2 = v1 + schema/payload simplification" in page

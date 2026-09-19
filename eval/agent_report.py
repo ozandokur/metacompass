@@ -204,6 +204,42 @@ def _against_full(value: float, full: tuple[float, float] | None) -> str:
     return f"{value:.2f}"
 
 
+def _question_ci(lines: list[dict]) -> tuple[float, float] | None:
+    """Bootstrap CI of accuracy over questions (each question's mean over its repeats)."""
+    done = complete(lines)
+    questions = sorted({line["item_id"] for line in done})
+    if not questions:
+        return None
+    means = [
+        statistics.mean(line["score"]["correct"] for line in done if line["item_id"] == q)
+        for q in questions
+    ]
+    return bootstrap_ci(means)
+
+
+EFFECT_POINTS = 0.03  # pre-registered: an overall effect needs 3 points...
+EFFECT_NOISE_FACTOR = 2  # ...and more than twice the full system's repeat std
+
+
+def _category_cell(value: float, lines: list[dict], full_lines: list[dict]) -> str:
+    """Pre-registered category rule: an effect when the two CIs do not overlap (▲/▼);
+    otherwise ≈ when within one std of the full system's repeats."""
+    mine, theirs = _question_ci(lines), _question_ci(full_lines)
+    if mine and theirs and (mine[1] < theirs[0] or mine[0] > theirs[1]):
+        return f"{value:.2f} {'▲' if mine[0] > theirs[1] else '▼'}"
+    return _against_full(value, _spread(full_lines))
+
+
+def _overall_delta(difference: float, full: tuple[float, float] | None) -> str:
+    """Pre-registered overall rule: an effect (▲/▼) needs |Δ| >= 3 points AND > 2 x std."""
+    text = f"{difference:+.2f}"
+    if full is None:
+        return text
+    if abs(difference) >= EFFECT_POINTS and abs(difference) > EFFECT_NOISE_FACTOR * full[1]:
+        return f"{text} {'▲' if difference > 0 else '▼'}"
+    return f"{text} ≈" if abs(difference) <= full[1] else text
+
+
 def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
     items_by_id = {i["id"]: i for i in items}
     header = (
@@ -222,8 +258,8 @@ def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
             elif code == "A0":
                 cells.append(fmt(_accuracy(subset)))
             else:
-                baseline = _spread([line for line in full if line["category"] == category])
-                cells.append(_against_full(_accuracy(subset), baseline))
+                same = [line for line in full if line["category"] == category]
+                cells.append(_category_cell(_accuracy(subset), subset, same))
         if complete(mine):
             precision, recall, false_rate = abstention(mine, items_by_id)
             ops = operational(mine)
@@ -231,8 +267,7 @@ def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
             delta = DASH
             baseline = _spread(full)
             if code != "A0" and baseline is not None:
-                difference = overall - baseline[0]
-                delta = f"{difference:+.2f}" + (" ≈" if abs(difference) <= baseline[1] else "")
+                delta = _overall_delta(overall - baseline[0], baseline)
             cells += [
                 fmt(overall), delta, f"{fmt(precision)}/{fmt(recall)}", fmt(false_rate),
                 fmt(ops["fabricated_rate"]), f"{ops['tools_per_q']:.2f}",
@@ -243,9 +278,11 @@ def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
         out.append(f"| {code} {config.name} | " + " | ".join(cells) + " |")
     out += [
         "",
-        "Ablations ran once each (free tier, D25). ≈ marks a value within one standard "
-        "deviation of the full system's three repeats in the same column: such a difference "
-        "is not read as an effect of the ablated component. With fewer than two full-system "
+        "Ablations ran once each (free tier, D25). Marks follow the pre-registered rules: ▲/▼ "
+        "is an effect — in a category column, the ablation's 95% CI does not overlap the full "
+        "system's; in Δ Overall, the difference is at least 3 points and more than 2 times "
+        "the full system's repeat std. ≈ marks a difference within one std of the full "
+        "system's repeats, which is not read as an effect. With fewer than two full-system "
         "repeats there is no yardstick and nothing is marked.",
     ]
     a5 = complete([line for line in lines if line["config"] == "A5"])
@@ -327,3 +364,101 @@ THREATS = [
     "- **The match signal mostly rests on exact names** (retrieval benchmark), so the "
     "abstain ablation largely measures the prompt.",
 ]
+
+
+# ---------------------------------------------------------------------- diagnostics
+
+
+def _correct_call(item: dict, steps: list[dict]) -> bool | None:
+    """Did the trace make the call the question needs? None where no single call is right."""
+    spec = item.get("gold_spec") or {}
+    if spec.get("type") == "upstream_tables":
+        wanted = (
+            "trace_lineage",
+            {"node_id": spec["node_id"], "direction": "upstream", "depth": spec["depth"]},
+        )
+    elif spec.get("type") == "downstream_reports":
+        wanted = (
+            "trace_lineage",
+            {"node_id": spec["table_id"], "direction": "downstream", "depth": spec["depth"]},
+        )
+    elif spec.get("type") == "impact_notify":
+        wanted = ("impact_analysis", {"table_id": spec["table_id"]})
+    else:
+        return None
+    name, args = wanted
+    return any(
+        step.get("name") == name
+        and all((step.get("arguments") or {}).get(k) == v for k, v in args.items())
+        for step in steps
+        if step["kind"] == "tool"
+    )
+
+
+def diagnostics(lines: list[dict], items: list[dict]) -> dict:
+    """Per category, numbers that explain a score without changing it (from the raw lines):
+    over_inclusive_rate          answers with every gold ID and more besides
+    tool_args_correct (L3, L5)   the trace called the right tool with the right arguments;
+    accuracy_when_args_correct   with it: right call but wrong answer = lost in transcription
+    in_cluster_precision (L4)    share of the answered requests that are in the right cluster
+    """
+    by_id = {item["id"]: item for item in items}
+    out: dict[str, dict] = {}
+    for category in CATEGORY_ORDER:
+        done = [line for line in complete(lines) if line["category"] == category]
+        if not done or category == "L6":
+            continue
+        stats: dict = {}
+        over = 0
+        for line in done:
+            gold_ids = set(by_id[line["item_id"]]["gold"]["answer_ids"])
+            given = set(line["result"]["answer"]["answer_ids"])
+            over += bool(gold_ids) and gold_ids <= given and bool(given - gold_ids)
+        stats["over_inclusive_rate"] = over / len(done)
+        calls = [
+            (line, _correct_call(by_id[line["item_id"]], line["result"]["steps"])) for line in done
+        ]
+        judged = [(line, ok) for line, ok in calls if ok is not None]
+        if judged:
+            right = [line for line, ok in judged if ok]
+            stats["tool_args_correct"] = len(right) / len(judged)
+            stats["accuracy_when_args_correct"] = _accuracy(right) if right else None
+        if category == "L4":
+            shares = []
+            for line in done:
+                given = line["result"]["answer"]["answer_ids"]
+                gold_ids = set(by_id[line["item_id"]]["gold"]["answer_ids"])
+                if given:
+                    shares.append(sum(i in gold_ids for i in given) / len(given))
+            stats["in_cluster_precision"] = statistics.mean(shares) if shares else None
+        out[category] = stats
+    return out
+
+
+def diagnostics_section(lines: list[dict], items: list[dict]) -> list[str]:
+    rows = diagnostics(lines, items)
+    out = [
+        "These numbers explain the scores above; they do not change the scores.",
+        "",
+        "| Category | Over-inclusive | Right tool call | Accuracy when the call was right | In-cluster precision |",
+        "|---|---|---|---|---|",
+    ]
+    for category, stats in rows.items():
+        out.append(
+            f"| {category} | {fmt(stats['over_inclusive_rate'])} | {fmt(stats.get('tool_args_correct'))} "
+            f"| {fmt(stats.get('accuracy_when_args_correct'))} | {fmt(stats.get('in_cluster_precision'))} |"
+        )
+    return out
+
+
+def baselines_section(baselines: dict) -> list[str]:
+    """Trivial answers without any LLM, scored like the agent (eval/baselines.py)."""
+    header = "| Baseline | " + " | ".join(CATEGORY_ORDER) + " | What it answers |"
+    out = [header, "|" + "---|" * (len(CATEGORY_ORDER) + 2)]
+    for name, entry in baselines["baselines"].items():
+        cells = []
+        for category in CATEGORY_ORDER:
+            cell = entry["accuracy"].get(category)
+            cells.append(DASH if cell is None else f"{cell['accuracy']:.2f} (n={cell['n']})")
+        out.append(f"| {name} | " + " | ".join(cells) + f" | {entry['description']} |")
+    return out

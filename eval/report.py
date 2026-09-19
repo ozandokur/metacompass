@@ -16,8 +16,10 @@ Usage: python eval/report.py [--results-dir eval/results] [--set test] [--out ev
 """
 
 import argparse
+import hashlib
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import agent_report
@@ -277,6 +279,77 @@ def load_runs(results_dir: Path, set_name: str) -> list[dict]:
     return lines
 
 
+# Written on 2026-09-19, before any test-set run, and pinned by PREREGISTERED_DIGEST
+# (tests/test_agent_report.py): the rules for reading the results cannot move after the
+# results are in.
+PREREGISTERED = [
+    "- **A4 measures the prompt more than the signal.** A4 switches off the abstain "
+    "instructions and the match-quality signal together, and the retrieval benchmark showed "
+    "that the signal is strong almost only when a query names an item exactly (learning "
+    "note 04). A difference in A4 is read as the effect of the abstain prompt.",
+    "- **L3 and L4 measure tool choice and transcription**, not multi-step reasoning: one "
+    "right call answers them, and the rest is copying the IDs it returns.",
+    "- **The broadcast impact sample is biased.** Broadcast questions come only from hub tables "
+    "that reach some, not all, departments, so they lean to the smaller hubs; and on them "
+    "individual notification accuracy is not measured, only the department heads (D24).",
+    "- **When an ablation difference is real.** In a category: the 95% CIs of the ablation "
+    "and of the full system do not overlap. Overall: the difference is at least 3 points "
+    "and more than 2 times the standard deviation of the full system's three repeats. "
+    "Anything less is not read as an effect of the ablated component.",
+]
+PREREGISTERED_DIGEST = "5ed2b4aaed421d8f94a6e5f1617f92232e7047398b8b2afa215f0fd4ad4a80f3"
+
+
+def preregistration_digest() -> str:
+    return hashlib.sha256("\n".join(PREREGISTERED).encode("utf-8")).hexdigest()
+
+
+PROMPT_VERSIONS = [
+    "Prompt versions: **v1** is the spec §8.4 system prompt with the D24 broadcast line; "
+    "**v2 = v1 + schema/payload simplification** (no automatic titles in the tool schemas, "
+    "no numeric retrieval scores or query echo in tool results), made on the input "
+    "measurement before any result was seen, so it does not count as one of the three dev "
+    "iterations. The version pin covers the system prompt and the tool schemas.",
+]
+
+
+def composition_section(files: dict[str, dict]) -> list[str]:
+    """Input characters per dev question by source, one row per prompt version (no LLM)."""
+    out = [
+        "| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | System | Tool schemas | Tool results | Other |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for version, data in sorted(files.items()):
+        share = data["share_by_source"]
+        out.append(
+            f"| {version} | {data['mean_llm_turns']:.1f} | {data['mean_input_chars_per_question']:,} "
+            f"| {data['mean_input_tokens_per_question_estimate']:,} | {share['system']:.0%} "
+            f"| {share['tools']:.0%} | {share['tool_results']:.0%} | {share['other']:.0%} |"
+        )
+    return [
+        *out,
+        "",
+        "Measured by `eval/measure_input.py`: each dev question's shortest tool path played "
+        "through the real loop with a scripted model. Real token counts from the live runs "
+        "replace the chars/4 estimate.",
+    ]
+
+
+def _test_set_notes(items: list[dict]) -> list[str]:
+    """Limits of the question set itself, counted from the set file."""
+    l3 = Counter(item["gold_spec"]["depth"] for item in items if item["category"] == "L3")
+    broadcast = sorted(
+        item["gold"]["min_mentioned_count"] for item in items if item["subtype"] == "broadcast"
+    )
+    depths = ", ".join(f"depth {d}: {n}" for d, n in sorted(l3.items()))
+    return [
+        f"- **L3 leans to shallow targets.** Lineage golds are kept to 2–15 IDs, which removes "
+        f"the metrics and staging tables with the largest lineage; the L3 questions use {depths}.",
+        f"- **Broadcast questions reach {', '.join(map(str, broadcast))} people**, the small end "
+        "of the hub tables (D24, Q-F5-2).",
+    ]
+
+
 def _metadata(runs: list[dict]) -> str:
     signal = f"z ≥ {TAU_Z}" if MATCH_SIGNAL == "z" else f"cosine ≥ {TAU}"
     if not runs:
@@ -286,8 +359,9 @@ def _metadata(runs: list[dict]) -> str:
         return ", ".join(sorted({str(line.get(key, "—")) for line in runs}))
 
     return (
-        f"Run metadata: agent model `{values('model')}` · prompt `{values('prompt_version')}` · "
-        f"signal {signal} · data seed 42 · git `{values('git_sha')}` · dates {values('date')}"
+        f"Run metadata: agent model `{values('model')}` · API `{values('api_version')}` · "
+        f"prompt `{values('prompt_version')}` · signal {signal} · data seed 42 · "
+        f"git `{values('git_sha')}` · dates {values('date')}"
     )
 
 
@@ -297,6 +371,8 @@ def render_results(
     items: list[dict] | None = None,
     set_name: str = "test",
     quota: dict | None = None,
+    composition: dict[str, dict] | None = None,
+    baselines: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -316,13 +392,28 @@ def render_results(
     note = f"Question set `{set_name}`."
     # The plan's repeats hold for the test set; a dev run is judged on the repeats it has.
     repeats = None if set_name == "test" else max((line["repeat"] for line in full), default=1)
+    section("Pre-registered reading rules (written before the test run)", PREREGISTERED)
     section(
         "Run plan and free-tier limits",
         agent_report.run_plan_section(runs, items, quota) if runs else None,
     )
     section(
+        "Prompt versions and input size",
+        [*PROMPT_VERSIONS, "", *composition_section(composition)]
+        if composition
+        else PROMPT_VERSIONS,
+    )
+    section(
+        "Trivial baselines (no LLM)",
+        agent_report.baselines_section(baselines) if baselines else None,
+    )
+    section(
         "Agent — full system (3 repeats, mean ± std, 95% CI)",
         [note, "", *agent_report.full_system_section(full, items, repeats)] if has_full else None,
+    )
+    section(
+        "Diagnostics (not scores)",
+        agent_report.diagnostics_section(full, items) if has_full else None,
     )
     if has_full:
         precision, recall, false_rate = agent_report.abstention(full, {i["id"]: i for i in items})
@@ -339,7 +430,8 @@ def render_results(
     )
     section("Operational", agent_report.operational_section(full, quota) if has_full else None)
     section("Error analysis", agent_report.error_analysis(full, items) if has_full else None)
-    section("Threats to validity", agent_report.THREATS)
+    notes = _test_set_notes(items) if items and set_name == "test" else []
+    section("Threats to validity", [*agent_report.THREATS, *notes])
     return "\n".join(lines)
 
 
@@ -355,7 +447,18 @@ def main(argv: list[str] | None = None) -> int:
     ]
     quota_path = args.results_dir / "quota_log.json"
     quota = json.loads(quota_path.read_text(encoding="utf-8")) if quota_path.is_file() else None
-    page = render_results(load_retrieval(), runs, items, args.set, quota)
+    results = args.results_dir
+    composition = {
+        path.stem.removeprefix("input_composition_"): json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted(results.glob("input_composition_v*.json"))
+    }
+    baselines_path = results / f"baselines_{args.set}.json"
+    baselines = (
+        json.loads(baselines_path.read_text(encoding="utf-8")) if baselines_path.is_file() else None
+    )
+    page = render_results(
+        load_retrieval(), runs, items, args.set, quota, composition or None, baselines
+    )
     args.out.write_bytes(page.encode("utf-8"))
     print(f"wrote {args.out} ({len(runs)} agent answers from {args.results_dir})")
     return 0
