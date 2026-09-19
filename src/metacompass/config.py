@@ -69,6 +69,10 @@ class Settings(BaseModel):
     llm_price_input_per_m: float | None = None
     llm_price_output_per_m: float | None = None
     eval_budget_usd: float | None = None
+    # Free-tier quotas (D25): requests per minute and per day, input tokens per minute.
+    llm_rpm_limit: int | None = None
+    llm_rpd_limit: int | None = None
+    llm_tpm_limit: int | None = None
     # Chosen by the pre-registered A/B in eval/run_retrieval_bench.py (hybrid MRR 0.580 vs
     # 0.541 for all-MiniLM-L6-v2); see eval/results.md.
     embedding_model: str = "BAAI/bge-small-en-v1.5"

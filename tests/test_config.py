@@ -105,3 +105,19 @@ def test_output_caps_are_per_tool():
         if tool != "impact_analysis":
             assert config.output_char_cap(tool) == 4000
     assert (config.NOTIFY_DETAIL_MAX, config.NOTIFY_BROADCAST_TOP) == (20, 10)
+
+
+def test_free_tier_limits_are_read_from_the_environment(tmp_path):
+    # D25: the eval runs on a free tier; its quotas, not money, bound a run.
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "LLM_RPM_LIMIT=10\nLLM_RPD_LIMIT=250\nLLM_TPM_LIMIT=250000\nEVAL_BUDGET_USD=0\n",
+        encoding="utf-8",
+    )
+    settings = load_settings(env_file=env_file, environ={})
+    assert (settings.llm_rpm_limit, settings.llm_rpd_limit, settings.llm_tpm_limit) == (
+        10, 250, 250000,
+    )  # fmt: skip
+    assert settings.eval_budget_usd == 0.0
+    empty = load_settings(env_file=tmp_path / "missing.env", environ={})
+    assert (empty.llm_rpm_limit, empty.llm_rpd_limit, empty.llm_tpm_limit) == (None, None, None)
