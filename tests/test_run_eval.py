@@ -135,3 +135,9 @@ def test_a_live_run_without_llm_settings_is_refused(generated_dir, tmp_path, cap
     assert code == 2
     assert "LLM_" in capsys.readouterr().err
     assert list(tmp_path.glob("*.jsonl")) == []
+
+
+def test_result_lines_end_in_lf_on_every_platform(tmp_path):
+    path = tmp_path / "dev_A0_r1.jsonl"
+    run_eval.answer_all(Agent(), items(1)[:2], path=path, base_line=BASE)
+    assert b"\r\n" not in path.read_bytes()

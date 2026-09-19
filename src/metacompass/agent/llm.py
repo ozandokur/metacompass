@@ -149,7 +149,7 @@ class CachedLLM:
             return LLMResponse.model_validate_json(path.read_text(encoding="utf-8"))
         response = self.inner.chat(messages, tools, json_mode)
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        path.write_text(response.model_dump_json(), encoding="utf-8")
+        path.write_text(response.model_dump_json(), encoding="utf-8", newline="\n")
         return response
 
 

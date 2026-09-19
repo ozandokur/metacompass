@@ -82,7 +82,7 @@ def answer_all(agent, items: list[dict], *, path: Path, base_line: dict) -> int:
             "score": score(item, result.answer.model_dump()),
             "result": result.model_dump(mode="json"),
         }
-        with path.open("a", encoding="utf-8") as out:
+        with path.open("a", encoding="utf-8", newline="\n") as out:  # LF on Windows too
             out.write(json.dumps(line) + "\n")
         answered += 1
     return answered

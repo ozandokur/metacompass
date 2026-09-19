@@ -65,7 +65,7 @@ class QuotaLog:
         day["tokens"] += tokens
         data["limits"] = asdict(limits)
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+        self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def estimate_input_tokens(messages: list[dict], tools: list[dict] | None) -> int:

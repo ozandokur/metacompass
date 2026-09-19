@@ -165,7 +165,7 @@ def main(argv: list[str] | None = None) -> int:
     items = json.loads((ROOT / "eval" / "dev_set.json").read_text(encoding="utf-8"))["items"]
     result = {"metadata": {"git_sha": git_sha(), "set": "dev", "chars_per_token": CHARS_PER_TOKEN},
               **measure(registry, items)}  # fmt: skip
-    args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
+    args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     share = result["share_by_source"]
     print(f"{result['questions']} dev questions, {result['mean_llm_turns']:.1f} LLM turns each; "
           f"~{result['mean_input_tokens_per_question_estimate']} input tokens per question; "

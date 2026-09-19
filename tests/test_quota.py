@@ -110,3 +110,10 @@ def test_the_log_survives_between_runs_and_records_the_limits(tmp_path):
     saved = json.loads((tmp_path / "quota_log.json").read_text(encoding="utf-8"))
     assert saved["limits"] == {"rpm": 10, "rpd": 250, "tpm": 250_000}
     assert saved["days"] == {"2026-09-19": {"requests": 1, "tokens": 120}}
+
+
+def test_the_log_is_written_with_lf(tmp_path):
+    clock = Clock()
+    llm, _, _ = guarded(tmp_path, [ok()], clock)
+    llm.chat(MESSAGES, None)
+    assert b"\r\n" not in (tmp_path / "quota_log.json").read_bytes()
