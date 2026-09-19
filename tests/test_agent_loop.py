@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from metacompass.agent.llm import FakeLLM, LLMResponse, ToolCall
+from metacompass.agent.llm import FakeLLM, LLMResponse, QuotaExhausted, RateLimited, ToolCall
 from metacompass.agent.loop import BUDGET_ERROR, Agent
 from metacompass.agent.prompts import FORCE_FINAL_INSTRUCTION, REPAIR_INSTRUCTION
 from metacompass.config import ALL_SIX_TOOLS, AgentConfig
@@ -211,3 +211,46 @@ def test_cost_and_tokens_add_up_over_all_turns(mini_ctx):
     assert result.cost_usd == pytest.approx(2500 * 0.40 / 1e6 + 500 * 1.60 / 1e6)
     assert result.latency_ms >= 0
     assert result.config_name == "full"
+
+
+# ---------------------------------------------------------------------- free-tier quota (D25)
+
+
+def test_an_exhausted_quota_stops_the_run_instead_of_abstaining(mini_ctx):
+    agent, llm, delays = make(mini_ctx, [QuotaExhausted("daily requests used up")])
+    with pytest.raises(QuotaExhausted):
+        agent.run(QUESTION)
+    assert (len(llm.requests), delays) == (1, [])  # no retries, no llm_error answer
+
+
+def test_a_rate_limit_reaching_the_loop_is_not_an_llm_error(mini_ctx):
+    agent, llm, delays = make(mini_ctx, [RateLimited(3.0)])
+    with pytest.raises(RateLimited):
+        agent.run(QUESTION)
+    assert (len(llm.requests), delays) == (1, [])
+
+
+def test_provider_state_travels_with_the_assistant_turn(mini_ctx):
+    signed = tool("resolve_owner", asset_id="RPT-0002").model_copy(
+        update={"provider_state": {"content": {"role": "model", "parts": ["signed"]}}}
+    )
+    agent, llm, _ = make(mini_ctx, [signed, final(["EMP-004"], ["RPT-0002"])])
+    agent.run(QUESTION)
+    assistant = llm.requests[1]["messages"][2]
+    assert assistant["provider_state"] == {"content": {"role": "model", "parts": ["signed"]}}
+
+
+def test_each_llm_step_records_what_its_input_is_made_of(mini_ctx):
+    agent, llm, _ = make(
+        mini_ctx, [tool("resolve_owner", asset_id="RPT-0002"), final(["EMP-004"], ["RPT-0002"])]
+    )
+    result = agent.run(QUESTION)
+    first, second = [s for s in result.steps if s.kind == "llm"]
+    system = llm.requests[0]["messages"][0]["content"]
+    tools = json.dumps(llm.requests[0]["tools"], ensure_ascii=False, separators=(",", ":"))
+    expected, _ = agent.registry.call("resolve_owner", {"asset_id": "RPT-0002"})
+    assert first.input_chars == {
+        "system": len(system), "tools": len(tools), "tool_results": 0, "other": len(QUESTION),
+    }  # fmt: skip
+    assert second.input_chars["tool_results"] == len(payload_json(expected))
+    assert second.input_chars["other"] > len(QUESTION)  # the question plus the model's call

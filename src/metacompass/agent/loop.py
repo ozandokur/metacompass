@@ -6,8 +6,12 @@ measured on (registry.payload_json). The loop always ends with an answer: when t
 budget or the turn limit runs out it asks once more for a final answer without tools, a
 broken answer gets one repair turn, and a failing LLM is retried twice before the agent
 gives a plain abstention. The grounding check runs last, in every configuration (D12).
+
+A used-up free-tier quota is not an answer (D25): QuotaExhausted and RateLimited pass
+straight through to the caller, so the eval runner can stop and resume the question later.
 """
 
+import json
 import logging
 import time
 from collections.abc import Callable
@@ -16,7 +20,14 @@ from typing import Literal
 from pydantic import BaseModel
 
 from metacompass.agent.answer import FinalAnswer, abstained_answer, enforce_grounding, parse_final
-from metacompass.agent.llm import LLMClient, LLMResponse, ToolCall, cost_usd
+from metacompass.agent.llm import (
+    LLMClient,
+    LLMResponse,
+    QuotaExhausted,
+    RateLimited,
+    ToolCall,
+    cost_usd,
+)
 from metacompass.agent.prompts import (
     FORCE_FINAL_INSTRUCTION,
     REPAIR_INSTRUCTION,
@@ -49,6 +60,8 @@ class Step(BaseModel):
     duration_ms: int
     input_tokens: int = 0
     output_tokens: int = 0
+    # LLM turns: characters of the input by source, to see where the tokens go (D25).
+    input_chars: dict[str, int] | None = None
 
 
 class AgentResult(BaseModel):
@@ -71,6 +84,40 @@ class LLMUnavailable(Exception):
 
 def _ms(since: float) -> int:
     return round((time.perf_counter() - since) * 1000)
+
+
+def _compact(value) -> str:
+    return json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+
+
+def input_chars(messages: list[dict], tools: list[dict] | None) -> dict[str, int]:
+    """Characters of one LLM input by source: system prompt, tool definitions, tool results,
+    and everything else (the question, the model's own turns, the loop's instructions)."""
+    chars = {
+        "system": 0,
+        "tools": len(_compact(tools)) if tools else 0,
+        "tool_results": 0,
+        "other": 0,
+    }
+    for message in messages:
+        if message["role"] == "system":
+            chars["system"] += len(message["content"])
+        elif message["role"] == "tool":
+            chars["tool_results"] += len(message["content"])
+        else:
+            chars["other"] += len(message.get("content") or "")
+            if message.get("tool_calls"):
+                chars["other"] += len(_compact(message["tool_calls"]))
+    return chars
+
+
+def _assistant(response: LLMResponse) -> dict:
+    message = {"role": "assistant", "content": response.content}
+    if response.tool_calls:
+        message["tool_calls"] = [c.model_dump() for c in response.tool_calls]
+    if response.provider_state is not None:
+        message["provider_state"] = response.provider_state
+    return message
 
 
 class _Run:
@@ -134,13 +181,7 @@ class Agent:
             response = self._chat(messages, specs, run)
             llm_turns += 1
             if response.tool_calls:
-                messages.append(
-                    {
-                        "role": "assistant",
-                        "content": response.content,
-                        "tool_calls": [c.model_dump() for c in response.tool_calls],
-                    }
-                )
+                messages.append(_assistant(response))
                 over_budget = False
                 for call in response.tool_calls:
                     if run.tool_calls == self.config.max_tool_calls:
@@ -189,7 +230,7 @@ class Agent:
 
     def _repair(self, messages: list[dict], broken: LLMResponse, run: _Run) -> FinalAnswer | None:
         """One more turn, without tools and in JSON mode, to fix an unreadable answer."""
-        messages.append({"role": "assistant", "content": broken.content})
+        messages.append(_assistant(broken))
         messages.append({"role": "user", "content": REPAIR_INSTRUCTION})
         return parse_final(self._chat(messages, None, run, json_mode=True).content)
 
@@ -203,10 +244,13 @@ class Agent:
         self, messages: list[dict], tools: list[dict] | None, run: _Run, json_mode: bool = False
     ) -> LLMResponse:
         """One LLM turn, retried with backoff; raises LLMUnavailable after the last try."""
+        composition = input_chars(messages, tools)
         for attempt in range(len(RETRY_DELAYS) + 1):
             started = time.perf_counter()
             try:
                 response = self.llm.chat(messages, tools, json_mode)
+            except (QuotaExhausted, RateLimited):
+                raise  # not a failed answer: the run stops and resumes this question later
             except Exception as exc:
                 # Only the exception type goes into the trace; the message may hold
                 # provider details that do not belong in results or in front of a user.
@@ -226,7 +270,7 @@ class Agent:
             run.steps.append(
                 Step(kind="llm", summary=f"tool calls: {', '.join(did)}" if did else "answer",
                      duration_ms=_ms(started), input_tokens=response.input_tokens,
-                     output_tokens=response.output_tokens)
+                     output_tokens=response.output_tokens, input_chars=composition)
             )  # fmt: skip
             return response
         raise AssertionError("unreachable")  # the loop either returns or raises
