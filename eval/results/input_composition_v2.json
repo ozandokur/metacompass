@@ -1,0 +1,403 @@
+{
+  "metadata": {
+    "git_sha": "31f4617",
+    "prompt_version": "v2",
+    "set": "dev",
+    "chars_per_token": 4
+  },
+  "questions": 30,
+  "mean_llm_turns": 2.6,
+  "mean_input_chars_per_question": 21075,
+  "mean_input_tokens_per_question_estimate": 5269,
+  "share_by_source": {
+    "system": 0.245,
+    "tools": 0.585,
+    "tool_results": 0.146,
+    "other": 0.024
+  },
+  "mean_input_chars_by_category": {
+    "L1": 15330,
+    "L2": 24242,
+    "L3": 25410,
+    "L4": 15026,
+    "L5": 27006,
+    "L6": 15147,
+    "MX": 29018
+  },
+  "tools": {
+    "find_similar_past_work": {
+      "calls": 6,
+      "median_chars": 1226.5,
+      "fields": {
+        "hits": 0.939,
+        "signal": 0.044,
+        "truncated": 0.014
+      },
+      "null_values": 0.031,
+      "false_values": 0.008
+    },
+    "get_record": {
+      "calls": 2,
+      "median_chars": 593.0,
+      "fields": {
+        "description": 0.128,
+        "formula": 0.111,
+        "owner": 0.109,
+        "tables": 0.103,
+        "source_tables": 0.068,
+        "business_definition": 0.061,
+        "name": 0.052,
+        "aliases": 0.043,
+        "tags": 0.04,
+        "record_type": 0.037,
+        "truncated": 0.029,
+        "workspace": 0.026,
+        "replaced_by_report_id": 0.024,
+        "created_date": 0.023,
+        "last_refresh": 0.023,
+        "refresh_status": 0.022,
+        "report_id": 0.019,
+        "metric_id": 0.018,
+        "department": 0.017,
+        "status": 0.014,
+        "usage_30d": 0.012
+      },
+      "null_values": 0.003,
+      "false_values": 0.008
+    },
+    "impact_analysis": {
+      "calls": 3,
+      "median_chars": 3331,
+      "fields": {
+        "affected_reports": 0.543,
+        "notify": 0.348,
+        "notify_rollup": 0.029,
+        "affected_metrics": 0.014,
+        "affected_tables": 0.012,
+        "unresolved_asset_ids": 0.008,
+        "notify_mode": 0.007,
+        "affected_report_count": 0.007,
+        "affected_metric_count": 0.007,
+        "notify_omitted_count": 0.006,
+        "notify_total_count": 0.006,
+        "table_id": 0.005,
+        "truncated": 0.004
+      },
+      "null_values": 0.001,
+      "false_values": 0.013
+    },
+    "resolve_owner": {
+      "calls": 9,
+      "median_chars": 273,
+      "fields": {
+        "path": 0.5,
+        "original_owner_id": 0.081,
+        "resolved_owner_id": 0.079,
+        "fallback_contact_id": 0.074,
+        "reason": 0.069,
+        "asset_id": 0.058,
+        "truncated": 0.047,
+        "resolved": 0.042,
+        "hops": 0.022
+      },
+      "null_values": 0.011,
+      "false_values": 0.015
+    },
+    "search_assets": {
+      "calls": 24,
+      "median_chars": 1485.5,
+      "fields": {
+        "hits": 0.951,
+        "signal": 0.036,
+        "truncated": 0.011
+      },
+      "null_values": 0.016,
+      "false_values": 0.004
+    },
+    "trace_lineage": {
+      "calls": 4,
+      "median_chars": 1604.0,
+      "fields": {
+        "nodes": 0.954,
+        "direction": 0.014,
+        "root_id": 0.012,
+        "truncated": 0.01,
+        "depth": 0.006
+      },
+      "null_values": 0.034,
+      "false_values": 0.0
+    }
+  },
+  "per_question": [
+    {
+      "id": "dev-L1-01",
+      "category": "L1",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1311,
+      "other": 220
+    },
+    {
+      "id": "dev-L1-02",
+      "category": "L1",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1519,
+      "other": 406
+    },
+    {
+      "id": "dev-L1-03",
+      "category": "L1",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1629,
+      "other": 361
+    },
+    {
+      "id": "dev-L1-04",
+      "category": "L1",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1657,
+      "other": 409
+    },
+    {
+      "id": "dev-L2-01",
+      "category": "L2",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 3053,
+      "other": 584
+    },
+    {
+      "id": "dev-L2-02",
+      "category": "L2",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 3619,
+      "other": 669
+    },
+    {
+      "id": "dev-L2-03",
+      "category": "L2",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 3625,
+      "other": 509
+    },
+    {
+      "id": "dev-L2-04",
+      "category": "L2",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 3416,
+      "other": 404
+    },
+    {
+      "id": "dev-L2-05",
+      "category": "L2",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 3794,
+      "other": 649
+    },
+    {
+      "id": "dev-L3-01",
+      "category": "L3",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 4592,
+      "other": 630
+    },
+    {
+      "id": "dev-L3-02",
+      "category": "L3",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 4448,
+      "other": 691
+    },
+    {
+      "id": "dev-L3-03",
+      "category": "L3",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 4405,
+      "other": 721
+    },
+    {
+      "id": "dev-L3-04",
+      "category": "L3",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 4740,
+      "other": 702
+    },
+    {
+      "id": "dev-L4-01",
+      "category": "L4",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1254,
+      "other": 313
+    },
+    {
+      "id": "dev-L4-02",
+      "category": "L4",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1156,
+      "other": 343
+    },
+    {
+      "id": "dev-L4-03",
+      "category": "L4",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1192,
+      "other": 406
+    },
+    {
+      "id": "dev-L4-04",
+      "category": "L4",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1236,
+      "other": 397
+    },
+    {
+      "id": "dev-L5-01",
+      "category": "L5",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 4629,
+      "other": 455
+    },
+    {
+      "id": "dev-L5-02",
+      "category": "L5",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 5783,
+      "other": 530
+    },
+    {
+      "id": "dev-L5-03",
+      "category": "L5",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 8448,
+      "other": 640
+    },
+    {
+      "id": "dev-L6-01",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1448,
+      "other": 154
+    },
+    {
+      "id": "dev-L6-02",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1525,
+      "other": 217
+    },
+    {
+      "id": "dev-L6-03",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1424,
+      "other": 202
+    },
+    {
+      "id": "dev-L6-04",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1578,
+      "other": 199
+    },
+    {
+      "id": "dev-L6-05",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1403,
+      "other": 271
+    },
+    {
+      "id": "dev-L6-06",
+      "category": "L6",
+      "llm_turns": 2,
+      "system": 3976,
+      "tools": 9476,
+      "tool_results": 1484,
+      "other": 265
+    },
+    {
+      "id": "dev-MX-01",
+      "category": "MX",
+      "llm_turns": 4,
+      "system": 7952,
+      "tools": 18952,
+      "tool_results": 6086,
+      "other": 1148
+    },
+    {
+      "id": "dev-MX-02",
+      "category": "MX",
+      "llm_turns": 4,
+      "system": 7952,
+      "tools": 18952,
+      "tool_results": 6247,
+      "other": 1053
+    },
+    {
+      "id": "dev-MX-03",
+      "category": "MX",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 2703,
+      "other": 914
+    },
+    {
+      "id": "dev-MX-04",
+      "category": "MX",
+      "llm_turns": 3,
+      "system": 5964,
+      "tools": 14214,
+      "tool_results": 2783,
+      "other": 974
+    }
+  ]
+}
