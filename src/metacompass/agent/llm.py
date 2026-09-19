@@ -346,6 +346,11 @@ class GeminiClient:
         )
         if response.status_code == 429:
             raise _rate_limited(response)
+        if response.status_code == 503:
+            # "The model is overloaded": transient capacity, handled like a rate limit
+            # (backoff, not counted, a clean stop if it lasts), never as a failed answer.
+            refused = _rate_limited(response)
+            raise RateLimited(refused.retry_after, quota_id="UNAVAILABLE")
         if response.status_code >= 400:
             try:
                 reason = response.json().get("error", {}).get("status", "")

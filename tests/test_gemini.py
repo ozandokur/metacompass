@@ -262,3 +262,15 @@ def test_the_model_is_checked_before_a_run():
     GeminiClient("gemini-flash", "k", http=http).check_model()
     with pytest.raises(ProviderError, match="not available"):
         GeminiClient("gemini-1.5-flash", "k", http=http).check_model()
+
+
+def test_an_overloaded_model_is_waited_for_like_a_rate_limit():
+    # 503 UNAVAILABLE ("high demand", seen on the first live call) is transient capacity,
+    # not a failed answer: it is retried with backoff and stops the run cleanly if it lasts.
+    def handler(request):
+        body = {"error": {"code": 503, "status": "UNAVAILABLE", "message": "high demand"}}
+        return httpx.Response(503, json=body)
+
+    with pytest.raises(RateLimited) as error:
+        client(handler).chat(conversation()[:2], None)
+    assert error.value.quota_id == "UNAVAILABLE"
