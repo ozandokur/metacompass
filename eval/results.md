@@ -133,12 +133,12 @@ v1 as originally recorded (git `1d37885`, 2026-09-18; the metrics of that time):
 
 Prompt versions: **v1** is the spec §8.4 system prompt with the D24 broadcast line; **v2 = v1 + schema/payload simplification** (no automatic titles in the tool schemas, no numeric retrieval scores or query echo in tool results), made on the input measurement before any result was seen, so it does not count as one of the three dev iterations. The version pin covers the system prompt and the tool schemas.
 
-| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | System | Tool schemas | Tool results | Other |
-|---|---|---|---|---|---|---|---|
-| v1 | 2.6 | 22,429 | 5,607 | 23% | 60% | 14% | 2% |
-| v2 | 2.6 | 21,075 | 5,269 | 24% | 58% | 15% | 2% |
+| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | Real tokens/q | System | Tool schemas | Tool results | Other |
+|---|---|---|---|---|---|---|---|---|
+| v1 | 2.6 | 22,429 | 5,607 | 5,900 | 22% | 59% | 16% | 2% |
+| v2 | 2.6 | 21,061 | 5,265 | 5,458 | 24% | 57% | 16% | 2% |
 
-Measured by `eval/measure_input.py`: each dev question's shortest tool path played through the real loop with a scripted model. Real token counts from the live runs replace the chars/4 estimate.
+Measured by `eval/measure_input.py`: each dev question's shortest tool path played through the real loop with a scripted model. Real tokens: the model's countTokens for each source as that version sends it, times the source's characters (no generation).
 
 ## Trivial baselines (no LLM)
 

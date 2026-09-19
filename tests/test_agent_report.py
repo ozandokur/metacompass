@@ -263,3 +263,16 @@ def test_page_names_the_api_version_and_the_prompt_versions():
     page = report.render_results(None, runs=lines, items=ITEMS)
     assert "API `v1beta`" in page
     assert "v2 = v1 + schema/payload simplification" in page
+
+
+def test_input_section_shows_real_tokens_next_to_the_character_estimate():
+    composition = {
+        "v2": {"mean_llm_turns": 2.6, "mean_input_chars_per_question": 21000,
+               "mean_input_tokens_per_question_estimate": 5250,
+               "share_by_source": {"system": 0.25, "tools": 0.58, "tool_results": 0.15, "other": 0.02}},
+    }  # fmt: skip
+    tokens = {"versions": {"v2": {"tokens_per_question": 5458.4,
+                                  "share_by_source": {"system": 0.243, "tools": 0.571,
+                                                      "tool_results": 0.163, "other": 0.024}}}}  # fmt: skip
+    text = "\n".join(report.composition_section(composition, tokens))
+    assert "| v2 | 2.6 | 21,000 | 5,250 | 5,458 |" in text

@@ -313,25 +313,37 @@ PROMPT_VERSIONS = [
 ]
 
 
-def composition_section(files: dict[str, dict]) -> list[str]:
-    """Input characters per dev question by source, one row per prompt version (no LLM)."""
+def composition_section(files: dict[str, dict], tokens: dict | None = None) -> list[str]:
+    """Input per dev question by source, one row per prompt version (no generation).
+
+    The shares are of real tokens when the model counted them (countTokens), else of
+    characters; chars/4 stays next to the real count so the estimate can be judged."""
+    real = (tokens or {}).get("versions", {})
     out = [
-        "| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | System | Tool schemas | Tool results | Other |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | Real tokens/q | System | Tool schemas | Tool results | Other |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for version, data in sorted(files.items()):
-        share = data["share_by_source"]
+        counted = real.get(version)
+        share = counted["share_by_source"] if counted else data["share_by_source"]
+        real_cell = f"{counted['tokens_per_question']:,.0f}" if counted else "—"
         out.append(
             f"| {version} | {data['mean_llm_turns']:.1f} | {data['mean_input_chars_per_question']:,} "
-            f"| {data['mean_input_tokens_per_question_estimate']:,} | {share['system']:.0%} "
-            f"| {share['tools']:.0%} | {share['tool_results']:.0%} | {share['other']:.0%} |"
+            f"| {data['mean_input_tokens_per_question_estimate']:,} | {real_cell} "
+            f"| {share['system']:.0%} | {share['tools']:.0%} | {share['tool_results']:.0%} "
+            f"| {share['other']:.0%} |"
         )
+    how = (
+        "Real tokens: the model's countTokens for each source as that version sends it, "
+        "times the source's characters (no generation)."
+        if real
+        else "Real token counts from the live runs replace the chars/4 estimate."
+    )
     return [
         *out,
         "",
         "Measured by `eval/measure_input.py`: each dev question's shortest tool path played "
-        "through the real loop with a scripted model. Real token counts from the live runs "
-        "replace the chars/4 estimate.",
+        f"through the real loop with a scripted model. {how}",
     ]
 
 
@@ -373,6 +385,7 @@ def render_results(
     quota: dict | None = None,
     composition: dict[str, dict] | None = None,
     baselines: dict | None = None,
+    tokens: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -399,7 +412,7 @@ def render_results(
     )
     section(
         "Prompt versions and input size",
-        [*PROMPT_VERSIONS, "", *composition_section(composition)]
+        [*PROMPT_VERSIONS, "", *composition_section(composition, tokens)]
         if composition
         else PROMPT_VERSIONS,
     )
@@ -456,8 +469,10 @@ def main(argv: list[str] | None = None) -> int:
     baselines = (
         json.loads(baselines_path.read_text(encoding="utf-8")) if baselines_path.is_file() else None
     )
+    tokens_path = results / "input_tokens.json"
+    tokens = json.loads(tokens_path.read_text(encoding="utf-8")) if tokens_path.is_file() else None
     page = render_results(
-        load_retrieval(), runs, items, args.set, quota, composition or None, baselines
+        load_retrieval(), runs, items, args.set, quota, composition or None, baselines, tokens
     )
     args.out.write_bytes(page.encode("utf-8"))
     print(f"wrote {args.out} ({len(runs)} agent answers from {args.results_dir})")

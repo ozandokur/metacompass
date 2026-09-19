@@ -1,0 +1,47 @@
+{
+  "metadata": {
+    "git_sha": "77a5d6b-dirty",
+    "model": "gemini-3.7-flash",
+    "set": "dev",
+    "method": "countTokens per source x characters per source"
+  },
+  "tokens_per_char": {
+    "system": 0.25653923541247486,
+    "tools_v1": 0.25896644812957964,
+    "tool_results_v1": 0.2932709342151884,
+    "tools_v2": 0.25306036302237234,
+    "tool_results_v2": 0.29044231844443064
+  },
+  "versions": {
+    "v1": {
+      "tokens_per_question": 5900.342019433208,
+      "tokens_by_source": {
+        "system": 1323,
+        "tools": 3491,
+        "tool_results": 954,
+        "other": 132
+      },
+      "share_by_source": {
+        "system": 0.22429229580023544,
+        "tools": 0.5916306929372603,
+        "tool_results": 0.16164778168248073,
+        "other": 0.02242922958002354
+      }
+    },
+    "v2": {
+      "tokens_per_question": 5458.242533913183,
+      "tokens_by_source": {
+        "system": 1324,
+        "tools": 3118,
+        "tool_results": 887,
+        "other": 130
+      },
+      "share_by_source": {
+        "system": 0.24251915096220555,
+        "tools": 0.571223612621148,
+        "tool_results": 0.16250025836320595,
+        "other": 0.023756978053440545
+      }
+    }
+  }
+}

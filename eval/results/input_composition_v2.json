@@ -1,27 +1,27 @@
 {
   "metadata": {
-    "git_sha": "31f4617",
+    "git_sha": "77a5d6b",
     "prompt_version": "v2",
     "set": "dev",
     "chars_per_token": 4
   },
   "questions": 30,
   "mean_llm_turns": 2.6,
-  "mean_input_chars_per_question": 21075,
-  "mean_input_tokens_per_question_estimate": 5269,
+  "mean_input_chars_per_question": 21061,
+  "mean_input_tokens_per_question_estimate": 5265,
   "share_by_source": {
     "system": 0.245,
     "tools": 0.585,
-    "tool_results": 0.146,
+    "tool_results": 0.145,
     "other": 0.024
   },
   "mean_input_chars_by_category": {
-    "L1": 15330,
+    "L1": 15249,
     "L2": 24242,
     "L3": 25410,
     "L4": 15026,
-    "L5": 27006,
-    "L6": 15147,
+    "L5": 27129,
+    "L6": 15068,
     "MX": 29018
   },
   "tools": {
@@ -69,11 +69,11 @@
       "calls": 3,
       "median_chars": 3331,
       "fields": {
-        "affected_reports": 0.543,
-        "notify": 0.348,
-        "notify_rollup": 0.029,
-        "affected_metrics": 0.014,
-        "affected_tables": 0.012,
+        "affected_reports": 0.501,
+        "notify": 0.362,
+        "notify_rollup": 0.054,
+        "affected_metrics": 0.018,
+        "affected_tables": 0.011,
         "unresolved_asset_ids": 0.008,
         "notify_mode": 0.007,
         "affected_report_count": 0.007,
@@ -83,7 +83,7 @@
         "table_id": 0.005,
         "truncated": 0.004
       },
-      "null_values": 0.001,
+      "null_values": 0.0,
       "false_values": 0.013
     },
     "resolve_owner": {
@@ -105,13 +105,13 @@
     },
     "search_assets": {
       "calls": 24,
-      "median_chars": 1485.5,
+      "median_chars": 1461.0,
       "fields": {
-        "hits": 0.951,
-        "signal": 0.036,
-        "truncated": 0.011
+        "hits": 0.95,
+        "signal": 0.037,
+        "truncated": 0.012
       },
-      "null_values": 0.016,
+      "null_values": 0.017,
       "false_values": 0.004
     },
     "trace_lineage": {
@@ -162,8 +162,8 @@
       "llm_turns": 2,
       "system": 3976,
       "tools": 9476,
-      "tool_results": 1657,
-      "other": 409
+      "tool_results": 1474,
+      "other": 268
     },
     {
       "id": "dev-L2-01",
@@ -306,8 +306,8 @@
       "llm_turns": 3,
       "system": 5964,
       "tools": 14214,
-      "tool_results": 8448,
-      "other": 640
+      "tool_results": 8777,
+      "other": 680
     },
     {
       "id": "dev-L6-01",
@@ -342,8 +342,8 @@
       "llm_turns": 2,
       "system": 3976,
       "tools": 9476,
-      "tool_results": 1578,
-      "other": 199
+      "tool_results": 1403,
+      "other": 271
     },
     {
       "id": "dev-L6-05",
@@ -351,8 +351,8 @@
       "llm_turns": 2,
       "system": 3976,
       "tools": 9476,
-      "tool_results": 1403,
-      "other": 271
+      "tool_results": 1116,
+      "other": 190
     },
     {
       "id": "dev-L6-06",
