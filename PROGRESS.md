@@ -1,17 +1,22 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 5 — **kontrol noktasında, Ozan bekleniyor** · Son güncelleme: 2026-09-19 · Son kapı:
-Faz 5 + D25 değişiklikleri geçti (2026-09-19, 438 test) · Faz 4 canlı adımı `.env`'i bekliyor
+Aktif faz: 6 — dev pilotu · Son güncelleme: 2026-09-19 · Son kapı: dec0e49 geçti (2026-09-19,
+470 test) · Faz 5 kontrol noktası Ozan'ın 2026-09-19 kararlarıyla kapandı · Canlı smoke geçti.
 
 ## Dondurulmuş değerler
-PROMPT_VERSION: v1 (hash `config`/`prompts.PROMPT_HASHES`'te sabit) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70
-yedek) · LLM: Gemini Flash, Google AI Studio ücretsiz katman (model kimliği `.env`'de; D25) ·
-Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42 · Hepsi test koşumundan önce dondurulacak.
+PROMPT_VERSION: v2 (= v1 + şema/payload sadeleştirmesi, sonuç görülmeden; hash
+`prompts.PROMPT_HASHES`; iterasyon hakkından düşmez, dev iterasyonları v3'ten başlar) · Embedding:
+BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70 yedek) · LLM: `gemini-3.7-flash`,
+Google AI Studio ücretsiz katman (D25) · API: REST `v1beta` (`config.GEMINI_API_VERSION`) ·
+Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42 · Dev pilotundan sonra, test
+koşumundan önce git SHA ile birlikte dondurulacak.
 
 ## Harcama ve kota
-Para: $0 — proje sıfır parayla yapılıyor (D25). Kota: `eval/results/quota_log.json` (henüz koşum yok) ·
-Son koşum: —
+Para: $0 (D25). Kota: `eval/results/quota_log.json` · 2026-09-19: 6 istek / 13.925 token (canlı
+smoke). Log dışında kalanlar: ilk ham çağrı script'i ve model yoklamaları (~10 `generateContent`
+isteği, guard'ın dışından), token ölçümündeki `countTokens` çağrıları (üretim değil) · Son koşum:
+canlı smoke, 2026-09-19.
 
 ## Tamamlananlar
 - [Faz 0] Paket iskeleti, pyproject, sabit requirements, .gitignore/.env.example/.dockerignore,
@@ -200,12 +205,127 @@ Son koşum: —
   Not: 1–4 prompt/şema değişikliği sayılır. Uygulanırsa `PROMPT_VERSION` artar ve dev setinde
   ölçülür (iterasyon hakkından düşer).
 
+- [Faz 5 kontrolü] **`.env` ve push kontrolü (2026-09-19):** `.env` git'te yok sayılıyor, hiçbir
+  commit'te yok; anahtar biçimi doğru, hiçbir çıktıya yazdırılmadı. `LLM_MODEL=gemini-1.5-flash`
+  bu anahtarın model listesinde yoktu (liste çağrısı, kota harcamaz), **`gemini-3.7-flash`** seçildi (Flash,
+  Lite değil; D25'in "Flash, Lite değil" kuralı) ve `.env`'de yalnızca bu satır değişti. Limitler
+  (RPM 15 / RPD 1.500 / TPM 1M) eski 1.5 Flash değerlerine benziyor; gerçek limit daha düşükse
+  guard 429'daki `QuotaFailure`'dan öğrenip `quota_log.json`'a yazıyor. `docs/plan/forbidden_terms.txt`
+  ile tarama: çalışma ağacı ve tüm commit geçmişi temiz (terimler burada yazılmıyor). Remote
+  `origin` = GitHub, Ozan push etti (origin/main = 92d20c7); ben push etmedim.
+- [Q-D25-1] **REST istemcisi sertleştirildi** (67bedd9): API sürümü `config.GEMINI_API_VERSION =
+  "v1beta"` ile sabit, her cevap satırına ve results.md metadata'sına yazılıyor · Beklenmeyen cevap
+  şeması (aday yok, içerik yok, `usageMetadata` yok, tanınmayan part) → açık `ProviderError`, asla
+  sessiz abstain değil · `functionResponse` rolü `FUNCTION_RESPONSE_ROLE` ile ayarlanabilir · 429
+  gövdesindeki `RetryInfo`/`QuotaFailure` okunuyor · koşum başında `check_model()`.
+- [Q-D25-2] **v2 kırpması** (31f4617, 99a8687): tool şemalarından Pydantic `title`'ları;
+  `search_assets`/`find_similar_past_work` çıktısından `top_dense_cosine`/`dense_z` (AgentResult
+  trace'inde kalıyor, yalnızca LLM'e gitmiyor) ve `query` yankısı çıktı. `affected_reports` ve
+  sahiplik `path`'i dokunulmadı. `PROMPT_VERSION = "v2"`; hash artık sistem prompt'u + tool
+  şemalarını kapsıyor (`prompts.model_input_digest`), şema değişikliği de sürüm gerektiriyor.
+- [Q-F5] **Soru setleri güncellendi** (1a636af), gold'lar yeniden hesaplandı, veri yeniden
+  üretilmedi: (a) ayrım soruları doğal ifadeyle ("Is there an area-manager version of X?"),
+  `near_duplicate_by_variant` şablonları; `review_sample.md`'nin tamamı okundu · (b) tek ID'li
+  `set_f1` → `contains_all` (`scoring_rule`) · (c) `min_mentioned_count` puanlanmıyor (test bunu
+  kanıtlıyor), `review_sample.md`'de ayrı "unscored note" sütunu · Q-F5-2/3/4 aşağıda Kararlar'da.
+- [Faz 6 hazırlık] **Teşhis puanları, trivial baseline'lar, ön kayıt** (d617c3c, 097bc0c,
+  cce785d). Teşhisler birincil puanı değiştirmiyor: `over_inclusive_rate`, L3/L5 `tool_args_correct`
+  (+ doğru çağrıdaki doğruluk = aktarma kaybı), L4 `in_cluster_precision`. jsonl satırları
+  `answer_ids`, `evidence_ids`, `abstained` ve tool argümanlarını tutuyor. Baseline'lar (LLM yok,
+  test seti, `eval/results/baselines_test.json`): always_abstain L6 1,00 (diğerleri 0) ·
+  retrieval_top1 L1 0,47 / L4 0,13 · recorded_owner L2 0,20 · all_heads L5 broadcast 0,00 (n=3) ·
+  default_depth_lineage L3 0,60. Ön kayıt results.md'de, test koşumundan önce; metni
+  `report.PREREGISTERED_DIGEST` ile sabit (değişirse test kırmızı).
+- [Faz 4 canlı adımı] **`pytest -m live` geçti** (2026-09-19, `gemini-3.7-flash`, v1beta, v2):
+  dev-L1-01 → `RPT-0169` (doğru; search_assets → get_record → resolve_owner, 8.920 in / 410 out
+  token) · dev-L6-01 (maaş) → abstain (doğru; 1 tool, 4.117 in / 478 out). İlk ham istekte 503
+  UNAVAILABLE ("model overloaded") geldi → 503 artık `RateLimited("UNAVAILABLE")` olarak geri
+  çekilme ile bekleniyor, cevap düşmüyor (c7bf7e5).
+- [Faz 4 canlı adımı] **Canlı doğrulama kaydı** (ilk başarılı ham istek/cevap, anahtar maskeli —
+  zaten başlıkta gidiyor ve kayda alınmadı — uzun alanlar kesik; dev-L2-01):
+  ```
+  POST .../v1beta/models/gemini-3.7-flash:generateContent   (x-goog-api-key: ***)
+  request:  {"contents":[{"role":"user","parts":[{"text":"Who is the right person to ask about
+             Safety Recall Completion by Dealer today?"}]}],
+             "generationConfig":{"temperature":0.0},
+             "systemInstruction":{"parts":[{"text":"You are MetaCompass, ...[1988 chars]"}]},
+             "tools":[{"functionDeclarations":[search_assets, get_record, resolve_owner,
+                       trace_lineage, find_similar_past_work, impact_analysis]}]}
+  200 {"candidates":[{"content":{"role":"model","parts":[{"functionCall":{"name":"search_assets",
+       "args":{"query":"Safety Recall Completion by Dealer"},"id":"call_433568"},
+       "thoughtSignature":"EscCCsQC...[440 chars]"}]},"finishReason":"STOP"}],
+       "usageMetadata":{"promptTokenCount":1725,"candidatesTokenCount":20,"thoughtsTokenCount":46,
+       "totalTokenCount":1791},"modelVersion":"gemini-3.7-flash"}
+  2. istek: contents = [user soru, model turu AYNEN (functionCall + thoughtSignature),
+            {"role":"user","parts":[{"functionResponse":{"id":"call_433568","name":"search_assets",
+             "response":{"hits":[{"id":"RPT-0221",...}, ...5 hit],"signal":{"match_quality":"strong",
+             "exact_match":true},"truncated":false}}}]}]
+  200 → functionCall resolve_owner {"asset_id":"RPT-0221"} (id "call_602337", yeni imza);
+       promptTokenCount 2157, candidates 24 + thoughts 39
+  ```
+  Doğrulananlar: **functionResponse rolü `"user"` ilk denemede 200** ("function"/"tool" gerekmedi;
+  `llm.py`'de yorum olarak da yazıldı) · **thoughtSignature echo'su**: model turu imzasıyla aynen geri
+  gitti, model zinciri doğru sürdürdü · **usageMetadata**: `promptTokenCount`,
+  `candidatesTokenCount`, `thoughtsTokenCount` geliyor; döngü input = prompt (+toolUse), output =
+  candidates + thoughts sayıyor · **429 başlığı**: henüz 429 alınmadı; 200 cevaplarda `Retry-After`
+  başlığı yok. Kod hem `Retry-After`'ı hem gövdedeki `RetryInfo.retryDelay`'i okuyor (birim testli);
+  canlı 429'da hangisinin geldiği ilk kotada görülecek ve buraya yazılacak.
+- [D25 adım 2] **Gerçek token bileşimi** (77a5d6b, dec0e49; `eval/results/input_tokens.json`):
+  her kaynak `countTokens` ile (üretim yok) v1 ve v2'nin gönderdiği haliyle sayıldı, token/karakter
+  oranı karakter bileşimine uygulandı. Dev sorusu başına (en kısa yol, 2,6 tur):
+  | | v1 | v2 |
+  |---|---|---|
+  | gerçek input token / soru | **5.900** | **5.458** (−%7,5) |
+  | chars/4 tahmini | 5.607 | 5.265 |
+  | sistem prompt'u | %22 | %24 |
+  | tool şemaları | %59 | %57 |
+  | tool sonuçları | %16 | %16 |
+  | diğer | %2 | %2 |
+  chars/4 gerçeğin ~%5 altında (JSON'da token/karakter ~0,25–0,29). İki ölçüm de results.md'de.
+
 ## Devam eden
-- Görev: Faz 5 kontrol noktası + `.env` bekleniyor · Ozan'dan: `eval/review_sample.md` okuması
-  (özellikle L6 ve MX), Q-F5-1…4, Q-D25-1…3 ve `.env`. `.env` gelince: `pytest -m live` (canlı
-  smoke, iki soru), sonra Faz 6'nın dev pilotu.
+- Görev: Faz 6 adım 3 — dev pilotu (30 soru, `full`, 1 tekrar), sonra hata analizi ve en fazla 3
+  prompt iterasyonu (v3+). Kota dolarsa ertesi gün devam.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-19 · **Ozan'ın Faz 5 kontrol noktası kararları:**
+  - **Q-D25-1: REST onaylandı**, üç korumayla (API sürümü sabit ve results.md'de; beklenmeyen şema
+    = açık hata; ilk ham istek/cevap PROGRESS'te) + rol yedeği ("user" → 400'de "function" → "tool").
+    "user" ilk denemede çalıştı.
+  - **Q-D25-2: üç kırpma da pilottan önce** (title'lar, sayısal sinyal alanları, query yankısı) →
+    v2, iterasyon sayılmaz; iki ölçüm de tutulur; `affected_reports` ve sahiplik yoluna dokunulmaz.
+  - **Q-F5-1:** doğal ayrım ifadesi; tek ID'de `contains_all`; `min_mentioned_count` puanlanmaz ama
+    ayrı sütunda görünür.
+  - **Q-F5-2:** 11 tablo onaylandı; üç broadcast sorusu farklı departman kümeleri; hiçbir broadcast
+    gold'u 7 başkanın tamamı değil (testli); EMP-001 en fazla bir broadcast gold'unda (aşağıda
+    çatışma); results.md'de "örneklem küçük hub'lara kayık, bireysel doğruluk ölçülmüyor".
+  - **Q-F5-3:** test null_formula 3 → 2, dev'e 1 null_formula; L6 test 15'te kalır, boşalan yer
+    never_done'a; veri yeniden üretilmez; §9.2 güncellenir.
+  - **Q-F5-4:** 2–15 sınırı onaylandı; elenen adaylar ve katman/derinlik dağılımı kaydedilir; L3 sığ
+    düğümlere kayıyorsa results.md'ye sınırlama.
+  - Teşhis puanları, trivial baseline'lar ve ön kayıt (yukarıda Tamamlananlar'da).
+- 2026-09-19 · **Q-F5-2 çatışması — geçici karar: farklı kümeler kazanır, EMP-001 iki gold'da.**
+  Seed 42'de başkanların tamamını içermeyen 11 hub tablonun yalnızca **3 farklı başkan kümesi**
+  var ve bunların **2'si EMP-001'i içeriyor**. Üç soru farklı küme isterse EMP-001 en az iki
+  gold'da olur (`question_sets.fewest_coo_broadcasts` = 2; test bunu veriden hesaplıyor).
+  Farklı kümeleri seçtim: aynı ezber cevap iki soruya uymasın. EMP-001 sayısı bu kısıtta
+  mümkün olan en düşük değer. Test kümeleri: {001,005,031,041,053,057}, {001,005,031,057},
+  {005,032,053} · Alternatif: iki soruyu aynı kümeden sormak (EMP-001 bir kez, ama bir cevap iki
+  soruya uyar) veya veri yeniden üretmek (Ozan "üretme" dedi).
+- 2026-09-19 · **Broadcast gold'unda `forbidden_ids` = etkilenmeyen departmanların başkanları**
+  (geçici karar) · "Herkese haber ver" cevabı (7 başkan) `contains_all`'ı geçerdi; yasaklı başkan
+  onu düşürüyor (all_heads baseline 0,00). Alternatif: `set_f1` (bir fazla başkan da puan kırardı,
+  D24'ün `contains_all` kararına aykırı).
+- 2026-09-19 · **Q-F5-4 elenen adaylar (L3, 2–15 sınırı):** metric_upstream 37 aday → 20 kaldı, 17
+  çok büyük (tam lineage medyanı kalan 15 / elenen 19) · report_upstream 180 kaldı; derinlik 2 hepsi
+  için, derinlik 3 80 için mümkün · staging_downstream 30 aday → 19 kaldı, 11 çok büyük (medyan 26 /
+  32). Seçilen derinlikler çoğunlukla 2 → L3 sığ hedeflere kayıyor; results.md "Threats to
+  validity"de `_test_set_notes` bunu set dosyasından sayarak yazıyor.
+- 2026-09-19 · **`llm_error` cevapları yazılmıyor ve puanlanmıyor** (runner) · Sağlayıcı hatasıyla
+  biten bir cevap boş cevap gibi puanlansaydı L6'da bedava doğru abstain sayılırdı; yeniden
+  koşumda tekrar denenir. Arka arkaya 3 → `ProviderDown`, koşum temiz durur (çıkış kodu 1).
+- 2026-09-19 · **503 UNAVAILABLE = geçici kota** (`RateLimited`, aynı geri çekilme) · Canlı smoke'ta
+  "model overloaded" geldi; hata saymak cevabı düşürürdü.
 - 2026-09-19 · **D25 (Ozan): sıfır para.** Gemini Flash, Google AI Studio ücretsiz katman.
   Fiyatlar 0, `EVAL_BUDGET_USD=0`. Para koruması yerine kota koruması; devam ettirilebilir
   koşum; plan 665 (tekrar yalnızca A0'da); demo serbest metni varsayılan kapalı · Gerekçe: bütçe
@@ -459,8 +579,8 @@ Son koşum: —
   (spec dayatmıyordu); önce taban %21,3'e, sonra I07 gevşetmesiyle %13,6'ya indirildi.
 
 ## Spec sapmaları
-- **Sağlayıcı istemcisi SDK değil REST (§8.1, Ek C.3), 2026-09-19 — geçici, Q-D25-1:** Gerekçe
-  yukarıda. Kodda `SPEC-DEVIATION` yorumu var (`agent/llm.py:GeminiClient`).
+- **Sağlayıcı istemcisi SDK değil REST (§8.1, Ek C.3) — ONAYLANDI 2026-09-19 (Q-D25-1):** Gerekçe
+  yukarıda. Kodda `SPEC-DEVIATION` yorumu var (`agent/llm.py:GeminiClient`). API `v1beta` sabit.
 - **Python sürümü (§11.1, §12.5) — ONAYLANDI 2026-09-18:** Spec CI/Docker için 3.11 diyor.
   `pip freeze` ile sabitlenen numpy 2.5.3 ve scipy 1.18.1 Python ≥ 3.12 istiyor, yani 3.11'de
   kurulamaz. Karar: yerel = CI = Docker = Python 3.13; `requires-python = ">=3.12"`, ruff hedefi
@@ -477,16 +597,17 @@ Son koşum: —
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
-- [ ] **Q-F5-1 (kontrol noktası):** `eval/review_sample.md`: L6 soruları gerçekten cevaplanabilir
-  *görünüyor* mu, MX soruları gerçek bir kullanıcının soracağı gibi mi? Şablon düzeltmesi gerekirse
-  setler yeniden üretilir (gold değişmez).
-- [ ] **Q-F5-2 — geçici karar: ayırt edici broadcast hedefleri.** 33 broadcast tablonun 22'sinde gold
-  7 departman başkanının tamamı. Builder L5 broadcast sorularını kalan 11 tablodan (3–6 başkan)
-  seçiyor. Alternatif: bütün hub'lara izin verip `min_mentioned_count`'u da puanlamak (metin
-  puanlaması, spec'in "metin puanlanmaz" ilkesine dokunur). Bedel: örneklem daha küçük hub'lara kayıyor.
-- [ ] **Q-F5-3 — geçici karar:** dev setinin kategori içi dağılımı (yukarıda).
-- [ ] **Q-F5-4 — geçici karar:** L3 gold 2–15 ID sınırı (D24'ün kopyalama argümanının lineage'a
-  uygulanması).
+- [ ] **Q-F5-2b — geçici karar:** üç farklı broadcast kümesi EMP-001'i iki gold'a koyuyor (kural
+  "en fazla bir"); farklı kümeler seçildi. Gerekçe Kararlar'da. Başka tercih varsa set yeniden
+  üretilir (veri değil).
+- [ ] **Q-F5-2c — geçici karar:** broadcast gold'unda yasaklı ID = etkilenmeyen departman başkanları.
+- [ ] **Q-ENV-1 — bilgi:** `.env`'deki limitler (15/1.500/1M) eski 1.5 Flash değerlerine benziyor.
+  AI Studio'daki `gemini-3.7-flash` değerlerini yazarsan guard ilk dakikadan doğru hızda gider;
+  yazmazsan 429'dan öğrenir (birkaç boşa istek).
+- [x] **Q-F5-1, Q-F5-2, Q-F5-3, Q-F5-4, Q-D25-1, Q-D25-2 — kapandı 2026-09-19** (Ozan; Kararlar'da).
+- [x] **Q-D25-3 — kapandı:** `functionResponse` rolü `"user"` ilk canlı çağrıda doğrulandı.
+- [x] **`.env`, H5 (forbidden_terms), H6 (remote)** — Ozan 2026-09-19'da hazırladı; kontroller
+  Tamamlananlar'da.
 - [x] **Q-F3-1 — kapandı 2026-09-18, Ozan (d) seçeneğini seçti → D24.** Aşağıdaki kayıt tarihçe
   olarak duruyor. (DUR-VE-SOR: bir test assertion'ını değiştirme ihtiyacı.) §7.7'de iki kural
   çelişiyor: "çıktı ≤ 4.000 karakter" ve "`notify` kırpılmaz". Seed 42, 80 tablo: 49 tablonun tam
@@ -507,19 +628,6 @@ Son koşum: —
 - [x] Faz 2 soruları (sızıntı, τ, ID yönlendirmesi, retrieval/test örtüşmesi, I07 bandı) — Ozan
   2026-09-18'de karara bağladı, yukarıda "Kararlar"da.
 - [x] H1–H3 — Ozan 2026-09-19'da karara bağladı (D25): Gemini Flash ücretsiz katman, fiyat 0, bütçe 0.
-- [ ] **`.env` (Ozan):** `LLM_PROVIDER=google`, `LLM_MODEL=<Flash model kimliği>`, `LLM_API_KEY`,
-  `LLM_PRICE_INPUT_PER_M=0`, `LLM_PRICE_OUTPUT_PER_M=0`, `EVAL_BUDGET_USD=0`, `LLM_RPM_LIMIT`,
-  `LLM_RPD_LIMIT`, `LLM_TPM_LIMIT` (AI Studio'nun rate limit sayfasındaki değerler). Gelince:
-  `pytest -m live`.
-- [ ] **Q-D25-1 — geçici karar:** Gemini istemcisi resmi SDK yerine REST. Onay veya SDK'ya dönüş
-  (dönüş, `pip install google-genai` indirmesi için izin gerektirir).
-- [ ] **Q-D25-2 — bildirim, karar Ozan'ın:** Tool tanımlarındaki `title` anahtarlarını ve
-  `search_assets`/`find_similar_past_work` sinyalindeki sayısal alanları kaldırmak. Tahmini kazanç
-  tur başına ~150–250 token. Prompt/şema değişikliği sayılır, dev setinde ölçülür.
-- [ ] **Q-D25-3 — doğrulama:** `functionResponse` rolü (`user`) ilk canlı çağrıda doğrulanacak.
-- [ ] H5: `docs/plan/forbidden_terms.txt` (Ozan hazırlıyor); push'tan önce tarama tüm dosyalar
-  ve commit geçmişi için tekrar koşulacak.
-- [ ] H6: `.env` ve GitHub remote (Ozan hazırlıyor). O zamana kadar push yok.
 
 ## Takıldığım yerler
 - (yok)
