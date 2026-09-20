@@ -115,7 +115,7 @@ def load_settings(env_file: Path | None = None, environ: dict[str, str] | None =
 # not make the config module depend on the agent package.
 # v2 = v1 + schema/payload simplification (Q-D25-2), made before any result was seen; it
 # does not count as one of the three dev iterations.
-PROMPT_VERSION = "v2"
+PROMPT_VERSION = "v3"
 
 # The six tools, in the order the LLM sees them (spec §7).
 ALL_SIX_TOOLS = (

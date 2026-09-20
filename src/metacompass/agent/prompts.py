@@ -23,7 +23,16 @@ DATA_SCOPE = """DATA SCOPE
 GROUNDING = """GROUNDING
 - Every person, report, table, metric or request you mention must come from a tool
   result in this conversation. Never invent names or IDs.
-- Put the entities that ARE the answer in answer_ids, other consulted records in evidence_ids."""
+- answer_ids holds only what the question asks for: EMP ids when it asks who, report or
+  table ids when it asks which report or table, REQ ids when it asks whether the work was
+  done before. Everything else you looked at, including the asset you started from, goes
+  in evidence_ids."""
+
+SEARCH = """SEARCH
+- Search with the distinctive words of the question (names, subjects), never with a generic
+  word like "report" or "table" on its own.
+- The user may describe an asset in their own words. Judge what comes back by its
+  description, not by whether the wording matches."""
 
 OWNERSHIP = """OWNERSHIP
 - To find who to contact about an asset, call resolve_owner. Do not follow successor or
@@ -42,12 +51,14 @@ REPORTS = """REPORTS
   replaced_by_report_id."""
 
 ABSTAIN = """ABSTAIN
-- Set abstained=true when the requested information is not in the tool results:
-  budgets or targets beyond what a table covers, salaries, accuracy, future plans,
-  a report or analysis that search does not actually find, or a metric formula that is null."""
+- Set abstained=true when the metadata cannot hold the answer: salaries, budgets or targets
+  beyond what a table covers, how accurate a report is, future plans and who will own
+  something later, or a metric whose formula is null. What a metric means is not its formula.
+- Set abstained=true when nothing the tools returned is about the subject the user asked
+  about. If something returned is about that subject, answer with it and say how sure you are."""
 
-WEAK_MATCH = """- A "weak" match_quality means the search likely did not find
-  what the user named. Check details before answering; if nothing clearly matches, abstain."""
+WEAK_MATCH = """- A "weak" match_quality means the search did not find the exact name.
+  Look at what did come back and judge it on its description; do not abstain on the signal alone."""
 
 ABSTAIN_END = """- When abstaining, say briefly what you could not find. Do not guess."""
 
@@ -76,6 +87,12 @@ REPAIR_INSTRUCTION = (
 PROMPT_HASHES = {
     "v1": "275a731e189910e71533efe86b0426f83cf74ec68831f71af90db4ed3092c2f8",
     "v2": "ac72a5eb8e165241a5610df712df69c6bf419d319232d96bd16171658cc09e0f",
+    # v3 (dev iteration 1 of 3, 2026-09-20): the dev pilot answered several questions right
+    # in prose but put the asset it started from in answer_ids, and abstained on paraphrased
+    # questions whose subject the tools had returned. v3 spells out what answer_ids holds,
+    # adds a SEARCH section, and separates "the metadata cannot hold this" from "the search
+    # wording did not match".
+    "v3": "ce83828404ec008803f1870ff392b9ffbcb3bf5b570e54bb92297916fee4b00d",
 }
 
 
@@ -85,6 +102,7 @@ def build_system_prompt(config: AgentConfig) -> str:
         INTRO,
         DATA_SCOPE,
         GROUNDING,
+        SEARCH,
         OWNERSHIP if "resolve_owner" in tools else OWNERSHIP_WITHOUT_TOOL,
         REPORTS,
     ]
