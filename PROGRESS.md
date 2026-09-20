@@ -1,24 +1,26 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 — dev pilotu **günlük kotada durdu; Q-QUOTA-1 Ozan'ın kararını bekliyor** · Son
-güncelleme: 2026-09-19 · Son kapı: bedb981 geçti (2026-09-19, 471 test) · Faz 5 kontrol noktası
-kapandı · Canlı smoke geçti.
+Aktif faz: 6 — model seçildi (`gemini-3.1-flash-lite`), dev iterasyonu 1/3 koşuyor · Son
+güncelleme: 2026-09-20 · Son kapı: 7abb52c geçti (2026-09-20, 486 test) · Faz 5 kontrol
+noktası kapandı · Kota gerçeği: Lite olmayan Flash RPD 20, Flash-Lite RPD 500.
 
 ## Dondurulmuş değerler
-PROMPT_VERSION: v2 (= v1 + şema/payload sadeleştirmesi, sonuç görülmeden; hash
-`prompts.PROMPT_HASHES`; iterasyon hakkından düşmez, dev iterasyonları v3'ten başlar) · Embedding:
-BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25 (τ_z; mutlak τ = 0.70 yedek) · LLM: `gemini-3.7-flash`,
-Google AI Studio ücretsiz katman (D25) · API: REST `v1beta` (`config.GEMINI_API_VERSION`) ·
-Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42 · Dev pilotundan sonra, test
-koşumundan önce git SHA ile birlikte dondurulacak.
+Test koşumundan önce dondurulacak; şu anki değerler: LLM `gemini-3.1-flash-lite`
+(Google AI Studio ücretsiz katman, RPM 15 / RPD 500) · API: REST `v1beta`
+(`config.GEMINI_API_VERSION`) · PROMPT_VERSION: v3 (dev iterasyonu 1/3; v2 = v1 + şema
+sadeleştirmesi, iterasyon sayılmaz) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25
+(τ_z; mutlak τ = 0.70 yedek) · Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42.
 
 ## Harcama ve kota
-Para: $0 (D25). Kota: `eval/results/quota_log.json` · 2026-09-19: guard'dan 8 istek / 17.883 token
-(canlı smoke 6 + pilotun ilk sorusunun 2 turu; bu iki tur dev önbelleğinde, yarın yeniden
-sorulmaz). Log dışında ~10–12 istek daha (ham çağrı script'i ve model yoklamaları). **Gözlenen
-günlük limit: `GenerateRequestsPerDayPerProjectPerModel-FreeTier` = 20** (429 gövdesinden;
-`.env` 1.500 diyor) · Son koşum: dev pilotu, 2026-09-19, 0/30 cevap, günlük kotada temiz durdu.
+Para: $0 (D25). Kota **proje + model başına**: Lite olmayan her Flash modeli RPD 20 / RPM 5,
+Flash-Lite RPD 500 / RPM 15 (AI Studio, Ozan 2026-09-20; 3.7'de RPD 20 429'dan da ölçüldü).
+`eval/results/quota_log.json` seçilen modeli izler (2026-09-20: 98 istek / 222.539 token,
+aday koşumu). Aday koşumlarının kendi log'ları `eval/results/scratch/model_pick/` altında
+(3.5-flash-lite 125 istek, 3.8-flash 16 istek + günlük 429).
+**Süre tahmini (Ozan'ın 15 gün sınırı):** ölçülen 3,3 LLM çağrısı/cevap × 665 cevap = 2.172
+çağrı ÷ 500 = **5 gün** (+ dev iterasyonları, her biri ~100 çağrı, günü doldurmuyor). Sınırın
+altında, durmaya gerek yok.
 
 ## Tamamlananlar
 - [Faz 0] Paket iskeleti, pyproject, sabit requirements, .gitignore/.env.example/.dockerignore,
@@ -292,12 +294,58 @@ günlük limit: `GenerateRequestsPerDayPerProjectPerModel-FreeTier` = 20** (429 
 - [Faz 6] Öğrenme notu `docs/learn/10_preregistration_and_baselines.md` (ön kayıt, trivial
   baseline'lar, teşhis puanları).
 
+- [Faz 6 / Dal B] **Model ölçülerek seçildi** (7ce7b41). Kural koşumlardan ÖNCE results.md ön
+  kaydına yazıldı (27cfd16): birincil ölçüt agent'ın kendi mekanizmasına kaybettiği cevaplar
+  (parse_failure, tool_budget, llm_error + hiç cevaplanamayan soru), ikincil ölçüt dev
+  doğruluğu, ve planı 15 günde bitiremeyen model aday değil. Her aday aynı 30 dev sorusunu
+  kendi günlük kotasından cevapladı (`eval/model_choice.py`, `--model` bayrağı):
+  | model | dev | kayıp | doğruluk | çağrı/cevap | RPD | plan | |
+  |---|---|---|---|---|---|---|---|
+  | gemini-3.1-flash-lite | 30/30 | 0 | 0,60 | 3,3 | 500 | 5 gün | **seçildi** |
+  | gemini-3.5-flash-lite | 30/30 | 3 (tool_budget) | 0,57 | 4,2 | 500 | 6 gün | ikinci |
+  | gemini-3.8-flash | 2/30 | 29 | (1,00, n=2) | 5,0 | 20 | 167 gün | aday değil |
+  Kategori kırılımı (3.1 / 3.5): L1 2/4 · 2/4 · L2 5/5 · 5/5 · L3 4/4 · 3/4 · L4 0/4 · 0/4 ·
+  L5 0/3 · 0/3 · L6 5/6 · 4/6 · MX 2/4 · 3/4. İki Lite adayın L4 ve L5'te aynı şekilde sıfır
+  alması, sorunun modelde değil prompt/çıktı sözleşmesinde olduğunu gösterdi.
+  `.env`: `LLM_MODEL=gemini-3.1-flash-lite`, `LLM_RPD_LIMIT=500` (RPM 15 ve TPM 1M değişmedi;
+  AI Studio TPM vermiyor). Model artık kilitli: test koşumu başladıktan sonra değişirse tüm
+  test sonuçları geçersiz olur ve baştan koşulur.
+- [Faz 6] **Guard gerçek günlük limiti öğreniyor** (8c8517d): günlük 429'da sunucunun bildirdiği
+  değer (yoksa o günün gerçekleşen istek sayısı) `quota_log.json`'a `observed_rpd` olarak
+  yazılıyor, sonraki günlerde `.env` ile bunun küçüğü geçerli. 3.8-flash'ta ölçüldü: 20.
+- [Faz 6] **Prompt v3 — dev iterasyonu 1/3** (7abb52c). Pilotun hata aileleri:
+  (a) **`answer_ids` hijyeni:** model cevabı metinde doğru veriyor ama `answer_ids`'e yola
+  çıktığı varlığı (tablo/rapor) koyuyordu — üç L5 sorusunun tamamı, bir MX, bir L4.
+  (b) **Erken abstain:** tool'lar konuyla ilgili aday döndürdüğü hâlde parafraz sorularda
+  "bulamadım" dedi (üç L4, bir L1).
+  (c) Küçükler: tek kelimelik ("report") arama sorgusu; boş formüllü metriğin açıklamasını
+  formül sanma; "gelecek yıl kim sahip olacak" sorusuna cevap verme.
+  v3 bunlara karşılık: `answer_ids`'in soru tipine göre ne tuttuğunu açıkça yazar, yeni bir
+  SEARCH bölümü ekler, ve "metadata bu bilgiyi taşıyamaz" ile "arama kelimesi tutmadı"yı
+  ayırır. Kural gereği bu bir iterasyon sayılır (3'ten 1'i kullanıldı).
+
 ## Devam eden
-- Görev: Faz 6 adım 3 — dev pilotu (30 soru, `full`, 1 tekrar). 2026-09-19'da ilk sorunun ikinci
-  turundan sonra günlük kota (20 istek) doldu. Komut aynen yeniden koşulunca kaldığı yerden
-  devam eder. **Q-QUOTA-1 karara bağlanmadan plan bu hızla ~4 ay sürer.**
+- Görev: prompt v3 dev koşumu → karşılaştırma (v2: 18/30) → gerekirse en fazla 2 iterasyon daha
+  → dondurma → test koşumları (A0 ×3, sonra A1, A2, A4, A3, A5), kota hızında ~5 gün.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-20 · **Ozan: plan küçültme (c) kapalı, ablation planı aynen duruyor.** Kota gerçeği
+  Lite olmayan Flash'ta RPD 20 olduğu için **Dal B**: model seçimi ölçülerek yapılır, kural
+  önce yazılır, Lite yalnızca birincil ölçütte açıkça öndeyse seçilir. Ayrıca: kota limitleri
+  ölçülerek doğrulanır, model seçimden sonra kilitlenir, dondurma listesi genişler (gözlenen
+  RPD dahil), 15 günü aşan süre tahmininde DUR-VE-SÖYLE, results.md'ye kota bölümü eklenir.
+- 2026-09-20 · **Geçici karar: Lite olmayan model aday değil, referans.** Kuralın "Lite'ı ancak
+  Lite olmayanı birincil ölçütte açıkça geçerse seç" maddesi, karşılaştırılabilir iki modeli
+  varsayıyor. RPD 20 ile `gemini-3.8-flash` planı 167 günde bitirir; Ozan'ın 15 gün sınırıyla
+  kazansa bile kullanılamaz. Bu yüzden kendi günlük kotasından 2 soru cevapladı ve results.md'de
+  referans satırı olarak duruyor (n=2'lik doğruluk karşılaştırılabilir değil, rapor bunu yazıyor).
+  Alternatif: Lite olmayanı 5-6 günde tam dev setinde koşturmak — projeyi 6 gün bekletirdi ve
+  sonucu değiştiremezdi (yine kullanılamazdı).
+- 2026-09-20 · **`observed_rpd` sunucunun bildirdiği değer, o günün sayacı değil** (Ozan'ın
+  maddesi "gerçekleşen istek sayısını yaz" diyordu) · 429 gövdesindeki `QuotaFailure` gerçek
+  limiti veriyor; guard'ın kendi sayacı guard dışından giden isteklerle (ham script, yoklama)
+  eksik kalabilir, yani günü olduğundan küçük gösterirdi. Sunucu değeri yoksa gün sayacına
+  düşülüyor (testli).
 - 2026-09-19 · **Ozan'ın Faz 5 kontrol noktası kararları:**
   - **Q-D25-1: REST onaylandı**, üç korumayla (API sürümü sabit ve results.md'de; beklenmeyen şema
     = açık hata; ilk ham istek/cevap PROGRESS'te) + rol yedeği ("user" → 400'de "function" → "tool").
@@ -607,6 +655,9 @@ günlük limit: `GenerateRequestsPerDayPerProjectPerModel-FreeTier` = 20** (429 
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [x] **Q-QUOTA-1 — kapandı 2026-09-20 (Ozan):** plan küçültme kapalı; Dal B uygulandı.
+- [x] **Q-ENV-1 — kapandı:** `.env` seçilen modele ve RPD 500'e güncellendi; guard gerçek
+  limiti 429'dan öğreniyor.
 - [ ] **Q-F5-2b — geçici karar:** üç farklı broadcast kümesi EMP-001'i iki gold'a koyuyor (kural
   "en fazla bir"); farklı kümeler seçildi. Gerekçe Kararlar'da. Başka tercih varsa set yeniden
   üretilir (veri değil).
