@@ -395,12 +395,27 @@ def _correct_call(item: dict, steps: list[dict]) -> bool | None:
     )
 
 
+def _gold_unseen(item: dict, steps: list[dict]) -> bool:
+    """True when no gold ID appears in any tool result of this answer.
+
+    The tool summaries are what the tools returned, so a gold ID missing from all of them
+    means the model was never shown the answer: that is a retrieval miss, not a reasoning one.
+    """
+    gold = item["gold"]["answer_ids"]
+    if not gold:
+        return False
+    text = " ".join(step.get("summary") or "" for step in steps if step["kind"] == "tool")
+    return not any(gold_id in text for gold_id in gold)
+
+
 def diagnostics(lines: list[dict], items: list[dict]) -> dict:
     """Per category, numbers that explain a score without changing it (from the raw lines):
     over_inclusive_rate          answers with every gold ID and more besides
     tool_args_correct (L3, L5)   the trace called the right tool with the right arguments;
     accuracy_when_args_correct   with it: right call but wrong answer = lost in transcription
     in_cluster_precision (L4)    share of the answered requests that are in the right cluster
+    wrong_with_gold_unseen       wrong answers whose gold IDs were in no tool result at all:
+                                 retrieval never offered the answer, so no prompt could fix it
     """
     by_id = {item["id"]: item for item in items}
     out: dict[str, dict] = {}
@@ -415,6 +430,11 @@ def diagnostics(lines: list[dict], items: list[dict]) -> dict:
             given = set(line["result"]["answer"]["answer_ids"])
             over += bool(gold_ids) and gold_ids <= given and bool(given - gold_ids)
         stats["over_inclusive_rate"] = over / len(done)
+        wrong = [line for line in done if not line["score"]["correct"]]
+        stats["wrong_answers"] = len(wrong)
+        stats["wrong_with_gold_unseen"] = sum(
+            1 for line in wrong if _gold_unseen(by_id[line["item_id"]], line["result"]["steps"])
+        )
         calls = [
             (line, _correct_call(by_id[line["item_id"]], line["result"]["steps"])) for line in done
         ]
@@ -440,15 +460,24 @@ def diagnostics_section(lines: list[dict], items: list[dict]) -> list[str]:
     out = [
         "These numbers explain the scores above; they do not change the scores.",
         "",
-        "| Category | Over-inclusive | Right tool call | Accuracy when the call was right | In-cluster precision |",
-        "|---|---|---|---|---|",
+        "| Category | Over-inclusive | Right tool call | Accuracy when the call was right "
+        "| In-cluster precision | Gold never retrieved |",
+        "|---|---|---|---|---|---|",
     ]
     for category, stats in rows.items():
+        unseen = f"{stats['wrong_with_gold_unseen']} of {stats['wrong_answers']}"
         out.append(
             f"| {category} | {fmt(stats['over_inclusive_rate'])} | {fmt(stats.get('tool_args_correct'))} "
-            f"| {fmt(stats.get('accuracy_when_args_correct'))} | {fmt(stats.get('in_cluster_precision'))} |"
+            f"| {fmt(stats.get('accuracy_when_args_correct'))} | {fmt(stats.get('in_cluster_precision'))} "
+            f"| {unseen} |"
         )
-    return out
+    return [
+        *out,
+        "",
+        '"Gold never retrieved" counts the wrong answers whose gold IDs appeared in no tool '
+        "result: the retriever never put the answer in front of the model, so the failure "
+        "belongs to retrieval, not to the agent's reasoning or its prompt.",
+    ]
 
 
 def baselines_section(baselines: dict) -> list[str]:

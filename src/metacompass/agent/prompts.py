@@ -32,7 +32,9 @@ SEARCH = """SEARCH
 - Search with the distinctive words of the question (names, subjects), never with a generic
   word like "report" or "table" on its own.
 - The user may describe an asset in their own words. Judge what comes back by its
-  description, not by whether the wording matches."""
+  description, not by whether the wording matches.
+- If a search returns nothing about the subject, search once more with other words for the
+  same thing, or with a larger top_k, before concluding that it does not exist."""
 
 OWNERSHIP = """OWNERSHIP
 - To find who to contact about an asset, call resolve_owner. Do not follow successor or
@@ -72,6 +74,9 @@ TOOL_ERRORS = "- If a tool returns an error, do not show technical details to th
 OUTPUT = """OUTPUT
 - When you are done, reply with ONLY a JSON object:
   {"answer": str, "answer_ids": [str], "evidence_ids": [str], "abstained": bool}
+- abstained and the text must agree: if the text says you could not find or cannot know
+  something, abstained is true and answer_ids is empty. If you name an answer, abstained
+  is false.
 - Keep "answer" under 120 words."""
 
 # User turns the loop adds when it has to end the conversation or fix a broken answer.
@@ -93,6 +98,12 @@ PROMPT_HASHES = {
     # adds a SEARCH section, and separates "the metadata cannot hold this" from "the search
     # wording did not match".
     "v3": "ce83828404ec008803f1870ff392b9ffbcb3bf5b570e54bb92297916fee4b00d",
+    # v4 (dev iteration 2 of 3, 2026-09-20): v3 reached 24/30, but three answers said "I could
+    # not find it" while leaving abstained=false, which scores as a wrong answer instead of an
+    # abstention. The OUTPUT rule now ties the flag to the text. The other v3 failures had
+    # their gold IDs in no tool result at all, so SEARCH asks for a second query before
+    # concluding that something does not exist; nothing else can be fixed from the prompt.
+    "v4": "62c292a6faeaa35396c1e0019195f9369bc5c4536e991b27dd17c306782ec951",
 }
 
 

@@ -318,3 +318,18 @@ def test_model_choice_section_shows_the_rule_the_candidates_and_the_decision():
 def test_a_page_without_a_model_choice_says_not_run():
     page = report.render_results(None)
     assert "Model choice" in page
+
+
+def test_diagnostics_count_wrong_answers_whose_gold_never_reached_the_model():
+    # The dev pilot's remaining failures were retrieval, not reasoning: the gold IDs were in
+    # no tool result, so no prompt could have fixed them. The report has to separate the two.
+    seen = line("L1-001", False)
+    seen["result"]["steps"] = [{"kind": "tool", "summary": '{"hits":[{"id":"RPT-0001"}]}'}]
+    unseen = line("L1-002", False)
+    unseen["result"]["steps"] = [{"kind": "tool", "summary": '{"hits":[{"id":"RPT-9999"}]}'}]
+    rows = agent_report.diagnostics([seen, unseen], ITEMS)
+    assert rows["L1"]["wrong_with_gold_unseen"] == 1
+    assert rows["L1"]["wrong_answers"] == 2
+    text = "\n".join(agent_report.diagnostics_section([seen, unseen], ITEMS))
+    assert "Gold never retrieved" in text
+    assert "| L1 |" in text and "1 of 2" in text
