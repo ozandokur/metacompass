@@ -15,15 +15,16 @@ tüm test sonuçları geçersizdir ve baştan koşulur.
 | sinyal | z ≥ 4,25 (τ_z; mutlak τ = 0,70 yedek) |
 | embedding modeli | `BAAI/bge-small-en-v1.5` |
 | data seed | 42 |
-| gözlenen RPD | 500 (AI Studio; bir gün içinde 415 istek reddedilmeden geçti, guard ilk 429'da gerçek değeri yazar) · RPM 15 |
-| git SHA | dondurma commit'i: bu satırı taşıyan commit (SHA'sı aşağıya, ilk test koşumu kaydına yazılıyor); her sonuç satırı kendi `git_sha`'sını taşır |
+| gözlenen RPD | **500, ölçüldü** (2026-09-20'de 490. istekten sonra günlük 429 geldi, `QuotaFailure` değeri 500; `quota_log.json` → `observed_rpd`) · RPM 15 |
+| git SHA | dondurma commit'i `fc05ccc`; her sonuç satırı kendi `git_sha`'sını taşır (results.md metadata'sında da görünür) |
 | koşum planı | 665 cevap (A0 ×3, A1–A5 ×1) |
 
 ## Harcama ve kota
 Para: $0 (D25). Kota **proje + model başına**: Lite olmayan her Flash modeli RPD 20 / RPM 5,
 Flash-Lite RPD 500 / RPM 15 (AI Studio, Ozan 2026-09-20; 3.7'de RPD 20 429'dan da ölçüldü).
-`eval/results/quota_log.json` seçilen modeli izler (2026-09-20: 415 istek / 1.053.349 token —
-aday koşumu + üç dev iterasyonu, hiç reddedilmedi). Aday koşumlarının kendi log'ları
+`eval/results/quota_log.json` seçilen modeli izler (2026-09-20: 490 istek / 1.244.097 token —
+aday koşumu + üç dev iterasyonu + test A0 r1'in ilk 23 cevabı; gün kotayla kapandı,
+`observed_rpd` 500 olarak öğrenildi). Aday koşumlarının kendi log'ları
 `eval/results/scratch/model_pick/` altında (3.5-flash-lite 125 istek, 3.8-flash 16 istek +
 günlük 429).
 **Süre tahmini (Ozan'ın 15 gün sınırı):** ölçülen 3,3 LLM çağrısı/cevap × 665 cevap = 2.172
@@ -360,8 +361,14 @@ altında, durmaya gerek yok.
   satırlarının prompt sürümü klasör adıyla uyuşmazsa script hata veriyor.
 
 ## Devam eden
-- Görev: prompt v3 dev koşumu → karşılaştırma (v2: 18/30) → gerekirse en fazla 2 iterasyon daha
-  → dondurma → test koşumları (A0 ×3, sonra A1, A2, A4, A3, A5), kota hızında ~5 gün.
+- Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
+  A3, A5 → `eval/report.py` → hata analizi → threats to validity.
+  Durum 2026-09-20: `test_A0_r1.jsonl` 23/100, gün kotayla kapandı. Yarın aynı komut:
+  `python eval/run_eval.py --set test --config A0 --repeat 3`.
+  Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün.
+- Disiplin: test satırlarının puanlarına koşum bitene kadar bakılmıyor, sistemde hiçbir değişiklik
+  yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
+  okunmuyor.
 
 ## Kararlar ve gerekçeleri
 - 2026-09-20 · **Ozan: plan küçültme (c) kapalı, ablation planı aynen duruyor.** Kota gerçeği

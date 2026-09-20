@@ -6,11 +6,13 @@
   },
   "days": {
     "2026-09-20": {
-      "requests": 415,
-      "tokens": 1053349
+      "requests": 490,
+      "tokens": 1244097
     }
   },
   "observed": {
-    "GenerateRequestsPerMinutePerProjectPerModel-FreeTier": 15
-  }
+    "GenerateRequestsPerMinutePerProjectPerModel-FreeTier": 15,
+    "GenerateRequestsPerDayPerProjectPerModel-FreeTier": 500
+  },
+  "observed_rpd": 500
 }
