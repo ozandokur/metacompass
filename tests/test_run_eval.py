@@ -203,3 +203,55 @@ def test_the_model_can_be_chosen_on_the_command_line(generated_dir, tmp_path, mo
     assert seen == {"asked": "gemini-3.5-flash-lite", "checked": "gemini-3.5-flash-lite"}
     line = json.loads((tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8").splitlines()[0])
     assert line["model"] == "gemini-3.5-flash-lite"
+
+
+def test_each_repeat_gets_its_own_cache_so_the_spread_is_real(generated_dir, tmp_path, monkeypatch):
+    # The three A0 repeats exist to measure run-to-run variance. If the cache key were the
+    # same across repeats, r2 and r3 would be served from r1's answers, every std would be
+    # 0.00 and the "real difference" threshold would be meaningless.
+    calls = []
+
+    class Stub(FakeLLM):
+        model = "stub-model"
+
+        def check_model(self):
+            return None
+
+        def chat(self, messages, tools, json_mode=False):
+            calls.append(len(calls))
+            return super().chat(messages, tools, json_mode)
+
+    monkeypatch.setattr(run_eval, "make_llm", lambda settings: Stub([], then=run_eval.dry_run_llm().then))  # fmt: skip
+    code = run_eval.main(
+        ["--set", "test", "--config", "A0", "--repeat", "2", "--embedder", "hash",
+         "--data", str(generated_dir), "--out-dir", str(tmp_path), "--limit", "1",
+         "--env-file", str(tmp_path / "no.env"), "--quota-log", str(tmp_path / "quota.json")]
+    )  # fmt: skip
+    assert code == 0
+    assert len(calls) == 2  # one question, two repeats, two calls: no cache hit across repeats
+    assert run_eval.cache_salt("test", 1) != run_eval.cache_salt("test", 2)
+    # Dev iterations deliberately share one cache: re-running a dev question is free.
+    assert run_eval.cache_salt("dev", 1) == run_eval.cache_salt("dev", 2)
+
+
+def test_the_runner_can_hold_back_requests_for_the_demo(generated_dir, tmp_path, monkeypatch):
+    # The phase 7 demo cache comes out of the same daily quota, so the last eval run of that
+    # day is started with --reserve and stops early instead of taking every request. The model
+    # name is this test's own: a cached answer costs no quota, so a question another test
+    # already cached would be answered even with no requests left, which is the design.
+    class Stub(FakeLLM):
+        model = "reserve-stub-model"
+
+        def check_model(self):
+            return None
+
+    monkeypatch.setattr(run_eval, "make_llm", lambda settings: Stub([], then=run_eval.dry_run_llm().then))  # fmt: skip
+    quota = tmp_path / "quota.json"
+    quota.write_text(json.dumps({"limits": {}, "days": {}, "observed_rpd": 50}), encoding="utf-8")
+    code = run_eval.main(
+        ["--set", "test", "--config", "A0", "--repeat", "1", "--embedder", "hash",
+         "--data", str(generated_dir), "--out-dir", str(tmp_path), "--limit", "2",
+         "--env-file", str(tmp_path / "no.env"), "--quota-log", str(quota), "--reserve", "50"]
+    )  # fmt: skip
+    assert code == 0  # a reserve stop is a clean stop, like the daily quota
+    assert not (tmp_path / "test_A0_r1.jsonl").exists()  # nothing was answered

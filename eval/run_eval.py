@@ -9,6 +9,8 @@ A run spends quota, not money. Every answer is appended to
 version, git SHA and date. Starting again skips every question that file already holds,
 so a run that takes several days continues where the daily quota stopped it; when the
 quota is used up (or rate limiting does not clear), the run ends cleanly with exit code 0.
+--reserve leaves that many of the day's requests for something else (the phase 7 demo cache
+is built from the same daily quota), and running into the reserve is an ordinary clean stop.
 A file holding answers from another model, API version or prompt version is refused
 (exit 2), never resumed: one file, one thing measured. Move it aside first.
 Test runs go to eval/results/ (committed); dev runs and dry runs to eval/results/scratch/.
@@ -120,6 +122,17 @@ def answer_all(agent, items: list[dict], *, path: Path, base_line: dict) -> int:
     return answered
 
 
+def cache_salt(set_name: str, repeat: int) -> str:
+    """What separates cached answers between runs (CachedLLM.key covers it).
+
+    The three test repeats exist to measure run-to-run variance, so each one must ask the
+    model again: sharing a cache would return repeat 1's answers and make every standard
+    deviation 0.00. Dev iterations share one cache on purpose, so re-running a dev question
+    costs no quota.
+    """
+    return "dev" if set_name == "dev" else f"repeat-{repeat}"
+
+
 def dry_run_llm() -> FakeLLM:
     """A model that answers every question with an abstention, with no network."""
     body = {"answer": "Dry run.", "answer_ids": [], "evidence_ids": [], "abstained": True}
@@ -143,6 +156,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quota-log", type=Path, default=QUOTA_LOG)
     parser.add_argument("--env-file", type=Path, default=PROJECT_ROOT / ".env")
     parser.add_argument("--limit", type=int, default=None, help="first N questions only")
+    parser.add_argument(
+        "--reserve", type=int, default=0,
+        help="leave this many of today's requests unused (the demo cache needs some)",
+    )  # fmt: skip
     parser.add_argument(
         "--resume", action=argparse.BooleanOptionalAction, default=True,
         help="skip questions already answered (default); --no-resume refuses to touch a file",
@@ -202,7 +219,10 @@ def main(argv: list[str] | None = None) -> int:
     if not dry_run:
         # One guard for the whole run, so its minute window carries across repeats.
         limits = QuotaLimits(
-            rpm=settings.llm_rpm_limit, rpd=settings.llm_rpd_limit, tpm=settings.llm_tpm_limit
+            rpm=settings.llm_rpm_limit,
+            rpd=settings.llm_rpd_limit,
+            tpm=settings.llm_tpm_limit,
+            reserve=args.reserve,
         )
         guarded = QuotaGuardedLLM(provider, limits, QuotaLog(args.quota_log))
 
@@ -212,9 +232,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"repeat {repeat}: {len(done)} answered before, {len(todo)} to answer -> {path}")
         llm = guarded
         if not dry_run:
-            # Dev iterations share one cache; each eval repeat has its own (spec §8.1).
-            salt = "dev" if args.set == "dev" else f"repeat-{repeat}"
-            llm = CachedLLM(guarded, args.data / "cache" / "llm", cache_salt=salt)
+            llm = CachedLLM(
+                guarded, args.data / "cache" / "llm", cache_salt=cache_salt(args.set, repeat)
+            )
         base_line = {
             "set": args.set, "config": code, "repeat": repeat, **identity,
             "git_sha": sha, "date": date.today().isoformat(),

@@ -65,7 +65,31 @@ def bootstrap_ci(per_question: list[float]) -> tuple[float, float]:
     return means[int(0.025 * BOOTSTRAP_SAMPLES)], means[int(0.975 * BOOTSTRAP_SAMPLES) - 1]
 
 
-def _row(label: str, lines: list[dict], expected: int) -> str:
+def flip_rate(lines: list[dict]) -> dict[str, float]:
+    """Share of questions the repeats disagree about, per category and overall.
+
+    The standard deviation over three repeats is a coarse estimate of the noise; this is a
+    second read on the same runs. A category where answers flip often cannot carry a
+    one-run ablation difference, whatever the point difference looks like.
+    """
+    done = complete(lines)
+    by_question: dict[str, list[bool]] = {}
+    category_of: dict[str, str] = {}
+    for line in done:
+        by_question.setdefault(line["item_id"], []).append(bool(line["score"]["correct"]))
+        category_of[line["item_id"]] = line["category"]
+    out: dict[str, list[bool]] = {}
+    for question, scores in by_question.items():
+        flipped = len(set(scores)) > 1  # one repeat can never flip
+        out.setdefault(category_of[question], []).append(flipped)
+        out.setdefault("Overall", []).append(flipped)
+    return {
+        key: sum(values) / len(values)
+        for key, values in sorted(out.items(), key=lambda kv: kv[0] == "Overall")
+    }
+
+
+def _row(label: str, lines: list[dict], expected: int, flips: float | None = None) -> str:
     repeats = _by_repeat(complete(lines))
     per_repeat = [_accuracy(group) for group in repeats.values()]
     questions = sorted({line["item_id"] for line in complete(lines)})
@@ -82,18 +106,34 @@ def _row(label: str, lines: list[dict], expected: int) -> str:
     low, high = bootstrap_ci(per_question)
     missing = expected - len(complete(lines))
     notes = f"{missing} not answered yet" if missing > 0 else ""
-    return f"| {label} | {len(questions)} | {accuracy} | [{low:.2f}, {high:.2f}] | {notes} |"
+    return (
+        f"| {label} | {len(questions)} | {accuracy} | [{low:.2f}, {high:.2f}] "
+        f"| {fmt(flips)} | {notes} |"
+    )
 
 
 def full_system_section(lines: list[dict], items: list[dict], repeats=None) -> list[str]:
     """Accuracy per category of the full system; `repeats` defaults to the test-set plan."""
-    out = ["| Category | n | Accuracy | 95% CI | Notes |", "|---|---|---|---|---|"]
+    flips = flip_rate(lines)
+    out = [
+        "| Category | n | Accuracy | 95% CI | Flip rate | Notes |",
+        "|---|---|---|---|---|---|",
+    ]
     for category in CATEGORY_ORDER:
         subset = [line for line in lines if line["category"] == category]
         if complete(subset):
-            out.append(_row(category, subset, planned(items, "A0", category, repeats)))
-    out.append(_row("Overall", lines, planned(items, "A0", repeats=repeats)))
-    return out
+            planned_here = planned(items, "A0", category, repeats)
+            out.append(_row(category, subset, planned_here, flips.get(category)))
+    out.append(_row("Overall", lines, planned(items, "A0", repeats=repeats), flips.get("Overall")))
+    return [
+        *out,
+        "",
+        "**Flip rate** is the share of questions the repeats do not agree about. It reads the "
+        "same runs as the standard deviation, per question instead of per repeat: where it is "
+        "high the system is unstable on that category, and a one-run ablation difference there "
+        "is not evidence of anything. It is a diagnostic; the rule for reading an ablation "
+        "difference stays the one pre-registered above.",
+    ]
 
 
 def abstention(lines: list[dict], items_by_id: dict[str, dict]) -> tuple:
@@ -283,7 +323,9 @@ def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
         "system's; in Δ Overall, the difference is at least 3 points and more than 2 times "
         "the full system's repeat std. ≈ marks a difference within one std of the full "
         "system's repeats, which is not read as an effect. With fewer than two full-system "
-        "repeats there is no yardstick and nothing is marked.",
+        "repeats there is no yardstick and nothing is marked. Read every mark next to the "
+        "flip rate of that category above: where the full system's own repeats disagree about "
+        "many questions, one ablation run cannot say anything about that category.",
     ]
     a5 = complete([line for line in lines if line["config"] == "A5"])
     if a5:

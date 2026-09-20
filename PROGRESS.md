@@ -360,12 +360,32 @@ altında, durmaya gerek yok.
   sürüm karşılaştırması arşivlenen dev koşumlarından hesaplanıyor, elle yazılmıyor. Dosya
   satırlarının prompt sürümü klasör adıyla uyuşmazsa script hata veriyor.
 
+- [Faz 6 / Ozan'ın ara kontrolleri, 2026-09-20]
+  1. **Önbellek–tekrar çakışması: DOĞRULANDI, hata yok.** `CachedLLM.key` anahtarın içine
+     `salt`'ı alıyor ve runner test setinde `repeat-{n}` veriyor (dev'de sabit "dev"), yani
+     r2/r3 r1'in cevaplarını okuyamaz. Kural artık `run_eval.cache_salt()` fonksiyonunda ve
+     uçtan uca testli: iki tekrarlı bir koşumda model iki kez çağrılıyor
+     (`test_each_repeat_gets_its_own_cache_so_the_spread_is_real`). Silinen satır yok, baştan
+     koşum gerekmedi. Ek kanıt koşum bitince gelecek: r1 ile r2 birebir aynı olsaydı flip_rate
+     her kategoride 0,00 çıkardı.
+  2. **flip_rate eklendi** (aynı veriden, ek kota yok): üç tekrarın sonucu üzerinde anlaşamadığı
+     soruların oranı, kategori başına ve toplamda. results.md'de tam sistem tablosunda std ve
+     CI'nın yanında ayrı sütun; ablation açıklaması da oraya bakmayı söylüyor ("flip_rate'in
+     yüksek olduğu kategoride tek koşumluk fark okunamaz"). Ön kayıttaki karar kuralı
+     değişmedi — flip_rate teşhis, kural değil (ve test sonuçlarına bakılmadan eklendi).
+  3. **Demo kotası mekanik olarak ayrıldı:** `QuotaLimits.reserve` + `run_eval.py --reserve N`.
+     Guard günlük limitten rezervi düşüyor; rezerve girmek normal temiz duruş (çıkış kodu 0).
+     **Plan:** son ablation gününde koşumlar `--reserve 50` ile başlatılır, o günün kalan
+     ~50 isteğiyle Faz 7 demo önbelleği (8 hazır soru) üretilir. 8 soru × ~3,5 çağrı ≈ 28
+     istek, kalanı yeniden deneme payı.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
   Durum 2026-09-20: `test_A0_r1.jsonl` 23/100, gün kotayla kapandı. Yarın aynı komut:
   `python eval/run_eval.py --set test --config A0 --repeat 3`.
-  Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün.
+  Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün. Son ablation günü `--reserve 50` ile
+  koşulur (demo önbelleği aynı kotadan çıkıyor).
 - Disiplin: test satırlarının puanlarına koşum bitene kadar bakılmıyor, sistemde hiçbir değişiklik
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.

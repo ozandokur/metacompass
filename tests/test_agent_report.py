@@ -369,3 +369,31 @@ def test_threats_name_the_providers_nondeterminism():
     # not make this provider deterministic, which is why the full system runs three times.
     text = "\n".join(agent_report.THREATS).lower()
     assert "temperature 0" in text and "repeat" in text
+
+
+def test_flip_rate_counts_questions_that_change_between_repeats():
+    # A second read on the noise, from the same runs: how many questions the three repeats
+    # disagree about. Where it is high, a one-run ablation difference cannot be read.
+    rows = agent_report.flip_rate(full_runs())
+    assert rows["L1"] == pytest.approx(0.5)  # L1-002 flips, L1-001 does not
+    assert rows["L6"] == 0.0
+    assert rows["Overall"] == pytest.approx(1 / 3)
+
+
+def test_a_question_with_one_repeat_cannot_flip():
+    lines = [line("L1-001", True, repeat=1), line("L1-002", False, repeat=1)]
+    assert agent_report.flip_rate(lines) == {"L1": 0.0, "Overall": 0.0}
+
+
+def test_full_system_table_shows_the_flip_rate_next_to_the_spread():
+    text = "\n".join(agent_report.full_system_section(full_runs(), ITEMS))
+    header = text.splitlines()[0]
+    assert "Flip rate" in header
+    l1 = next(row for row in text.splitlines() if row.startswith("| L1 |"))
+    assert "0.50" in l1
+    assert header.count("|") == text.splitlines()[1].count("|")
+
+
+def test_the_ablation_legend_points_at_the_flip_rate():
+    text = "\n".join(agent_report.ablation_section(full_runs(), ITEMS))
+    assert "flip rate" in text.lower()
