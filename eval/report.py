@@ -357,6 +357,37 @@ def composition_section(files: dict[str, dict], tokens: dict | None = None) -> l
     ]
 
 
+def model_choice_section(choice: dict) -> list[str]:
+    """Which model was chosen and why, from eval/results/model_choice.json (D25, branch B)."""
+    out = [
+        f"Rule, written before the candidate runs — {choice['rule']}.",
+        "",
+        "| Model | Dev answered | Lost to machinery | Dev accuracy | LLM calls/answer "
+        "| Requests/day | Plan days | |",
+        "|---|---|---|---|---|---|---|---|",
+    ]
+    for c in choice["candidates"]:
+        verdict = "chosen" if c["model"] == choice["chosen"] else "not a candidate"
+        if c["feasible"] and c["model"] != choice["chosen"]:
+            verdict = "runner-up"
+        out.append(
+            f"| {c['model']} | {c['answered']}/{c['planned']} | {c['machinery_losses']} "
+            f"| {c['accuracy']:.2f} | {c['calls_per_answer']:.1f} | {c['rpd']} "
+            f"| {c['plan_days']} | {verdict} |"
+        )
+    return [
+        *out,
+        "",
+        f"**Decision:** {choice['reason']}",
+        "",
+        "The free tier limits requests per project **and per model**, so each candidate answered "
+        'the same 30 dev questions out of its own daily allowance. "Plan days" is the measured '
+        "calls per answer times the 665 answers of the run plan, divided by the daily limit: the "
+        "reason a model can be better and still unusable here. Choosing the model is not one of "
+        "the three dev prompt iterations, and no test-set answer was looked at.",
+    ]
+
+
 def _test_set_notes(items: list[dict]) -> list[str]:
     """Limits of the question set itself, counted from the set file."""
     l3 = Counter(item["gold_spec"]["depth"] for item in items if item["category"] == "L3")
@@ -396,6 +427,7 @@ def render_results(
     composition: dict[str, dict] | None = None,
     baselines: dict | None = None,
     tokens: dict | None = None,
+    model_choice: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -416,6 +448,10 @@ def render_results(
     # The plan's repeats hold for the test set; a dev run is judged on the repeats it has.
     repeats = None if set_name == "test" else max((line["repeat"] for line in full), default=1)
     section("Pre-registered reading rules (written before the test run)", PREREGISTERED)
+    section(
+        "Model choice and free-tier quota",
+        model_choice_section(model_choice) if model_choice else None,
+    )
     section(
         "Run plan and free-tier limits",
         agent_report.run_plan_section(runs, items, quota) if runs else None,
@@ -481,8 +517,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     tokens_path = results / "input_tokens.json"
     tokens = json.loads(tokens_path.read_text(encoding="utf-8")) if tokens_path.is_file() else None
+    choice_path = results / "model_choice.json"
+    choice = json.loads(choice_path.read_text(encoding="utf-8")) if choice_path.is_file() else None
     page = render_results(
-        load_retrieval(), runs, items, args.set, quota, composition or None, baselines, tokens
+        load_retrieval(),
+        runs,
+        items,
+        args.set,
+        quota,
+        composition or None,
+        baselines,
+        tokens,
+        choice,
     )
     args.out.write_bytes(page.encode("utf-8"))
     print(f"wrote {args.out} ({len(runs)} agent answers from {args.results_dir})")

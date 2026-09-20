@@ -284,3 +284,35 @@ def test_the_pre_registration_states_how_the_model_was_chosen():
     text = "\n".join(report.PREREGISTERED)
     assert "parse_failure" in text and "dev set" in text
     assert "15 days" in text  # a model that cannot finish the plan is not a candidate
+
+
+MODEL_CHOICE = {
+    "rule": "primary: answers lost to parse_failure, tool_budget or llm_error; ...",
+    "chosen": "gemini-3.5-flash-lite",
+    "reason": "gemini-3.5-flash-lite lost 0 answers and scored 0.70; gemini-3.8-flash was not a candidate: 20 requests a day means 120 days.",
+    "candidates": [
+        {"model": "gemini-3.5-flash-lite", "lite": True, "answered": 30, "planned": 30,
+         "unanswered": 0, "accuracy": 0.7, "machinery_losses": 0,
+         "stop_reasons": {"final": 30}, "calls_per_answer": 3.4,
+         "input_tokens_per_answer": 21000.0, "rpd": 500, "observed_rpd": None,
+         "plan_answers": 665, "plan_calls": 2261, "plan_days": 5, "feasible": True},
+        {"model": "gemini-3.8-flash", "lite": False, "answered": 6, "planned": 30,
+         "unanswered": 24, "accuracy": 0.5, "machinery_losses": 24,
+         "stop_reasons": {"final": 6}, "calls_per_answer": 3.5,
+         "input_tokens_per_answer": 22000.0, "rpd": 20, "observed_rpd": 20,
+         "plan_answers": 665, "plan_calls": 2328, "plan_days": 117, "feasible": False},
+    ],
+}  # fmt: skip
+
+
+def test_model_choice_section_shows_the_rule_the_candidates_and_the_decision():
+    text = "\n".join(report.model_choice_section(MODEL_CHOICE))
+    assert "primary" in text  # the pre-registered rule is repeated where the numbers are
+    assert "| gemini-3.5-flash-lite | 30/30 | 0 | 0.70 | 3.4 | 500 | 5 | chosen |" in text
+    assert "| gemini-3.8-flash | 6/30 | 24 | 0.50 | 3.5 | 20 | 117 | not a candidate |" in text
+    assert "120 days" in text  # the reason, as written by model_choice.py
+
+
+def test_a_page_without_a_model_choice_says_not_run():
+    page = report.render_results(None)
+    assert "Model choice" in page
