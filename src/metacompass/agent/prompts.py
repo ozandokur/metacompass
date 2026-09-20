@@ -67,8 +67,9 @@ ABSTAIN_END = """- When abstaining, say briefly what you could not find. Do not 
 TOOL_BUDGET = "- Use at most {max_tool_calls} tool calls."
 PREFER_IMPACT = ' Prefer impact_analysis for "what breaks if I change a table".'
 BROADCAST = """- If impact_analysis returns notify_mode=broadcast, do not list every
-  person. State how many reports and people are affected, name the top owners by usage
-  and the department heads to announce to."""
+  person. State how many reports and people are affected, name the top owners by usage, and
+  put the head of every affected department in answer_ids: the rollup names them all, and
+  leaving one out means that department hears nothing."""
 TOOL_ERRORS = "- If a tool returns an error, do not show technical details to the user."
 
 OUTPUT = """OUTPUT
@@ -104,6 +105,11 @@ PROMPT_HASHES = {
     # their gold IDs in no tool result at all, so SEARCH asks for a second query before
     # concluding that something does not exist; nothing else can be fixed from the prompt.
     "v4": "62c292a6faeaa35396c1e0019195f9369bc5c4536e991b27dd17c306782ec951",
+    # v5 (dev iteration 3 of 3, 2026-09-20): v3 and v4 both scored 24/30, and the broadcast
+    # question was right in v3 only because that answer happened to copy every head it saw.
+    # The rule now says which heads belong in answer_ids, so the answer does not depend on how
+    # much the model copies. This is the last iteration the plan allows.
+    "v5": "2843aa421cd478a4377cf204e8948c486ea3e0580a752da3b0f6b9c945b2b0c5",
 }
 
 

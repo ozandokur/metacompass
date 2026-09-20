@@ -55,7 +55,7 @@ def test_prompt_version_is_pinned_to_what_the_model_sees():
     # Any change to the system prompt or the tool schemas must come with a new
     # PROMPT_VERSION and a PROGRESS note (§8.4). Since v2 the pin covers both; v2 is v1
     # plus the schema/payload simplification (Q-D25-2), made before any result was seen.
-    assert PROMPT_VERSION == "v4"
+    assert PROMPT_VERSION == "v5"
     assert AgentConfig().prompt_version == PROMPT_VERSION
     assert PROMPT_HASHES[PROMPT_VERSION] == model_input_digest(AgentConfig())
     assert "v1" in PROMPT_HASHES  # history is kept
