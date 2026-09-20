@@ -1,0 +1,74 @@
+{
+  "metadata": {
+    "git_sha": "f7e4e02",
+    "set": "dev",
+    "max_plan_days": 15
+  },
+  "rule": "primary: answers lost to parse_failure, tool_budget or llm_error; secondary: dev accuracy; a model that cannot finish 665 answers within 15 days is not a candidate; a tie keeps the non-Lite model",
+  "chosen": "gemini-3.1-flash-lite",
+  "reason": "gemini-3.1-flash-lite lost 0 answers to the agent's machinery (parse_failure, tool_budget, llm_error) and scored 0.60 on the dev set; gemini-3.5-flash-lite lost 3 and scored 0.57. gemini-3.8-flash was not a candidate: 20 requests a day means 167 days for 3325 calls.",
+  "candidates": [
+    {
+      "model": "gemini-3.1-flash-lite",
+      "lite": true,
+      "answered": 30,
+      "planned": 30,
+      "unanswered": 0,
+      "accuracy": 0.6,
+      "stop_reasons": {
+        "final": 30
+      },
+      "machinery_losses": 0,
+      "calls_per_answer": 3.2666666666666666,
+      "input_tokens_per_answer": 7203.266666666666,
+      "rpd": 500,
+      "observed_rpd": null,
+      "plan_answers": 665,
+      "plan_calls": 2172,
+      "plan_days": 5,
+      "feasible": true
+    },
+    {
+      "model": "gemini-3.5-flash-lite",
+      "lite": true,
+      "answered": 30,
+      "planned": 30,
+      "unanswered": 0,
+      "accuracy": 0.5666666666666667,
+      "stop_reasons": {
+        "final": 27,
+        "tool_budget": 3
+      },
+      "machinery_losses": 3,
+      "calls_per_answer": 4.166666666666667,
+      "input_tokens_per_answer": 10047.733333333334,
+      "rpd": 500,
+      "observed_rpd": null,
+      "plan_answers": 665,
+      "plan_calls": 2771,
+      "plan_days": 6,
+      "feasible": true
+    },
+    {
+      "model": "gemini-3.8-flash",
+      "lite": false,
+      "answered": 2,
+      "planned": 30,
+      "unanswered": 28,
+      "accuracy": 1.0,
+      "stop_reasons": {
+        "final": 1,
+        "tool_budget": 1
+      },
+      "machinery_losses": 29,
+      "calls_per_answer": 5.0,
+      "input_tokens_per_answer": 16099.5,
+      "rpd": 20,
+      "observed_rpd": 20,
+      "plan_answers": 665,
+      "plan_calls": 3325,
+      "plan_days": 167,
+      "feasible": false
+    }
+  ]
+}

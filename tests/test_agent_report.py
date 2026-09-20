@@ -311,6 +311,8 @@ def test_model_choice_section_shows_the_rule_the_candidates_and_the_decision():
     assert "| gemini-3.5-flash-lite | 30/30 | 0 | 0.70 | 3.4 | 500 | 5 | chosen |" in text
     assert "| gemini-3.8-flash | 6/30 | 24 | 0.50 | 3.5 | 20 | 117 | not a candidate |" in text
     assert "120 days" in text  # the reason, as written by model_choice.py
+    # A run the quota stopped early has an accuracy over a handful of questions; say so.
+    assert "gemini-3.8-flash reached 6 of 30" in text
 
 
 def test_a_page_without_a_model_choice_says_not_run():

@@ -126,6 +126,22 @@ v1 as originally recorded (git `1d37885`, 2026-09-18; the metrics of that time):
 - **How the model was chosen (written before the candidate runs).** The free tier gives every Flash model 20 requests a day, which cannot carry a 665-answer plan (about 2,400 calls); the Flash-Lite class gives 500 a day. The model is therefore chosen by measurement on the dev set, never on the test set, by this rule: **primary criterion** the number of answers lost to the agent's own machinery (stop reason parse_failure, tool_budget or llm_error), **secondary criterion** the overall dev accuracy. A model whose daily limit cannot finish the plan inside 15 days is not a candidate, whatever it scores. Both candidates' numbers are reported below, and choosing the model is not one of the three dev prompt iterations.
 - **When an ablation difference is real.** In a category: the 95% CIs of the ablation and of the full system do not overlap. Overall: the difference is at least 3 points and more than 2 times the standard deviation of the full system's three repeats. Anything less is not read as an effect of the ablated component.
 
+## Model choice and free-tier quota
+
+Rule, written before the candidate runs — primary: answers lost to parse_failure, tool_budget or llm_error; secondary: dev accuracy; a model that cannot finish 665 answers within 15 days is not a candidate; a tie keeps the non-Lite model.
+
+| Model | Dev answered | Lost to machinery | Dev accuracy | LLM calls/answer | Requests/day | Plan days | |
+|---|---|---|---|---|---|---|---|
+| gemini-3.1-flash-lite | 30/30 | 0 | 0.60 | 3.3 | 500 | 5 | chosen |
+| gemini-3.5-flash-lite | 30/30 | 3 | 0.57 | 4.2 | 500 | 6 | runner-up |
+| gemini-3.8-flash | 2/30 | 29 | 1.00 | 5.0 | 20 | 167 | not a candidate |
+
+**Decision:** gemini-3.1-flash-lite lost 0 answers to the agent's machinery (parse_failure, tool_budget, llm_error) and scored 0.60 on the dev set; gemini-3.5-flash-lite lost 3 and scored 0.57. gemini-3.8-flash was not a candidate: 20 requests a day means 167 days for 3325 calls.
+
+*gemini-3.8-flash reached 2 of 30: the daily quota stopped the run, so that accuracy covers only those questions and says little about the model.*
+
+The free tier limits requests per project **and per model**, so each candidate answered the same 30 dev questions out of its own daily allowance. "Plan days" is the measured calls per answer times the 665 answers of the run plan, divided by the daily limit: the reason a model can be better and still unusable here. Choosing the model is not one of the three dev prompt iterations, and no test-set answer was looked at.
+
 ## Run plan and free-tier limits
 
 ⏳ not run

@@ -5,12 +5,9 @@
     "tpm": 1000000
   },
   "days": {
-    "2026-09-19": {
-      "requests": 8,
-      "tokens": 17883
+    "2026-09-20": {
+      "requests": 98,
+      "tokens": 222539
     }
-  },
-  "observed": {
-    "GenerateRequestsPerDayPerProjectPerModel-FreeTier": 20
   }
 }

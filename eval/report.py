@@ -375,11 +375,19 @@ def model_choice_section(choice: dict) -> list[str]:
             f"| {c['accuracy']:.2f} | {c['calls_per_answer']:.1f} | {c['rpd']} "
             f"| {c['plan_days']} | {verdict} |"
         )
+    partial = [c for c in choice["candidates"] if c["unanswered"]]
+    caveat = [
+        "*"
+        + "; ".join(f"{c['model']} reached {c['answered']} of {c['planned']}" for c in partial)
+        + ": the daily quota stopped the run, so that accuracy covers only those questions "
+        "and says little about the model.*"
+    ]
     return [
         *out,
         "",
         f"**Decision:** {choice['reason']}",
         "",
+        *(caveat + [""] if partial else []),
         "The free tier limits requests per project **and per model**, so each candidate answered "
         'the same 30 dev questions out of its own daily allowance. "Plan days" is the measured '
         "calls per answer times the 665 answers of the run plan, divided by the daily limit: the "
