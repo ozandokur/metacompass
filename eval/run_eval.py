@@ -136,6 +136,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repeat", type=int, default=1, help="run repeats 1..N")
     parser.add_argument("--categories", default=None, help="comma list, e.g. L2,L5")
     parser.add_argument("--llm", choices=["provider", "fake"], default="provider")
+    parser.add_argument("--model", default=None, help="override LLM_MODEL (model comparison)")
     parser.add_argument("--embedder", choices=["model", "hash"], default="model")
     parser.add_argument("--data", type=Path, default=ROOT / "data")
     parser.add_argument("--out-dir", type=Path, default=None)
@@ -153,6 +154,9 @@ def main(argv: list[str] | None = None) -> int:
     categories = args.categories.split(",") if args.categories else None
     items = select_items(load_set(args.set), code, categories)[: args.limit]
     settings = load_settings(env_file=args.env_file)
+    if args.model:
+        # One flag, so a candidate model reaches the client, the run identity and every line.
+        settings = settings.model_copy(update={"llm_model": args.model})
     out_dir = args.out_dir or (SCRATCH if dry_run or args.set == "dev" else RESULTS)
     paths = {r: out_dir / f"{args.set}_{code}_r{r}.jsonl" for r in range(1, args.repeat + 1)}
     if not args.resume:

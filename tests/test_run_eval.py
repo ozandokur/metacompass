@@ -174,3 +174,32 @@ def test_answers_from_another_model_or_prompt_are_never_resumed(generated_dir, t
     assert dry_run(generated_dir, tmp_path) == 2
     assert "other-model" in capsys.readouterr().err
     assert path.read_text(encoding="utf-8").splitlines() == [json.dumps(old)]
+
+
+def test_the_model_can_be_chosen_on_the_command_line(generated_dir, tmp_path, monkeypatch):
+    # The candidates of a model comparison must not need an .env edit each time, and the
+    # chosen model has to reach the provider, the run's identity and every result line.
+    seen = {}
+
+    class Stub(FakeLLM):
+        def __init__(self, model):
+            super().__init__([], then=run_eval.dry_run_llm().then)
+            self.model = model
+
+        def check_model(self):
+            seen["checked"] = self.model
+
+    def fake_make_llm(settings):
+        seen["asked"] = settings.llm_model
+        return Stub(settings.llm_model)
+
+    monkeypatch.setattr(run_eval, "make_llm", fake_make_llm)
+    code = run_eval.main(
+        ["--set", "dev", "--config", "full", "--embedder", "hash", "--data", str(generated_dir),
+         "--out-dir", str(tmp_path), "--limit", "1", "--env-file", str(tmp_path / "no.env"),
+         "--quota-log", str(tmp_path / "quota.json"), "--model", "gemini-3.5-flash-lite"]
+    )  # fmt: skip
+    assert code == 0
+    assert seen == {"asked": "gemini-3.5-flash-lite", "checked": "gemini-3.5-flash-lite"}
+    line = json.loads((tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8").splitlines()[0])
+    assert line["model"] == "gemini-3.5-flash-lite"

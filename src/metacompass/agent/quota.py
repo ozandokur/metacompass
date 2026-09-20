@@ -64,6 +64,19 @@ class QuotaLog:
         data.setdefault("observed", {})[quota_id] = value
         self._save(data)
 
+    def observe_rpd(self, value: int) -> None:
+        """Remember the daily request limit the provider actually enforced.
+
+        .env is a guess: it said 1500 where gemini-3.7-flash gave 20. The measured value
+        replaces it, so later days stop before spending a request on a certain 429.
+        """
+        data = self._load()
+        data["observed_rpd"] = value
+        self._save(data)
+
+    def observed_rpd(self) -> int | None:
+        return self._load().get("observed_rpd")
+
     def _save(self, data: dict) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -119,11 +132,19 @@ class QuotaGuardedLLM:
                 return
             self.sleep(self._window[0][0] + WINDOW + MARGIN - now)
 
+    def daily_limit(self) -> int | None:
+        """The daily request cap to obey: the measured one where it is lower than .env."""
+        learned, configured = self.log.observed_rpd(), self.limits.rpd
+        if learned is None:
+            return configured
+        return learned if configured is None else min(learned, configured)
+
     def chat(
         self, messages: list[dict], tools: list[dict] | None, json_mode: bool = False
     ) -> LLMResponse:
-        if self.limits.rpd is not None and self.log.used_today()["requests"] >= self.limits.rpd:
-            raise QuotaExhausted(f"daily request quota ({self.limits.rpd}) used up for today")
+        rpd = self.daily_limit()
+        if rpd is not None and self.log.used_today()["requests"] >= rpd:
+            raise QuotaExhausted(f"daily request quota ({rpd}) used up for today")
         self._wait_for_room(estimate_input_tokens(messages, tools))
         for attempt in range(len(BACKOFF) + 1):
             try:
@@ -132,7 +153,12 @@ class QuotaGuardedLLM:
                 if refused.quota_id and refused.quota_value is not None:
                     self.log.observe(refused.quota_id, refused.quota_value)
                 if refused.quota_id and "PerDay" in refused.quota_id:
-                    # Retrying cannot help before midnight Pacific.
+                    # Retrying cannot help before midnight Pacific. What the day carried is
+                    # the fallback when the 429 names no number.
+                    learned = refused.quota_value
+                    if learned is None:
+                        learned = self.log.used_today()["requests"]
+                    self.log.observe_rpd(learned)
                     raise QuotaExhausted(f"daily quota {refused.quota_id} used up") from None
                 if attempt == len(BACKOFF):
                     raise QuotaExhausted("still rate limited after 5 retries") from None

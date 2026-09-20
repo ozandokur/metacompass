@@ -129,3 +129,38 @@ def test_a_daily_quota_429_stops_at_once_and_is_remembered(tmp_path):
     assert (clock.slept, len(inner.requests)) == ([], 1)  # no pointless retries
     saved = json.loads((tmp_path / "quota_log.json").read_text(encoding="utf-8"))
     assert saved["observed"] == {"GenerateRequestsPerDayPerProjectPerModel-FreeTier": 250}
+
+
+def test_a_daily_quota_429_teaches_the_guard_the_real_limit(tmp_path):
+    # .env said 1500 while gemini-3.7-flash allows 20 a day. The limit the server reports
+    # wins from then on, so later days stop before wasting a request.
+    clock = Clock()
+    daily = RateLimited(None, quota_id="GenerateRequestsPerDayPerProjectPerModel-FreeTier",
+                        quota_value=20)  # fmt: skip
+    llm, _, log = guarded(tmp_path, [daily], clock, rpd=1500)
+    with pytest.raises(QuotaExhausted):
+        llm.chat(MESSAGES, None)
+    assert log.observed_rpd() == 20
+    saved = json.loads((tmp_path / "quota_log.json").read_text(encoding="utf-8"))
+    assert saved["observed_rpd"] == 20
+
+
+def test_a_daily_429_without_a_value_remembers_what_the_day_actually_carried(tmp_path):
+    clock = Clock()
+    daily = RateLimited(None, quota_id="GenerateRequestsPerDayPerProjectPerModel-FreeTier")
+    llm, _, log = guarded(tmp_path, [ok(), ok(), daily], clock, rpd=1500)
+    llm.chat(MESSAGES, None)
+    llm.chat(MESSAGES, None)
+    with pytest.raises(QuotaExhausted):
+        llm.chat(MESSAGES, None)
+    assert log.observed_rpd() == 2  # the two answered requests are all the day gave
+
+
+def test_the_learned_daily_limit_replaces_the_configured_one(tmp_path):
+    clock = Clock()
+    llm, inner, log = guarded(tmp_path, [ok(), ok()], clock, rpd=1500)
+    log.observe_rpd(1)
+    llm.chat(MESSAGES, None)
+    with pytest.raises(QuotaExhausted, match="20|1"):
+        llm.chat(MESSAGES, None)
+    assert len(inner.requests) == 1  # the second request never left
