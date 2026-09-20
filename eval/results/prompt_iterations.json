@@ -1,0 +1,166 @@
+{
+  "metadata": {
+    "git_sha": "21eb296-dirty",
+    "set": "dev",
+    "questions": 30
+  },
+  "frozen": "v5",
+  "versions": [
+    {
+      "version": "v2",
+      "answers": 30,
+      "accuracy": 0.6,
+      "by_category": {
+        "L1": {
+          "correct": 2,
+          "n": 4
+        },
+        "L2": {
+          "correct": 5,
+          "n": 5
+        },
+        "L3": {
+          "correct": 4,
+          "n": 4
+        },
+        "L4": {
+          "correct": 0,
+          "n": 4
+        },
+        "L5": {
+          "correct": 0,
+          "n": 3
+        },
+        "L6": {
+          "correct": 5,
+          "n": 6
+        },
+        "MX": {
+          "correct": 2,
+          "n": 4
+        }
+      },
+      "abstain_precision": 0.5555555555555556,
+      "abstain_recall": 0.8333333333333334,
+      "calls_per_answer": 3.2666666666666666,
+      "input_tokens_per_answer": 7203.266666666666
+    },
+    {
+      "version": "v3",
+      "answers": 30,
+      "accuracy": 0.8,
+      "by_category": {
+        "L1": {
+          "correct": 2,
+          "n": 4
+        },
+        "L2": {
+          "correct": 5,
+          "n": 5
+        },
+        "L3": {
+          "correct": 4,
+          "n": 4
+        },
+        "L4": {
+          "correct": 1,
+          "n": 4
+        },
+        "L5": {
+          "correct": 3,
+          "n": 3
+        },
+        "L6": {
+          "correct": 5,
+          "n": 6
+        },
+        "MX": {
+          "correct": 4,
+          "n": 4
+        }
+      },
+      "abstain_precision": 0.8333333333333334,
+      "abstain_recall": 0.8333333333333334,
+      "calls_per_answer": 3.533333333333333,
+      "input_tokens_per_answer": 8654.066666666668
+    },
+    {
+      "version": "v4",
+      "answers": 30,
+      "accuracy": 0.8,
+      "by_category": {
+        "L1": {
+          "correct": 3,
+          "n": 4
+        },
+        "L2": {
+          "correct": 5,
+          "n": 5
+        },
+        "L3": {
+          "correct": 4,
+          "n": 4
+        },
+        "L4": {
+          "correct": 1,
+          "n": 4
+        },
+        "L5": {
+          "correct": 2,
+          "n": 3
+        },
+        "L6": {
+          "correct": 6,
+          "n": 6
+        },
+        "MX": {
+          "correct": 3,
+          "n": 4
+        }
+      },
+      "abstain_precision": 0.6,
+      "abstain_recall": 1.0,
+      "calls_per_answer": 3.4,
+      "input_tokens_per_answer": 8710.966666666667
+    },
+    {
+      "version": "v5",
+      "answers": 30,
+      "accuracy": 0.7666666666666667,
+      "by_category": {
+        "L1": {
+          "correct": 3,
+          "n": 4
+        },
+        "L2": {
+          "correct": 4,
+          "n": 5
+        },
+        "L3": {
+          "correct": 4,
+          "n": 4
+        },
+        "L4": {
+          "correct": 1,
+          "n": 4
+        },
+        "L5": {
+          "correct": 3,
+          "n": 3
+        },
+        "L6": {
+          "correct": 6,
+          "n": 6
+        },
+        "MX": {
+          "correct": 2,
+          "n": 4
+        }
+      },
+      "abstain_precision": 0.6666666666666666,
+      "abstain_recall": 1.0,
+      "calls_per_answer": 3.6333333333333333,
+      "input_tokens_per_answer": 9669.566666666668
+    }
+  ]
+}

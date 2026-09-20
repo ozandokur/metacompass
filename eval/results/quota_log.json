@@ -1,13 +1,16 @@
 {
   "limits": {
     "rpm": 15,
-    "rpd": 1500,
+    "rpd": 500,
     "tpm": 1000000
   },
   "days": {
     "2026-09-20": {
-      "requests": 98,
-      "tokens": 222539
+      "requests": 415,
+      "tokens": 1053349
     }
+  },
+  "observed": {
+    "GenerateRequestsPerMinutePerProjectPerModel-FreeTier": 15
   }
 }

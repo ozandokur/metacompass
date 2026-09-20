@@ -1,23 +1,31 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 — model seçildi (`gemini-3.1-flash-lite`), dev iterasyonu 1/3 koşuyor · Son
-güncelleme: 2026-09-20 · Son kapı: 7abb52c geçti (2026-09-20, 486 test) · Faz 5 kontrol
-noktası kapandı · Kota gerçeği: Lite olmayan Flash RPD 20, Flash-Lite RPD 500.
+Aktif faz: 6 — dev iterasyonları bitti (3/3 kullanıldı), **yapılandırma donduruldu**, test
+koşumu başlıyor · Son güncelleme: 2026-09-20 · Son kapı: 2026-09-20, 489 test.
 
 ## Dondurulmuş değerler
-Test koşumundan önce dondurulacak; şu anki değerler: LLM `gemini-3.1-flash-lite`
-(Google AI Studio ücretsiz katman, RPM 15 / RPD 500) · API: REST `v1beta`
-(`config.GEMINI_API_VERSION`) · PROMPT_VERSION: v3 (dev iterasyonu 1/3; v2 = v1 + şema
-sadeleştirmesi, iterasyon sayılmaz) · Embedding: BAAI/bge-small-en-v1.5 · Sinyal: z ≥ 4.25
-(τ_z; mutlak τ = 0.70 yedek) · Koşum planı: 665 cevap (A0 ×3, A1–A5 ×1) · Data seed: 42.
+**DONDURULDU 2026-09-20, test koşumundan önce.** Test koşumu başladıktan sonra biri değişirse
+tüm test sonuçları geçersizdir ve baştan koşulur.
+| ne | değer |
+|---|---|
+| model | `gemini-3.1-flash-lite` (Google AI Studio ücretsiz katman) |
+| API | REST `v1beta` (`config.GEMINI_API_VERSION`) |
+| PROMPT_VERSION | `v5` (hash `2843aa42…`, `prompts.PROMPT_HASHES`) |
+| sinyal | z ≥ 4,25 (τ_z; mutlak τ = 0,70 yedek) |
+| embedding modeli | `BAAI/bge-small-en-v1.5` |
+| data seed | 42 |
+| gözlenen RPD | 500 (AI Studio; bir gün içinde 415 istek reddedilmeden geçti, guard ilk 429'da gerçek değeri yazar) · RPM 15 |
+| git SHA | dondurma commit'i: bu satırı taşıyan commit (SHA'sı aşağıya, ilk test koşumu kaydına yazılıyor); her sonuç satırı kendi `git_sha`'sını taşır |
+| koşum planı | 665 cevap (A0 ×3, A1–A5 ×1) |
 
 ## Harcama ve kota
 Para: $0 (D25). Kota **proje + model başına**: Lite olmayan her Flash modeli RPD 20 / RPM 5,
 Flash-Lite RPD 500 / RPM 15 (AI Studio, Ozan 2026-09-20; 3.7'de RPD 20 429'dan da ölçüldü).
-`eval/results/quota_log.json` seçilen modeli izler (2026-09-20: 98 istek / 222.539 token,
-aday koşumu). Aday koşumlarının kendi log'ları `eval/results/scratch/model_pick/` altında
-(3.5-flash-lite 125 istek, 3.8-flash 16 istek + günlük 429).
+`eval/results/quota_log.json` seçilen modeli izler (2026-09-20: 415 istek / 1.053.349 token —
+aday koşumu + üç dev iterasyonu, hiç reddedilmedi). Aday koşumlarının kendi log'ları
+`eval/results/scratch/model_pick/` altında (3.5-flash-lite 125 istek, 3.8-flash 16 istek +
+günlük 429).
 **Süre tahmini (Ozan'ın 15 gün sınırı):** ölçülen 3,3 LLM çağrısı/cevap × 665 cevap = 2.172
 çağrı ÷ 500 = **5 gün** (+ dev iterasyonları, her biri ~100 çağrı, günü doldurmuyor). Sınırın
 altında, durmaya gerek yok.
@@ -313,6 +321,20 @@ altında, durmaya gerek yok.
 - [Faz 6] **Guard gerçek günlük limiti öğreniyor** (8c8517d): günlük 429'da sunucunun bildirdiği
   değer (yoksa o günün gerçekleşen istek sayısı) `quota_log.json`'a `observed_rpd` olarak
   yazılıyor, sonraki günlerde `.env` ile bunun küçüğü geçerli. 3.8-flash'ta ölçüldü: 20.
+- [Faz 6] **Dev iterasyonları bitti: v3, v4, v5 (3/3), dondurulan sürüm v5.**
+  `eval/results/prompt_iterations.json` + results.md "Prompt versions and input size":
+  | prompt | dev | L1 | L2 | L3 | L4 | L5 | L6 | MX | abstain P/R | çağrı/cevap |
+  |---|---|---|---|---|---|---|---|---|---|---|
+  | v2 | 0,60 | 2/4 | 5/5 | 4/4 | 0/4 | 0/3 | 5/6 | 2/4 | 0,56 / 0,83 | 3,3 |
+  | v3 | 0,80 | 2/4 | 5/5 | 4/4 | 1/4 | 3/3 | 5/6 | 4/4 | 0,83 / 0,83 | 3,5 |
+  | v4 | 0,80 | 3/4 | 5/5 | 4/4 | 1/4 | 2/3 | 6/6 | 3/4 | 0,60 / 1,00 | 3,4 |
+  | **v5** | 0,77 | 3/4 | 4/5 | 4/4 | 1/4 | 3/3 | 6/6 | 2/4 | 0,67 / 1,00 | 3,6 |
+  v4 → v5'te **yalnızca broadcast satırı** değişti, ama L2 (C4 sahiplik) ve MX cevapları da
+  değişti; tool sorguları bile farklıydı. Yani sağlayıcı `temperature=0`'da deterministik değil
+  ve 30 soruda 1 soruluk fark iki prompt'u ayırmıyor. Bu yüzden dondurma puana göre değil,
+  **bilinen şartname boşluğu kalmamasına** göre yapıldı: v5'te `abstained` bayrağı metne bağlı
+  (v3'te değildi) ve broadcast'te `answer_ids`'in ne tutacağı tanımlı (v4'te değildi).
+  Determinizm bulgusu results.md "Threats to validity"ye girdi; A0'ın üç tekrarının gerekçesi de bu.
 - [Faz 6] **Prompt v3 — dev iterasyonu 1/3** (7abb52c). Pilotun hata aileleri:
   (a) **`answer_ids` hijyeni:** model cevabı metinde doğru veriyor ama `answer_ids`'e yola
   çıktığı varlığı (tablo/rapor) koyuyordu — üç L5 sorusunun tamamı, bir MX, bir L4.
@@ -322,7 +344,20 @@ altında, durmaya gerek yok.
   formül sanma; "gelecek yıl kim sahip olacak" sorusuna cevap verme.
   v3 bunlara karşılık: `answer_ids`'in soru tipine göre ne tuttuğunu açıkça yazar, yeni bir
   SEARCH bölümü ekler, ve "metadata bu bilgiyi taşıyamaz" ile "arama kelimesi tutmadı"yı
-  ayırır. Kural gereği bu bir iterasyon sayılır (3'ten 1'i kullanıldı).
+  ayırır. Sonuç: 18/30 → 24/30 (L5 0→3, MX 2→4, L4 0→1).
+- [Faz 6] **Prompt v4 — iterasyon 2/3** (5b912f4): üç cevap "bulamadım" deyip `abstained`'ı
+  false bırakıyordu; OUTPUT kuralı bayrağı metne bağladı (L6 6/6, abstain recall 1,00) ve SEARCH
+  bir kez daha başka kelimelerle aramayı istedi.
+- [Faz 6] **Prompt v5 — iterasyon 3/3** (21eb296): broadcast'te `answer_ids` etkilenen her
+  departmanın başkanını tutar. v3'te bu soru yalnızca model gördüğü her başkanı kopyaladığı için
+  doğruydu; v4'te daha az kopyalayıp kaybetti. Kural bu şansı ortadan kaldırıyor (L5 3/3).
+- [Faz 6] **Retrieval tavanı ölçülüyor** (5b912f4): v3'ün kalan altı hatasının beşinde gold ID'ler
+  **hiçbir tool çıktısında yoktu** — retriever cevabı modele hiç göstermedi, yani prompt ile
+  düzeltilemez. results.md teşhis tablosunda "Gold never retrieved" sütunu bunu kategori başına
+  sayıyor (puanı değiştirmiyor). L4'ün düşük kalması bu tavanla açıklanıyor.
+- [Faz 6] **Dev iterasyon tablosu üretilebilir** (`eval/prompt_iterations.py`): results.md'deki
+  sürüm karşılaştırması arşivlenen dev koşumlarından hesaplanıyor, elle yazılmıyor. Dosya
+  satırlarının prompt sürümü klasör adıyla uyuşmazsa script hata veriyor.
 
 ## Devam eden
 - Görev: prompt v3 dev koşumu → karşılaştırma (v2: 18/30) → gerekirse en fazla 2 iterasyon daha

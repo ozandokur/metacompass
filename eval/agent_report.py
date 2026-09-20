@@ -361,6 +361,10 @@ THREATS = [
     "- **Small categories.** 10–15 questions per category give wide confidence intervals.",
     "- **Broadcast impact questions are graded on department heads (D24),** not on every "
     "person to notify; the stated count is not scored yet.",
+    "- **Temperature 0 is not determinism.** Two prompt versions on the dev set gave different "
+    "answers to questions neither edit could affect, with different tool queries, so the same "
+    "input can take a different path. The three repeats of the full system measure this; a "
+    "single-run difference of one or two questions does not separate two systems.",
     "- **The match signal mostly rests on exact names** (retrieval benchmark), so the "
     "abstain ablation largely measures the prompt.",
 ]

@@ -279,8 +279,8 @@ def load_runs(results_dir: Path, set_name: str) -> list[dict]:
     return lines
 
 
-# Written on 2026-09-19 (the model-choice rule on 2026-09-20, before the candidate runs and
-# before any test-set run), and pinned by PREREGISTERED_DIGEST
+# Written on 2026-09-19; the model-choice rule and the frozen configuration on 2026-09-20,
+# both before any test-set run. Pinned by PREREGISTERED_DIGEST
 # (tests/test_agent_report.py): the rules for reading the results cannot move after the
 # results are in.
 PREREGISTERED = [
@@ -302,12 +302,22 @@ PREREGISTERED = [
     "whose daily limit cannot finish the plan inside 15 days is not a candidate, whatever it "
     "scores. Both candidates' numbers are reported below, and choosing the model is not one "
     "of the three dev prompt iterations.",
+    "- **Frozen before the test run.** Model `gemini-3.1-flash-lite` on the Google AI Studio "
+    "free tier (500 requests a day per AI Studio; no refusal has contradicted it, and the "
+    "guard learns the real limit from the first one), API `v1beta`, prompt `v5`, match signal "
+    "z ≥ "
+    "4.25, embedding model `BAAI/bge-small-en-v1.5`, data seed 42; the git SHA is on every "
+    "result line. If any of these has to change after the test run starts, the test run starts "
+    "over. The prompt was frozen on the dev set alone, where v3, v4 and v5 scored 24, 24 and 23 "
+    "of 30. Answers moved between versions on questions the edit could not touch, so this "
+    "provider is not deterministic at temperature 0 and a one-question difference cannot "
+    "separate two prompts; v5 is the version with no known gap left in its output contract.",
     "- **When an ablation difference is real.** In a category: the 95% CIs of the ablation "
     "and of the full system do not overlap. Overall: the difference is at least 3 points "
     "and more than 2 times the standard deviation of the full system's three repeats. "
     "Anything less is not read as an effect of the ablated component.",
 ]
-PREREGISTERED_DIGEST = "32fb4c7be45f68546395ba3bd5da7cfcec874979672696a9bb00b038711fc1a7"
+PREREGISTERED_DIGEST = "d145e5272dde1f3ba3410fcad8d098a245740c804d25a24d58c9be267e09de67"
 
 
 def preregistration_digest() -> str:
@@ -355,6 +365,35 @@ def composition_section(files: dict[str, dict], tokens: dict | None = None) -> l
         "Measured by `eval/measure_input.py`: each dev question's shortest tool path played "
         f"through the real loop with a scripted model. {how}",
     ]
+
+
+def prompt_iteration_section(iterations: dict) -> list[str]:
+    """Each prompt version's dev run, from eval/results/prompt_iterations.json (spec §9.1)."""
+    versions = iterations["versions"]
+    categories = sorted({c for v in versions for c in v["by_category"]})
+    out = [
+        f"Every version answered the same {versions[0]['answers']} dev questions once; the test "
+        "set was never used to choose a prompt.",
+        "",
+        "| Prompt | Dev accuracy | "
+        + " | ".join(categories)
+        + " | Abstain P | Abstain R | Calls/answer | |",
+        "|---" * (len(categories) + 5) + "|",
+    ]
+    for v in versions:
+        cells = " | ".join(
+            f"{v['by_category'][c]['correct']}/{v['by_category'][c]['n']}"
+            if c in v["by_category"]
+            else "—"
+            for c in categories
+        )
+        mark = "frozen" if v["version"] == iterations["frozen"] else "replaced"
+        out.append(
+            f"| {v['version']} | {v['accuracy']:.2f} | {cells} | "
+            f"{agent_report.fmt(v['abstain_precision'])} | {agent_report.fmt(v['abstain_recall'])} "
+            f"| {v['calls_per_answer']:.1f} | {mark} |"
+        )
+    return out
 
 
 def model_choice_section(choice: dict) -> list[str]:
@@ -436,6 +475,7 @@ def render_results(
     baselines: dict | None = None,
     tokens: dict | None = None,
     model_choice: dict | None = None,
+    iterations: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -466,9 +506,11 @@ def render_results(
     )
     section(
         "Prompt versions and input size",
-        [*PROMPT_VERSIONS, "", *composition_section(composition, tokens)]
-        if composition
-        else PROMPT_VERSIONS,
+        [
+            *PROMPT_VERSIONS,
+            *(["", *prompt_iteration_section(iterations)] if iterations else []),
+            *(["", *composition_section(composition, tokens)] if composition else []),
+        ],
     )
     section(
         "Trivial baselines (no LLM)",
@@ -527,6 +569,12 @@ def main(argv: list[str] | None = None) -> int:
     tokens = json.loads(tokens_path.read_text(encoding="utf-8")) if tokens_path.is_file() else None
     choice_path = results / "model_choice.json"
     choice = json.loads(choice_path.read_text(encoding="utf-8")) if choice_path.is_file() else None
+    iterations_path = results / "prompt_iterations.json"
+    iterations = (
+        json.loads(iterations_path.read_text(encoding="utf-8"))
+        if iterations_path.is_file()
+        else None
+    )
     page = render_results(
         load_retrieval(),
         runs,
@@ -537,6 +585,7 @@ def main(argv: list[str] | None = None) -> int:
         baselines,
         tokens,
         choice,
+        iterations,
     )
     args.out.write_bytes(page.encode("utf-8"))
     print(f"wrote {args.out} ({len(runs)} agent answers from {args.results_dir})")

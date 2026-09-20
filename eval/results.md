@@ -124,6 +124,7 @@ v1 as originally recorded (git `1d37885`, 2026-09-18; the metrics of that time):
 - **L3 and L4 measure tool choice and transcription**, not multi-step reasoning: one right call answers them, and the rest is copying the IDs it returns.
 - **The broadcast impact sample is biased.** Broadcast questions come only from hub tables that reach some, not all, departments, so they lean to the smaller hubs; and on them individual notification accuracy is not measured, only the department heads (D24).
 - **How the model was chosen (written before the candidate runs).** The free tier gives every Flash model 20 requests a day, which cannot carry a 665-answer plan (about 2,400 calls); the Flash-Lite class gives 500 a day. The model is therefore chosen by measurement on the dev set, never on the test set, by this rule: **primary criterion** the number of answers lost to the agent's own machinery (stop reason parse_failure, tool_budget or llm_error), **secondary criterion** the overall dev accuracy. A model whose daily limit cannot finish the plan inside 15 days is not a candidate, whatever it scores. Both candidates' numbers are reported below, and choosing the model is not one of the three dev prompt iterations.
+- **Frozen before the test run.** Model `gemini-3.1-flash-lite` on the Google AI Studio free tier (500 requests a day per AI Studio; no refusal has contradicted it, and the guard learns the real limit from the first one), API `v1beta`, prompt `v5`, match signal z ≥ 4.25, embedding model `BAAI/bge-small-en-v1.5`, data seed 42; the git SHA is on every result line. If any of these has to change after the test run starts, the test run starts over. The prompt was frozen on the dev set alone, where v3, v4 and v5 scored 24, 24 and 23 of 30. Answers moved between versions on questions the edit could not touch, so this provider is not deterministic at temperature 0 and a one-question difference cannot separate two prompts; v5 is the version with no known gap left in its output contract.
 - **When an ablation difference is real.** In a category: the 95% CIs of the ablation and of the full system do not overlap. Overall: the difference is at least 3 points and more than 2 times the standard deviation of the full system's three repeats. Anything less is not read as an effect of the ablated component.
 
 ## Model choice and free-tier quota
@@ -149,6 +150,15 @@ The free tier limits requests per project **and per model**, so each candidate a
 ## Prompt versions and input size
 
 Prompt versions: **v1** is the spec §8.4 system prompt with the D24 broadcast line; **v2 = v1 + schema/payload simplification** (no automatic titles in the tool schemas, no numeric retrieval scores or query echo in tool results), made on the input measurement before any result was seen, so it does not count as one of the three dev iterations. The version pin covers the system prompt and the tool schemas.
+
+Every version answered the same 30 dev questions once; the test set was never used to choose a prompt.
+
+| Prompt | Dev accuracy | L1 | L2 | L3 | L4 | L5 | L6 | MX | Abstain P | Abstain R | Calls/answer | |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| v2 | 0.60 | 2/4 | 5/5 | 4/4 | 0/4 | 0/3 | 5/6 | 2/4 | 0.56 | 0.83 | 3.3 | replaced |
+| v3 | 0.80 | 2/4 | 5/5 | 4/4 | 1/4 | 3/3 | 5/6 | 4/4 | 0.83 | 0.83 | 3.5 | replaced |
+| v4 | 0.80 | 3/4 | 5/5 | 4/4 | 1/4 | 2/3 | 6/6 | 3/4 | 0.60 | 1.00 | 3.4 | replaced |
+| v5 | 0.77 | 3/4 | 4/5 | 4/4 | 1/4 | 3/3 | 6/6 | 2/4 | 0.67 | 1.00 | 3.6 | frozen |
 
 | Prompt | LLM turns/q | Input chars/q | ≈ tokens/q (chars/4) | Real tokens/q | System | Tool schemas | Tool results | Other |
 |---|---|---|---|---|---|---|---|---|
@@ -199,6 +209,7 @@ Measured by `eval/measure_input.py`: each dev question's shortest tool path play
 - **Ablations ran once (free tier, D25).** Only the full system has repeats; a one-run ablation difference smaller than the full system's repeat spread is not read as an effect.
 - **Small categories.** 10–15 questions per category give wide confidence intervals.
 - **Broadcast impact questions are graded on department heads (D24),** not on every person to notify; the stated count is not scored yet.
+- **Temperature 0 is not determinism.** Two prompt versions on the dev set gave different answers to questions neither edit could affect, with different tool queries, so the same input can take a different path. The three repeats of the full system measure this; a single-run difference of one or two questions does not separate two systems.
 - **The match signal mostly rests on exact names** (retrieval benchmark), so the abstain ablation largely measures the prompt.
 - **L3 leans to shallow targets.** Lineage golds are kept to 2–15 IDs, which removes the metrics and staging tables with the largest lineage; the L3 questions use depth 2: 6, depth 3: 8, depth 4: 1.
 - **Broadcast questions reach 21, 22, 28 people**, the small end of the hub tables (D24, Q-F5-2).

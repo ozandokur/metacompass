@@ -278,6 +278,15 @@ def test_input_section_shows_real_tokens_next_to_the_character_estimate():
     assert "| v2 | 2.6 | 21,000 | 5,250 | 5,458 |" in text
 
 
+def test_the_pre_registration_names_the_frozen_configuration():
+    # Ozan, 2026-09-20: model, API version, prompt, signal, embedder, seed and SHA are frozen
+    # before the test run, in PROGRESS and here.
+    text = "\n".join(report.PREREGISTERED)
+    for value in ("gemini-3.1-flash-lite", "v1beta", "v5", "4.25", "bge-small-en-v1.5", "seed 42"):
+        assert value in text
+    assert "starts over" in text  # what happens if it has to change
+
+
 def test_the_pre_registration_states_how_the_model_was_chosen():
     # D25's free tier cannot carry the plan on a Flash model; the choice is measured, and the
     # rule for it belongs in the report before the candidates run.
@@ -333,3 +342,30 @@ def test_diagnostics_count_wrong_answers_whose_gold_never_reached_the_model():
     text = "\n".join(agent_report.diagnostics_section([seen, unseen], ITEMS))
     assert "Gold never retrieved" in text
     assert "| L1 |" in text and "1 of 2" in text
+
+
+ITERATIONS = {
+    "frozen": "v5",
+    "versions": [
+        {"version": "v3", "answers": 30, "accuracy": 0.8, "abstain_precision": 0.83,
+         "abstain_recall": 0.83, "calls_per_answer": 3.53, "input_tokens_per_answer": 7000.0,
+         "by_category": {"L1": {"correct": 2, "n": 4}, "L6": {"correct": 5, "n": 6}}},
+        {"version": "v5", "answers": 30, "accuracy": 0.7667, "abstain_precision": 0.67,
+         "abstain_recall": 1.0, "calls_per_answer": 3.63, "input_tokens_per_answer": 7200.0,
+         "by_category": {"L1": {"correct": 3, "n": 4}, "L6": {"correct": 6, "n": 6}}},
+    ],
+}  # fmt: skip
+
+
+def test_prompt_iteration_table_shows_every_version_and_marks_the_frozen_one():
+    text = "\n".join(report.prompt_iteration_section(ITERATIONS))
+    assert "| v3 | 0.80 | 2/4 | 5/6 | 0.83 | 0.83 | 3.5 | replaced |" in text
+    assert "| v5 | 0.77 | 3/4 | 6/6 | 0.67 | 1.00 | 3.6 | frozen |" in text
+    assert "dev" in text and "30" in text  # what the numbers are over
+
+
+def test_threats_name_the_providers_nondeterminism():
+    # Two prompt versions differed on questions neither edit could touch: temperature 0 does
+    # not make this provider deterministic, which is why the full system runs three times.
+    text = "\n".join(agent_report.THREATS).lower()
+    assert "temperature 0" in text and "repeat" in text
