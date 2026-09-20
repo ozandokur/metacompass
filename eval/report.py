@@ -279,7 +279,8 @@ def load_runs(results_dir: Path, set_name: str) -> list[dict]:
     return lines
 
 
-# Written on 2026-09-19, before any test-set run, and pinned by PREREGISTERED_DIGEST
+# Written on 2026-09-19 (the model-choice rule on 2026-09-20, before the candidate runs and
+# before any test-set run), and pinned by PREREGISTERED_DIGEST
 # (tests/test_agent_report.py): the rules for reading the results cannot move after the
 # results are in.
 PREREGISTERED = [
@@ -292,12 +293,21 @@ PREREGISTERED = [
     "- **The broadcast impact sample is biased.** Broadcast questions come only from hub tables "
     "that reach some, not all, departments, so they lean to the smaller hubs; and on them "
     "individual notification accuracy is not measured, only the department heads (D24).",
+    "- **How the model was chosen (written before the candidate runs).** The free tier gives "
+    "every Flash model 20 requests a day, which cannot carry a 665-answer plan (about 2,400 "
+    "calls); the Flash-Lite class gives 500 a day. The model is therefore chosen by "
+    "measurement on the dev set, never on the test set, by this rule: **primary criterion** "
+    "the number of answers lost to the agent's own machinery (stop reason parse_failure, "
+    "tool_budget or llm_error), **secondary criterion** the overall dev accuracy. A model "
+    "whose daily limit cannot finish the plan inside 15 days is not a candidate, whatever it "
+    "scores. Both candidates' numbers are reported below, and choosing the model is not one "
+    "of the three dev prompt iterations.",
     "- **When an ablation difference is real.** In a category: the 95% CIs of the ablation "
     "and of the full system do not overlap. Overall: the difference is at least 3 points "
     "and more than 2 times the standard deviation of the full system's three repeats. "
     "Anything less is not read as an effect of the ablated component.",
 ]
-PREREGISTERED_DIGEST = "5ed2b4aaed421d8f94a6e5f1617f92232e7047398b8b2afa215f0fd4ad4a80f3"
+PREREGISTERED_DIGEST = "32fb4c7be45f68546395ba3bd5da7cfcec874979672696a9bb00b038711fc1a7"
 
 
 def preregistration_digest() -> str:

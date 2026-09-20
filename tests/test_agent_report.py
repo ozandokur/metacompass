@@ -276,3 +276,11 @@ def test_input_section_shows_real_tokens_next_to_the_character_estimate():
                                                       "tool_results": 0.163, "other": 0.024}}}}  # fmt: skip
     text = "\n".join(report.composition_section(composition, tokens))
     assert "| v2 | 2.6 | 21,000 | 5,250 | 5,458 |" in text
+
+
+def test_the_pre_registration_states_how_the_model_was_chosen():
+    # D25's free tier cannot carry the plan on a Flash model; the choice is measured, and the
+    # rule for it belongs in the report before the candidates run.
+    text = "\n".join(report.PREREGISTERED)
+    assert "parse_failure" in text and "dev set" in text
+    assert "15 days" in text  # a model that cannot finish the plan is not a candidate
