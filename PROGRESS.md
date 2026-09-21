@@ -384,13 +384,41 @@ altında, durmaya gerek yok.
      ~50 isteğiyle Faz 7 demo önbelleği (8 hazır soru) üretilir. 8 soru × ~3,5 çağrı ≈ 28
      istek, kalanı yeniden deneme payı.
 
+- [Faz 7, test koşumuyla paralel, 2026-09-21] **API, arayüz, demo önbelleği.** Değerlendirme
+  yolundaki koda dokunulmadı (yeni modüller: `service.py`, `api.py`, `app/`, `scripts/`).
+  - `api.py` (fee963e): `/health`, `/ask` (yalnız `full`), `/records/{id}`; model yoksa 503, hata
+    cevaplarında stack trace yok. `uvicorn metacompass.api:app` yerelde denendi: health v5,
+    kayıt dönüyor, olmayan kayıt 404.
+  - `service.py`: parçaları süreç başına bir kez kurar; canlı model eval'le aynı sarmalayıcılarla
+    (`CachedLLM(QuotaGuardedLLM(...))`). Uygulamanın kota log'u ayrı (`data/app_quota_log.json`):
+    commit edilen eval kaydı uygulama denenince oynamasın.
+  - **Demo önbelleği** (b850539): 8 soru, hepsi dev setinden (test sorusunu script reddediyor):
+    Lookup L1-03 · Ownership L2-03 (C2) · Lineage L3-04 · Past work L4-04 · Impact L5-03
+    (broadcast) · Unanswerable L6-01 · Mixed MX-01, MX-02. Dev koşumunun önbelleği birebir
+    yeniden oynadı: **modele sıfır istek**, cevaplar v5 dev koşumuyla metin ve iz olarak aynı.
+    Son ablation günü için ayrılan 50 istek bu yüzden gerekmedi; pay olarak kalıyor.
+  - **Arayüz** (4264f7f): hazır sorular, ID çipleri (`st.pills`, tıklayınca kayıt görüntüleyici),
+    abstain / silinen ID uyarıları, ajan izi. Hazır cevaplarda toplam süre ve model adımlarının
+    süresi gösterilmiyor (önbellekten oynatma süresi agent hakkında bir şey söylemez; tool
+    adımları gerçekten çalıştığı için onlarınki kalıyor). Serbest metin yalnızca model varsa açık:
+    oturumda 5, günde `DEMO_DAILY_LIMIT`. Kenar çubuğu hazır soruların **doğru cevaplanmış dev
+    soruları** olduğunu ve ölçülen doğruluğun results.md'de olduğunu söylüyor. Tarayıcıda
+    elle kontrol edildi.
+  - Test hijyeni: önbellek yazan testler (API, runner, demo) artık veri kümesinin kopyasını
+    kullanıyor (`writable_data_dir`); determinizm testi paylaşılan kümedeki her dosyayı
+    hash'liyor ve bir önbellek dosyası onu düşürüyordu.
+  - `docs/architecture.md` (71dac7d), öğrenme notu `docs/learn/11_serving_the_agent.md`.
+  - Faz 7'nin insan kontrol noktası (Ozan arayüzü dener) CLAUDE.md gereği Faz 8 raporuna
+    birleşiyor.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
   Durum 2026-09-20: `test_A0_r1.jsonl` 23/100, gün kotayla kapandı. Yarın aynı komut:
   `python eval/run_eval.py --set test --config A0 --repeat 3`.
-  Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün. Son ablation günü `--reserve 50` ile
-  koşulur (demo önbelleği aynı kotadan çıkıyor).
+  Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün. Demo önbelleği kota harcamadan üretildi,
+  bu yüzden son ablation gününde `--reserve` artık şart değil (mekanizma duruyor).
+  Durum 2026-09-21: r1 100/100 tamam, r2 sürüyor.
 - Disiplin: test satırlarının puanlarına koşum bitene kadar bakılmıyor, sistemde hiçbir değişiklik
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.

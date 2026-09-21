@@ -127,6 +127,12 @@ def record_viewer() -> None:
 def sidebar() -> None:
     cache = prepared()
     st.sidebar.markdown("### Try a question")
+    # These were picked from development questions the agent got right; say so, and point
+    # to where its measured accuracy is.
+    st.sidebar.caption(
+        f"Prepared: development questions the agent answered correctly. Measured accuracy "
+        f"on the held-out test set is in the [evaluation results]({RESULTS_URL})."
+    )
     for number, entry in enumerate(cache["questions"]):
         if st.sidebar.button(entry["label"], key=f"q{number}", help=entry["question"]):
             st.session_state["shown"] = {"kind": "prepared", "number": number}

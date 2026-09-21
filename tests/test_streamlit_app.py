@@ -67,5 +67,11 @@ def test_a_prepared_question_shows_its_recorded_answer(app):
     assert app.expander  # the agent trace is on the page
 
 
+def test_the_sidebar_says_how_the_prepared_questions_were_chosen(app):
+    # They are dev questions the agent got right: a showcase, not a sample.
+    captions = " ".join(caption.value for caption in app.sidebar.caption)
+    assert "answered correctly" in captions and "test set" in captions
+
+
 def test_free_text_is_off_without_a_model(app):
     assert app.sidebar.text_input[0].disabled
