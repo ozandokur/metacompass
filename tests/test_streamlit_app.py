@@ -73,5 +73,9 @@ def test_the_sidebar_says_how_the_prepared_questions_were_chosen(app):
     assert "answered correctly" in captions and "test set" in captions
 
 
-def test_free_text_is_off_without_a_model(app):
-    assert app.sidebar.text_input[0].disabled
+def test_without_a_model_there_is_no_free_text_box_only_a_pointer_to_run_it_locally(app):
+    # Ozan, 2026-09-21: the public Space gets no model key (the eval owns the daily quota),
+    # so a disabled box would only tease; it says how to ask your own question instead.
+    assert len(app.sidebar.text_input) == 0
+    captions = " ".join(caption.value for caption in app.sidebar.caption)
+    assert "locally" in captions and "key" in captions

@@ -17,9 +17,9 @@ metadata of **Northwind Motors, a fictional company. All data is synthetic.**
 
 - **Try a question** in the sidebar: eight prepared questions answer at once, each with the
   full agent trace, from answers recorded with the frozen configuration.
-- **Ask your own** only works when the Space has a model key in its secrets; it shares the
-  Google AI Studio free-tier quota with the evaluation, so it is limited per session and
-  per day.
+- **Ask your own questions** by running the app locally with your own Google AI Studio key
+  (see "Run it locally" in the source repository). This Space has no model key on purpose:
+  the free tier's daily quota belongs to the evaluation, and visitors would use it up.
 - The measured accuracy, the ablations and the reading rules written before the test run
   are in `eval/results.md` of the source repository.
 

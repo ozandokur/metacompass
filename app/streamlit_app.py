@@ -32,7 +32,8 @@ DATA_DIR = Path(os.environ.get("METACOMPASS_DATA_DIR", PROJECT_ROOT / "data"))
 EMBEDDER = os.environ.get("METACOMPASS_EMBEDDER", "model")
 SESSION_LIMIT = 5  # free-text questions per browser session (spec §10.2)
 TRACE_OUTPUT_CHARS = 1500  # of each tool output shown in the trace
-RESULTS_URL = "https://github.com/ozandokur/metacompass/blob/main/eval/results.md"
+REPO_URL = "https://github.com/ozandokur/metacompass"
+RESULTS_URL = f"{REPO_URL}/blob/main/eval/results.md"
 
 
 @st.cache_data
@@ -140,13 +141,24 @@ def sidebar() -> None:
 
     st.sidebar.markdown("### Ask your own")
     llm = model()
+    if llm is None:
+        # The public demo has no model key: the free tier's daily quota belongs to the
+        # evaluation. Say how to ask a question instead of showing a box that cannot work.
+        st.sidebar.caption(
+            "Free text needs a model: run the app locally with your own Google AI Studio key "
+            f"(see the [README]({REPO_URL}#run-it-locally))."
+        )
+    else:
+        free_text(llm)
+    about()
+
+
+def free_text(llm) -> None:
     allowed, reason = free_text_allowed()
     question = st.sidebar.text_input(
-        "Question", max_chars=500, disabled=llm is None or not allowed, key="free_text"
+        "Question", max_chars=500, disabled=not allowed, key="free_text"
     )
-    if llm is None:
-        st.sidebar.caption("Free text is off: no model is configured. The prepared questions work.")
-    elif not allowed:
+    if not allowed:
         st.sidebar.caption(reason)
     elif st.sidebar.button("Ask", key="ask") and question.strip():
         with st.spinner("The agent is working…"):
@@ -158,10 +170,12 @@ def sidebar() -> None:
                                      "serial": st.session_state["asked"]}  # fmt: skip
         st.session_state.pop("record", None)
 
+
+def about() -> None:
     st.sidebar.markdown("### About")
     st.sidebar.markdown(
         "A tool-using agent over the BI metadata of a fictional company: six tools, a plain "
-        f"loop, and an abstain path. [Evaluation results]({RESULTS_URL})"
+        f"loop, and an abstain path. [Evaluation results]({RESULTS_URL}) · [Source]({REPO_URL})"
     )
 
 
