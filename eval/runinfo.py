@@ -15,6 +15,9 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+# What must be the same for two answers to belong to one run. The git SHA may move between
+# the days of a resumed run (it is recorded on every line); the frozen tree may not.
+RUN_IDENTITY = ("model", "api_version", "prompt_version", "frozen_tree_hash")
 
 FROZEN_DIRS = (
     "src/metacompass/agent",

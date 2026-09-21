@@ -1,5 +1,7 @@
 """The agent sections of results.md (spec §9.7, §9.11), rendered from made-up raw lines."""
 
+import json
+
 import pytest
 
 import agent_report
@@ -397,3 +399,18 @@ def test_full_system_table_shows_the_flip_rate_next_to_the_spread():
 def test_the_ablation_legend_points_at_the_flip_rate():
     text = "\n".join(agent_report.ablation_section(full_runs(), ITEMS))
     assert "flip rate" in text.lower()
+
+
+def test_the_report_is_not_written_while_the_audit_fails(tmp_path, capsys):
+    # V6: a results page is only generated from raw lines that pass the audit.
+    lines = [line("L1-001", True), dict(line("L1-002", True), model="another-model")]
+    for row in lines:
+        row["frozen_tree_hash"] = "h"
+        row["api_version"] = "v1beta"
+    (tmp_path / "test_A0_r1.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in lines), encoding="utf-8"
+    )
+    out = tmp_path / "results.md"
+    assert report.main(["--results-dir", str(tmp_path), "--out", str(out)]) == 1
+    assert not out.exists()
+    assert "audit" in capsys.readouterr().err.lower()

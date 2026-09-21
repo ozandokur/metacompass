@@ -554,6 +554,20 @@ def main(argv: list[str] | None = None) -> int:
     items = json.loads((ROOT / "eval" / f"{args.set}_set.json").read_text(encoding="utf-8"))[
         "items"
     ]
+    if args.set == "test":
+        # V6: the page is only written from raw lines that pass the audit.
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import audit_eval
+
+        failures = audit_eval.audit(args.results_dir, items).failures
+        if failures:
+            print(
+                "refused: the audit of the raw results failed (scripts/audit_eval.py)",
+                *(f"  {failure}" for failure in failures),
+                sep="\n",
+                file=sys.stderr,
+            )
+            return 1
     quota_path = args.results_dir / "quota_log.json"
     quota = json.loads(quota_path.read_text(encoding="utf-8")) if quota_path.is_file() else None
     results = args.results_dir

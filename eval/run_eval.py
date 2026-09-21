@@ -50,16 +50,13 @@ from metacompass.graph import build_lineage_graph
 from metacompass.retrieval.corpus import build_retrievers
 from metacompass.retrieval.embedders import HashEmbedder, SentenceTransformerEmbedder
 from metacompass.tools.registry import build_registry
-from runinfo import ROOT, frozen_tree_hash, git_sha
+from runinfo import ROOT, RUN_IDENTITY, frozen_tree_hash, git_sha
 from scoring import score
 
 RESULTS = ROOT / "eval" / "results"
 SCRATCH = RESULTS / "scratch"
 QUOTA_LOG = RESULTS / "quota_log.json"
 MAX_LLM_ERRORS_IN_A_ROW = 3
-# What must be the same for two answers to belong to one run. The git SHA may move between
-# the days of a resumed run (it is recorded on every line); the frozen tree may not.
-RUN_IDENTITY = ("model", "api_version", "prompt_version", "frozen_tree_hash")
 
 
 class ProviderDown(Exception):
