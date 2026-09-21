@@ -414,3 +414,34 @@ def test_the_report_is_not_written_while_the_audit_fails(tmp_path, capsys):
     assert report.main(["--results-dir", str(tmp_path), "--out", str(out)]) == 1
     assert not out.exists()
     assert "audit" in capsys.readouterr().err.lower()
+
+
+def test_the_readme_snippet_is_computed_from_the_raw_lines():
+    # Phase 9: no number in the README is typed by hand; it comes from the same lines and the
+    # same functions as results.md.
+    text = "\n".join(report.readme_snippet(full_runs(), ITEMS))
+    header = text.splitlines()[0]
+    assert "Lookup" in header and "Unanswerable" in header and "Abstain P/R" in header
+    a0 = next(row for row in text.splitlines() if row.startswith("| A0 full"))
+    assert "0.83 ± 0.29" in a0  # L1 over three repeats, as in the results page
+    assert "0.89 ± 0.19" in a0  # overall
+
+
+def test_the_readme_check_catches_a_hand_edited_number(tmp_path):
+    snippet = report.readme_snippet(full_runs(), ITEMS)
+    readme = tmp_path / "README.md"
+    block = "\n".join([report.README_START, *snippet, report.README_END])
+    readme.write_text(f"# Title\n\n{block}\n\nmore\n", encoding="utf-8")
+    assert report.readme_differences(readme, snippet) == []
+    readme.write_text(readme.read_text(encoding="utf-8").replace("0.89", "0.91"), encoding="utf-8")
+    assert report.readme_differences(readme, snippet) != []
+
+
+def test_the_readme_block_is_replaced_in_place(tmp_path):
+    readme = tmp_path / "README.md"
+    readme.write_text(
+        f"# T\n\n{report.README_START}\nold\n{report.README_END}\n\nkept\n", encoding="utf-8"
+    )
+    report.write_readme_snippet(readme, ["| new |"])
+    text = readme.read_text(encoding="utf-8")
+    assert "old" not in text and "| new |" in text and text.endswith("kept\n")
