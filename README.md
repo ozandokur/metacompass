@@ -3,7 +3,7 @@
 **A tool-using agent for BI metadata questions that knows when to abstain.**
 
 [![tests](https://github.com/ozandokur/metacompass/actions/workflows/tests.yml/badge.svg)](https://github.com/ozandokur/metacompass/actions/workflows/tests.yml)
-· [Live demo](https://huggingface.co/spaces/Ozandokur/metacompass) ⏳ first load may take ~30–60 s (free hosting)
+<!-- live demo link: added once the demo is hosted -->
 
 All data in this project is synthetic: a fictional car company, *Northwind Motors*, generated
 by code from a fixed seed. The evaluation is running on a free-tier quota; the table below
