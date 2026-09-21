@@ -366,8 +366,13 @@ altında, durmaya gerek yok.
      r2/r3 r1'in cevaplarını okuyamaz. Kural artık `run_eval.cache_salt()` fonksiyonunda ve
      uçtan uca testli: iki tekrarlı bir koşumda model iki kez çağrılıyor
      (`test_each_repeat_gets_its_own_cache_so_the_spread_is_real`). Silinen satır yok, baştan
-     koşum gerekmedi. Ek kanıt koşum bitince gelecek: r1 ile r2 birebir aynı olsaydı flip_rate
-     her kategoride 0,00 çıkardı.
+     koşum gerekmedi. **Ampirik kontrol (2026-09-21, r2'nin ilk 10 sorusu):** r1 ile metin ve
+     tool izi birebir aynı çıktı — Ozan'ın tarif ettiği işaret. Ama çakışma değil, r2 modele
+     gitti: (a) aynı ilk çağrı için hem `repeat-1` hem `repeat-2` tuzuyla ayrı önbellek
+     dosyaları var, (b) r2 gecikmeleri 2–35 sn (önbellekten oynatma <100 ms), (c) günün istek
+     sayısı r1 + r2 LLM adımlarının toplamı (248 + 46 ≈ 288 + ilerleme). Bu 10 soru kısa L1
+     aramaları; sıcaklık 0'da aynı cevap makul. Dev'deki determinizm kaybı çok adımlı sorularda
+     görülmüştü; kategori bazında ne kadar olduğunu flip_rate gösterecek.
   2. **flip_rate eklendi** (aynı veriden, ek kota yok): üç tekrarın sonucu üzerinde anlaşamadığı
      soruların oranı, kategori başına ve toplamda. results.md'de tam sistem tablosunda std ve
      CI'nın yanında ayrı sütun; ablation açıklaması da oraya bakmayı söylüyor ("flip_rate'in
