@@ -35,3 +35,6 @@ eval/results/scratch/
 # OS noise
 .DS_Store
 Thumbs.db
+
+# Local tool configuration (dev server launch settings)
+.claude/

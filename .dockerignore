@@ -11,3 +11,5 @@ eval/results
 .ruff_cache
 .coverage
 htmlcov
+.claude
+deploy
