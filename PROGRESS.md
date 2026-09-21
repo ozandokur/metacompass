@@ -1,8 +1,9 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 (test koşumu) **V0 kararını bekliyor: Q-V0-1** · Faz 7 tamam · Faz 8 yerel kısım
-tamam, Space yayını sürüyor · Son güncelleme: 2026-09-21 · Kapı: 84d044d geçti (569 test).
+Aktif faz: 6 (test koşumu) **V0 kararını bekliyor: Q-V0-1** · Faz 7 tamam · Faz 8: yerel kısım
+ve V1–V7 tamam, Space **Q-F8-2**'yi bekliyor (Docker Space ücretli) · Son güncelleme: 2026-09-21 ·
+Kapı: 1a9ea81 `--slow` geçti (573 test, kapsam %99).
 
 ## Dondurulmuş değerler
 **DONDURULDU 2026-09-20, test koşumundan önce.** Test koşumu başladıktan sonra biri değişirse
@@ -438,8 +439,8 @@ altında, durmaya gerek yok.
   yazıldı (`frozen_tree_hash_backfilled: true`): r1'de 23 satır `b4025ab…` + 77 satır
   `5f0ee29…`, r2'de 81 satır `5f0ee29…`. Runner r1'i reddediyor (denendi, istek harcanmadı) →
   **Q-V0-1.**
-- [V1, 2026-09-21] `check_all --slow`: yeşil, 562 test (yalnız `live` hariç), kapsam **%99**
-  (1.715 satırın 22'si). Push öncesi son ağaçta tekrar koşulacak.
+- [V1, 2026-09-21] `check_all --slow`: yeşil. Son ağaçta (1a9ea81): **573 test** (yalnız `live`
+  hariç), kapsam **%99** (1.715 satırın 22'si), 251 sn.
 - [V4, 2026-09-21] Determinizm: sıfırdan iki üretim bayt bayt aynı; **eval'in kullandığı
   `data/` sıfırdan üretimle aynı**; taze veriden yeniden üretilen data card commit'lenmiş
   `docs/data_card.md` ile birebir aynı. Hash'ler (sha256 ilk 16): `_meta.json` da787003e393a91d ·
@@ -460,6 +461,23 @@ altında, durmaya gerek yok.
 - [V7, 2026-09-21] `scripts/scan_history.py` (169ce52): tüm referanslardan erişilen her blob,
   her commit mesajı, her yol; sır desenleri, yasaklı terimler ve `.env`'deki anahtarın kendisi.
   99 commit: **temiz.** Hiçbir bulguda değer yazdırılmıyor.
+- [V2, 2026-09-21] Temiz venv: HEAD'in `git archive` çıktısı geçici klasöre (ZIP indirmesi gibi:
+  `.git`, `.env`, `data` yok) → yeni venv → `requirements-dev.txt` → `pip install -e .` → veri →
+  `check_all`. Kurulum **562 sn**, venv **1,4 GB**, veri üretimi tamam. Bulgu: git'siz ağaçta
+  Space hazırlık testleri (3) düştü ve sır taraması git traceback'iyle çöktü — ikisi de dosyaları
+  git ile listeliyordu. Düzeltme (1a9ea81): hazırlık git yoksa klasörü (bytecode hariç) kullanır;
+  taramalar `NotAGitCheckout` verir, kapı bunu gerekçesiyle FAIL sayar (listeleyemediği ağaca
+  onay veremez). Düzeltmeyle aynı ağaçta: **569 test geçti**, kapsam %98, yasaklı terim taraması
+  terimler dosyası olmadığı için atlandı (tasarım gereği, `docs/plan` commit edilmez), sır
+  taraması "git deposu değil" diye FAIL. Tam yeşil kanıt V3'te (klon).
+- [V3, 2026-09-21] **GitHub'dan temiz klon** (e7860b4) → aynı adımlar, `.env` yok: kurulum
+  **539 sn**, venv 1,4 GB, veri üretildi, `check_all` **PASSED**: 569 test (live seçilmedi),
+  kapsam %98, sır taraması temiz (156 dosya), yasaklı terim taraması terimler dosyası olmadığı için
+  atlandı (tasarım gereği). Repo başkasının makinesinde çalışıyor.
+- [Faz 8, 2026-09-21] **HF Docker Space reddedildi (402 Payment Required):** "Static Spaces are
+  free for everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO
+  subscription." Hiçbir şey oluşturulmadı. README'deki demo linki kaldırıldı (a75296a) —
+  var olmayan Space'e link verilmesin → **Q-F8-2.**
 - [Faz 8, 2026-09-21] Space'te model anahtarı yok (Ozan): anahtar yokken serbest metin kutusu hiç
   görünmüyor, yerine README'nin "Run it locally" bölümüne yönlendirme var (321f4e9).
   `scripts/deploy_space.py`: yalnızca uygulamanın ihtiyacı olan dosyalar + Space README'si,
@@ -827,6 +845,14 @@ altında, durmaya gerek yok.
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Q-F8-2 — PARA / DEPLOY:** Docker Space ücretsiz değil. Seçenekler: **(a)** HF PRO, ayda
+  $9 (Dockerfile ve `deploy_space.py` hazır, hemen yayınlanır) · **(b)** Streamlit Community
+  Cloud: ücretsiz, herkese açık GitHub reposundan aynı Streamlit uygulaması; sen GitHub'la giriş
+  yapıp repoyu bağlarsın; 2,7 GB'a kadar bellek, 12 saat trafik yoksa uyur; uygulamaya "veri yoksa
+  ilk açılışta üret" eklemek gerekir (küçük değişiklik) · **(c)** HF *static* Space: ücretsiz,
+  soğuk başlangıç yok; 8 hazır cevap + iz + kayıt görüntüleyici tek bir statik HTML sayfası
+  olarak (kayıtlar önceden JSON'a dökülür). Yeni bir ön yüz demek, kapsam kararı. Öneri: (b) —
+  spec'in Streamlit uygulaması değişmeden, sıfır para.
 - [ ] **Q-V0-1 — EVAL'İ DURDURUYOR:** A0'ın 158 satırı (r1'in 77'si, r2'nin 81'i) b1eed88
   koduyla (`5f0ee29…`) üretildi; donmuş commit `b4025ab…`. Fark yalnızca `reserve=0` iken etkisiz
   olan demo rezervi (V0 kaydında ayrıntı). Seçenekler: **(a)** 158 satırı eşdeğer kabul et —
