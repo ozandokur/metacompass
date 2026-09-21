@@ -6,6 +6,7 @@ tests always check the current generator code and never a stale data/ directory.
 
 import json
 import os
+import shutil
 from pathlib import Path
 
 import pandas as pd
@@ -27,9 +28,27 @@ TABLE_FILES = [
 
 
 @pytest.fixture(scope="session")
-def generated_dir(tmp_path_factory) -> Path:
+def pristine_data_dir(tmp_path_factory) -> Path:
     out = tmp_path_factory.mktemp("generated")
     write_outputs(generate(seed=SEED), out)
+    return out
+
+
+@pytest.fixture(scope="session")
+def generated_dir(pristine_data_dir) -> Path:
+    return pristine_data_dir
+
+
+@pytest.fixture(scope="session")
+def writable_data_dir(pristine_data_dir, tmp_path_factory) -> Path:
+    """A copy of the dataset for tests that write caches next to it (embeddings, LLM answers).
+
+    The generated set must stay exactly what the generator wrote: the determinism test hashes
+    every file in it, so a cache written there by an earlier test would fail it. Modules that
+    write override generated_dir with this copy.
+    """
+    out = tmp_path_factory.mktemp("writable") / "data"
+    shutil.copytree(pristine_data_dir, out)
     return out
 
 

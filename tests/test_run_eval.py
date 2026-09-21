@@ -12,6 +12,12 @@ from metacompass.agent.llm import FakeLLM, LLMResponse, QuotaExhausted
 from metacompass.agent.loop import AgentResult
 
 
+@pytest.fixture(scope="module")
+def generated_dir(writable_data_dir):
+    """This module writes caches next to the data, so it gets a copy of the shared set."""
+    return writable_data_dir
+
+
 def items(n_per_category: int = 2) -> list[dict]:
     return [
         {
