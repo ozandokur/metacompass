@@ -410,6 +410,17 @@ altında, durmaya gerek yok.
   - `docs/architecture.md` (71dac7d), öğrenme notu `docs/learn/11_serving_the_agent.md`.
   - Faz 7'nin insan kontrol noktası (Ozan arayüzü dener) CLAUDE.md gereği Faz 8 raporuna
     birleşiyor.
+- [Faz 8, yerel kısım, 2026-09-21] (9801b41) `Dockerfile`: `python:3.13-slim`, uid 1000
+  kullanıcısı (HF Spaces'in çalıştırdığı kullanıcı; her `COPY --chown`), `requirements.txt`'nin
+  `+cpu` torch pini, CI gibi editable kurulum (`config.PROJECT_ROOT` kaynak konumundan
+  türüyor), derlemede `scripts/warm_up.py` (seed 42 verisi + embedding modeli + belge
+  embedding'leri), port 7860, imajda anahtar yok. `deploy/hf_space_README.md`: Space README
+  şablonu (`sdk: docker`, `app_port: 7860`; HF dokümanından doğrulandı). Statik testler
+  (`test_docker.py`): `.env`, `docs/plan`, `docs/learn`, `data` imaja girmiyor, root olarak
+  kopyalama yok, anahtar gömülü değil.
+  **Bekleyen:** yerel `docker build`/`run` ve imaj boyutu — Docker Desktop motoru çalışmıyor
+  (kendim başlatmadım). Temiz venv'de `requirements.txt` kurulumu — paket indirmesi, onay
+  bekliyor. Deploy/push — onay bekliyor.
 
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
@@ -418,7 +429,12 @@ altında, durmaya gerek yok.
   `python eval/run_eval.py --set test --config A0 --repeat 3`.
   Günlük 500 istek ≈ 140 cevap, 665 cevap ≈ 5 gün. Demo önbelleği kota harcamadan üretildi,
   bu yüzden son ablation gününde `--reserve` artık şart değil (mekanizma duruyor).
-  Durum 2026-09-21: r1 100/100 tamam, r2 sürüyor.
+  Durum 2026-09-21 sonu: `test_A0_r1` 100/100, `test_A0_r2` 81/100; gün kotayla kapandı.
+  Guard 486 istek saydı, sunucu 500'de kesti: fark, yanıtsız kalan denemeler (503 bekleme
+  denemeleri, bir `OSError`) — guard yalnızca cevaplanan istekleri sayıyor.
+  Tek geçici hata: r2 L4-001'de bir model çağrısı 2,8 sn sonra `OSError(22)` ile düştü, döngünün
+  yeniden denemesi ikinci seferde geçti; iz bunu `error: OSError` adımı olarak gösteriyor.
+  Tahmin: A0 yarın biter (19 + 100 = 119 cevap ≈ 420 istek), sonra A1.
 - Disiplin: test satırlarının puanlarına koşum bitene kadar bakılmıyor, sistemde hiçbir değişiklik
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.
@@ -750,6 +766,9 @@ altında, durmaya gerek yok.
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Q-F8-1 — engelleyici değil:** Docker Desktop açılırsa yerel `docker build`/`run` ve imaj
+  boyutu ölçümü yapılır. Temiz venv testi için PyPI indirmesi (torch CPU dahil, yüzlerce MB)
+  onayı gerekiyor.
 - [x] **Q-QUOTA-1 — kapandı 2026-09-20 (Ozan):** plan küçültme kapalı; Dal B uygulandı.
 - [x] **Q-ENV-1 — kapandı:** `.env` seçilen modele ve RPD 500'e güncellendi; guard gerçek
   limiti 429'dan öğreniyor.
