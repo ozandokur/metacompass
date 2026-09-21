@@ -240,24 +240,21 @@ def test_each_repeat_gets_its_own_cache_so_the_spread_is_real(generated_dir, tmp
     assert run_eval.cache_salt("dev", 1) == run_eval.cache_salt("dev", 2)
 
 
-def test_the_runner_can_hold_back_requests_for_the_demo(generated_dir, tmp_path, monkeypatch):
-    # The phase 7 demo cache comes out of the same daily quota, so the last eval run of that
-    # day is started with --reserve and stops early instead of taking every request. The model
-    # name is this test's own: a cached answer costs no quota, so a question another test
-    # already cached would be answered even with no requests left, which is the design.
-    class Stub(FakeLLM):
-        model = "reserve-stub-model"
+def test_every_line_carries_the_frozen_tree_hash(generated_dir, tmp_path):
+    assert dry_run(generated_dir, tmp_path) == 0
+    rows = (tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8").splitlines()
+    assert {json.loads(row)["frozen_tree_hash"] for row in rows} == {run_eval.frozen_tree_hash()}
 
-        def check_model(self):
-            return None
 
-    monkeypatch.setattr(run_eval, "make_llm", lambda settings: Stub([], then=run_eval.dry_run_llm().then))  # fmt: skip
-    quota = tmp_path / "quota.json"
-    quota.write_text(json.dumps({"limits": {}, "days": {}, "observed_rpd": 50}), encoding="utf-8")
-    code = run_eval.main(
-        ["--set", "test", "--config", "A0", "--repeat", "1", "--embedder", "hash",
-         "--data", str(generated_dir), "--out-dir", str(tmp_path), "--limit", "2",
-         "--env-file", str(tmp_path / "no.env"), "--quota-log", str(quota), "--reserve", "50"]
-    )  # fmt: skip
-    assert code == 0  # a reserve stop is a clean stop, like the daily quota
-    assert not (tmp_path / "test_A0_r1.jsonl").exists()  # nothing was answered
+def test_a_file_made_under_other_frozen_code_is_refused(
+    generated_dir, tmp_path, capsys, monkeypatch
+):
+    # V0: runs take days while other work goes on in the repository. If the measured code
+    # changed in between, the new answers would measure a different system than the old ones.
+    monkeypatch.setattr(run_eval, "frozen_tree_hash", lambda: "aaaaaaaaaaaaaaaa")
+    assert dry_run(generated_dir, tmp_path) == 0
+    before = (tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8")
+    monkeypatch.setattr(run_eval, "frozen_tree_hash", lambda: "bbbbbbbbbbbbbbbb")
+    assert dry_run(generated_dir, tmp_path) == 2
+    assert "aaaaaaaaaaaaaaaa" in capsys.readouterr().err
+    assert (tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8") == before

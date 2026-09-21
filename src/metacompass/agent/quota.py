@@ -5,8 +5,7 @@ requests per day (RPD, reset at midnight Pacific time). QuotaGuardedLLM wraps a 
 client and
   - waits before a call until the last 60 seconds leave room for one more request and its
     estimated input tokens,
-  - stops with QuotaExhausted, before calling, once today's requests reach RPD (minus a
-    reserve, when this run has to leave requests for something else the same day),
+  - stops with QuotaExhausted, before calling, once today's requests reach RPD,
   - on a 429 waits as long as the server says, or backs off 1, 2, 4, 8, 16 s with jitter,
     and after five refused retries stops with QuotaExhausted,
   - counts only answered requests, in a JSON log kept across runs (eval/results/quota_log.json).
@@ -39,9 +38,6 @@ class QuotaLimits:
     rpm: int | None = None
     rpd: int | None = None
     tpm: int | None = None
-    # Requests of the day this run must leave alone: the demo cache (phase 7) is built from
-    # the same daily quota, so the last eval run of that day keeps room for it.
-    reserve: int = 0
 
 
 class QuotaLog:
@@ -137,21 +133,18 @@ class QuotaGuardedLLM:
             self.sleep(self._window[0][0] + WINDOW + MARGIN - now)
 
     def daily_limit(self) -> int | None:
-        """The daily request cap to obey: the measured one where it is lower than .env,
-        minus whatever this run has to leave for something else the same day."""
+        """The daily request cap to obey: the measured one where it is lower than .env."""
         learned, configured = self.log.observed_rpd(), self.limits.rpd
-        if learned is None and configured is None:
-            return None
-        allowed = min(x for x in (learned, configured) if x is not None)
-        return max(allowed - self.limits.reserve, 0)
+        if learned is None:
+            return configured
+        return learned if configured is None else min(learned, configured)
 
     def chat(
         self, messages: list[dict], tools: list[dict] | None, json_mode: bool = False
     ) -> LLMResponse:
         rpd = self.daily_limit()
         if rpd is not None and self.log.used_today()["requests"] >= rpd:
-            held = f", {self.limits.reserve} held in reserve" if self.limits.reserve else ""
-            raise QuotaExhausted(f"daily request quota ({rpd}{held}) used up for today")
+            raise QuotaExhausted(f"daily request quota ({rpd}) used up for today")
         self._wait_for_room(estimate_input_tokens(messages, tools))
         for attempt in range(len(BACKOFF) + 1):
             try:

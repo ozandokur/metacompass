@@ -33,11 +33,11 @@ def ok(input_tokens: int = 10, output_tokens: int = 5) -> LLMResponse:
     )  # fmt: skip
 
 
-def guarded(tmp_path, script, clock, *, rpm=None, rpd=None, tpm=None, then=None, reserve=0):
+def guarded(tmp_path, script, clock, *, rpm=None, rpd=None, tpm=None, then=None):
     log = QuotaLog(tmp_path / "quota_log.json", clock=clock.time)
     inner = FakeLLM(script, then=then)
     llm = QuotaGuardedLLM(
-        inner, QuotaLimits(rpm=rpm, rpd=rpd, tpm=tpm, reserve=reserve), log,
+        inner, QuotaLimits(rpm=rpm, rpd=rpd, tpm=tpm), log,
         clock=clock.time, sleep=clock.sleep, rng=random.Random(0),
     )  # fmt: skip
     return llm, inner, log
@@ -108,7 +108,7 @@ def test_the_log_survives_between_runs_and_records_the_limits(tmp_path):
     again = QuotaLog(tmp_path / "quota_log.json", clock=clock.time)
     assert again.used_today() == {"requests": 1, "tokens": 120}
     saved = json.loads((tmp_path / "quota_log.json").read_text(encoding="utf-8"))
-    assert saved["limits"] == {"rpm": 10, "rpd": 250, "tpm": 250_000, "reserve": 0}
+    assert saved["limits"] == {"rpm": 10, "rpd": 250, "tpm": 250_000}
     assert saved["days"] == {"2026-09-19": {"requests": 1, "tokens": 120}}
 
 
@@ -164,14 +164,3 @@ def test_the_learned_daily_limit_replaces_the_configured_one(tmp_path):
     with pytest.raises(QuotaExhausted, match="20|1"):
         llm.chat(MESSAGES, None)
     assert len(inner.requests) == 1  # the second request never left
-
-
-def test_a_reserve_keeps_requests_for_something_else_that_day(tmp_path):
-    # Phase 7's demo cache is built from the same daily quota (Ozan, 2026-09-20): the last
-    # ablation day runs with a reserve so the demo still has requests left.
-    clock = Clock()
-    llm, inner, _ = guarded(tmp_path, [ok(), ok(), ok()], clock, rpd=3, reserve=2)
-    llm.chat(MESSAGES, None)
-    with pytest.raises(QuotaExhausted, match="reserve"):
-        llm.chat(MESSAGES, None)
-    assert len(inner.requests) == 1  # 3 a day minus 2 reserved leaves one

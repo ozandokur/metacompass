@@ -9,10 +9,11 @@ A run spends quota, not money. Every answer is appended to
 version, git SHA and date. Starting again skips every question that file already holds,
 so a run that takes several days continues where the daily quota stopped it; when the
 quota is used up (or rate limiting does not clear), the run ends cleanly with exit code 0.
---reserve leaves that many of the day's requests for something else (the phase 7 demo cache
-is built from the same daily quota), and running into the reserve is an ordinary clean stop.
-A file holding answers from another model, API version or prompt version is refused
-(exit 2), never resumed: one file, one thing measured. Move it aside first.
+A file holding answers from another model, API version, prompt version or frozen tree is
+refused (exit 2), never resumed: one file, one thing measured. The frozen tree hash
+(runinfo.frozen_tree_hash) covers every file that decides what is measured, so a change to
+the agent, the tools or the scoring in the middle of a days-long run stops the next run
+instead of quietly splitting the measurement. Move the file aside first.
 Test runs go to eval/results/ (committed); dev runs and dry runs to eval/results/scratch/.
 
 The live model is always wrapped as CachedLLM(QuotaGuardedLLM(provider)): repeating a run
@@ -49,16 +50,16 @@ from metacompass.graph import build_lineage_graph
 from metacompass.retrieval.corpus import build_retrievers
 from metacompass.retrieval.embedders import HashEmbedder, SentenceTransformerEmbedder
 from metacompass.tools.registry import build_registry
-from runinfo import ROOT, git_sha
+from runinfo import ROOT, frozen_tree_hash, git_sha
 from scoring import score
 
 RESULTS = ROOT / "eval" / "results"
 SCRATCH = RESULTS / "scratch"
 QUOTA_LOG = RESULTS / "quota_log.json"
 MAX_LLM_ERRORS_IN_A_ROW = 3
-# What must be the same for two answers to belong to one run; the git SHA may move between
-# the days of a resumed run (it is recorded on every line).
-RUN_IDENTITY = ("model", "api_version", "prompt_version")
+# What must be the same for two answers to belong to one run. The git SHA may move between
+# the days of a resumed run (it is recorded on every line); the frozen tree may not.
+RUN_IDENTITY = ("model", "api_version", "prompt_version", "frozen_tree_hash")
 
 
 class ProviderDown(Exception):
@@ -84,7 +85,7 @@ def completed_ids(path: Path) -> set[str]:
 
 
 def foreign_identities(path: Path, base_line: dict) -> set[tuple]:
-    """(model, api_version, prompt_version) of lines in path that another run wrote."""
+    """(model, api_version, prompt_version, frozen_tree_hash) of lines another run wrote."""
     if not path.is_file():
         return set()
     mine = tuple(base_line[key] for key in RUN_IDENTITY)
@@ -157,10 +158,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env-file", type=Path, default=PROJECT_ROOT / ".env")
     parser.add_argument("--limit", type=int, default=None, help="first N questions only")
     parser.add_argument(
-        "--reserve", type=int, default=0,
-        help="leave this many of today's requests unused (the demo cache needs some)",
-    )  # fmt: skip
-    parser.add_argument(
         "--resume", action=argparse.BooleanOptionalAction, default=True,
         help="skip questions already answered (default); --no-resume refuses to touch a file",
     )  # fmt: skip
@@ -186,13 +183,15 @@ def main(argv: list[str] | None = None) -> int:
         "model": "fake" if dry_run else settings.llm_model,
         "api_version": "fake" if dry_run else GEMINI_API_VERSION,
         "prompt_version": CONFIGS[code].prompt_version,
+        "frozen_tree_hash": frozen_tree_hash(),
     }
     for path in paths.values():
         # A dry run's lines once made a live run skip every question as "answered".
         foreign = foreign_identities(path, identity)
         if foreign:
-            print(f"refused: {path} holds answers from (model, api, prompt) {sorted(foreign)}, "
-                  f"not {tuple(identity.values())}; one file must not mix them. Move it aside.",
+            print(f"refused: {path} holds answers from (model, api, prompt, frozen tree) "
+                  f"{sorted(foreign)}, not {tuple(identity.values())}; one file must not mix "
+                  "them. Move it aside.",
                   file=sys.stderr)  # fmt: skip
             return 2
     try:
@@ -222,7 +221,6 @@ def main(argv: list[str] | None = None) -> int:
             rpm=settings.llm_rpm_limit,
             rpd=settings.llm_rpd_limit,
             tpm=settings.llm_tpm_limit,
-            reserve=args.reserve,
         )
         guarded = QuotaGuardedLLM(provider, limits, QuotaLog(args.quota_log))
 
