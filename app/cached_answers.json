@@ -1,0 +1,1154 @@
+{
+  "metadata": {
+    "model": "gemini-3.1-flash-lite",
+    "api_version": "v1beta",
+    "prompt_version": "v5",
+    "git_sha": "fee963e-dirty",
+    "date": "2026-09-21",
+    "source": "dev set, answered by the frozen configuration"
+  },
+  "questions": [
+    {
+      "label": "Lookup",
+      "item_id": "dev-L1-03",
+      "category": "L1",
+      "question": "Which report tracks factory-fresh automobiles passed to their first owners for each reporting cycle?",
+      "result": {
+        "question": "Which report tracks factory-fresh automobiles passed to their first owners for each reporting cycle?",
+        "config_name": "full",
+        "answer": {
+          "answer": "The Monthly Retail Deliveries Dashboard (RPT-0122) tracks invoiced new car units and registrations on a monthly basis. Additionally, the Retail Deliveries Dashboard MTD (RPT-0090) provides a month-to-date view of brand-new vehicles handed over to customers.",
+          "answer_ids": [
+            "RPT-0122",
+            "RPT-0090"
+          ],
+          "evidence_ids": [
+            "TBL-001",
+            "RPT-0122",
+            "RPT-0090"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2006,
+            "output_tokens": 23,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 100
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "factory-fresh automobiles first owners reporting cycle"
+            },
+            "summary": "{\"query\":\"factory-fresh automobiles first owners reporting cycle\",\"hits\":[{\"id\":\"RPT-0216\",\"type\":\"report\",\"name\":\"First Time Fix Report\",\"department\":\"Aftersales\",\"status\":\"active\",\"replaced_by_report_id\":null,\"snippet\":\"Helps field service engineers follow how often a car has to return for the sam",
+            "duration_ms": 23855,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.7091,
+              "dense_z": 2.5522
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 2,
+            "input_tokens": 2428,
+            "output_tokens": 20,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1535,
+              "other": 224
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "vehicle sales delivery first owner"
+            },
+            "summary": "{\"query\":\"vehicle sales delivery first owner\",\"hits\":[{\"id\":\"RPT-0038\",\"type\":\"report\",\"name\":\"Delivery Delays Dashboard by Model\",\"department\":\"Supply Chain\",\"status\":\"active\",\"replaced_by_report_id\":null,\"snippet\":\"Built for a one-off leadership request; see the owner.\",\"rank\":1},{\"id\":\"RPT-0080\",",
+            "duration_ms": 33,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.6861,
+              "dense_z": 2.3874
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: trace_lineage",
+            "duration_ms": 1,
+            "input_tokens": 2792,
+            "output_tokens": 30,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2840,
+              "other": 328
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "trace_lineage",
+            "arguments": {
+              "direction": "downstream",
+              "node_id": "TBL-001"
+            },
+            "summary": "{\"root_id\":\"TBL-001\",\"direction\":\"downstream\",\"depth\":3,\"nodes\":[{\"id\":\"TBL-036\",\"type\":\"table\",\"name\":\"int_customer_vehicle_links\",\"layer\":\"intermediate\",\"status\":null,\"distance\":1},{\"id\":\"TBL-037\",\"type\":\"table\",\"name\":\"int_vehicle_sales_enriched\",\"layer\":\"intermediate\",\"status\":null,\"distance\":1}",
+            "duration_ms": 24,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: get_record",
+            "duration_ms": 1,
+            "input_tokens": 4023,
+            "output_tokens": 24,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 6732,
+              "other": 432
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "get_record",
+            "arguments": {
+              "record_id": "RPT-0122"
+            },
+            "summary": "{\"record_type\":\"report\",\"report_id\":\"RPT-0122\",\"name\":\"Monthly Retail Deliveries Dashboard\",\"workspace\":\"Sales Performance\",\"department\":\"Sales\",\"description\":\"Summary of invoiced new car units and registrations month by month. Refreshed overnight from the data warehouse.\",\"created_date\":\"2022-11-25",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: get_record",
+            "duration_ms": 1,
+            "input_tokens": 4312,
+            "output_tokens": 24,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 7473,
+              "other": 511
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "get_record",
+            "arguments": {
+              "record_id": "RPT-0090"
+            },
+            "summary": "{\"record_type\":\"report\",\"report_id\":\"RPT-0090\",\"name\":\"Retail Deliveries Dashboard MTD\",\"workspace\":\"Sales Performance\",\"department\":\"Sales\",\"description\":\"The number of brand-new vehicles handed over to customers for the month to date, with drill-down to individual deals.\",\"created_date\":\"2021-11-0",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 4623,
+            "output_tokens": 127,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 8247,
+              "other": 591
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 5,
+        "input_tokens": 20184,
+        "output_tokens": 248,
+        "cost_usd": 0.0,
+        "latency_ms": 23931
+      }
+    },
+    {
+      "label": "Ownership",
+      "item_id": "dev-L2-03",
+      "category": "L2",
+      "question": "Who is the right person to ask about Peer Comparison YoY today?",
+      "result": {
+        "question": "Who is the right person to ask about Peer Comparison YoY today?",
+        "config_name": "full",
+        "answer": {
+          "answer": "The right person to contact regarding the 'Peer Comparison YoY' report (RPT-0120) is Amy Adkins (EMP-087).",
+          "answer_ids": [
+            "EMP-087"
+          ],
+          "evidence_ids": [
+            "RPT-0120"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2002,
+            "output_tokens": 26,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 63
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "asset_type": "report",
+              "query": "Peer Comparison YoY"
+            },
+            "summary": "{\"query\":\"Peer Comparison YoY\",\"hits\":[{\"id\":\"RPT-0120\",\"type\":\"report\",\"name\":\"Peer Comparison YoY\",\"department\":\"Data & Analytics\",\"status\":\"active\",\"replaced_by_report_id\":null,\"snippet\":\"Tracks dealers compared with their peers on sales, service and satisfaction compared with the same period las",
+            "duration_ms": 30,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "strong",
+              "exact_match": true,
+              "top_dense_cosine": 0.768,
+              "dense_z": 5.1945
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 2436,
+            "output_tokens": 24,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1528,
+              "other": 174
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "RPT-0120"
+            },
+            "summary": "{\"asset_id\":\"RPT-0120\",\"original_owner_id\":\"EMP-056\",\"resolved\":true,\"resolved_owner_id\":\"EMP-087\",\"hops\":2,\"path\":[{\"employee_id\":\"EMP-056\",\"full_name\":\"Eric Yu\",\"status\":\"left\",\"via\":\"owner\"},{\"employee_id\":\"EMP-086\",\"full_name\":\"Susan Cowan\",\"status\":\"left\",\"via\":\"successor\"},{\"employee_id\":\"EMP-",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 2635,
+            "output_tokens": 70,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1971,
+              "other": 255
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 2,
+        "input_tokens": 7073,
+        "output_tokens": 120,
+        "cost_usd": 0.0,
+        "latency_ms": 38
+      }
+    },
+    {
+      "label": "Lineage",
+      "item_id": "dev-L3-04",
+      "category": "L3",
+      "question": "If stg_web_campaign_clicks stops loading, which reports within 2 steps downstream are affected?",
+      "result": {
+        "question": "If stg_web_campaign_clicks stops loading, which reports within 2 steps downstream are affected?",
+        "config_name": "full",
+        "answer": {
+          "answer": "If stg_web_campaign_clicks (TBL-029) stops loading, the following active reports within 2 steps downstream are affected: Monthly Event and Showroom Leads Overview (RPT-0005), Lead Follow-Up Results Report by Region (RPT-0010), Monthly Paid Media Results (RPT-0022), Online Visits Report by Campaign (RPT-0049), Monthly Configurator Usage Scorecard (RPT-0077), Weekly Configurator Usage (RPT-0083), Weekly Campaign Spend and Leads Report (RPT-0135), Marketing Return on Investment Dashboard (RPT-0158), Lead Conversion \u2013 Rebuilt (RPT-0192), Marketing Payback Report YoY (RPT-0201), Marketing Payback Report by Campaign (RPT-0213), and Campaign Performance Scorecard (RPT-0243).",
+          "answer_ids": [
+            "RPT-0005",
+            "RPT-0010",
+            "RPT-0022",
+            "RPT-0049",
+            "RPT-0077",
+            "RPT-0083",
+            "RPT-0135",
+            "RPT-0158",
+            "RPT-0192",
+            "RPT-0201",
+            "RPT-0213",
+            "RPT-0243"
+          ],
+          "evidence_ids": [
+            "TBL-029"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2011,
+            "output_tokens": 23,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 95
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "stg_web_campaign_clicks"
+            },
+            "summary": "{\"query\":\"stg_web_campaign_clicks\",\"hits\":[{\"id\":\"TBL-029\",\"type\":\"table\",\"name\":\"stg_web_campaign_clicks\",\"department\":\"Data & Analytics\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Paid media clicks with campaign code, channel and cost.\",\"rank\":1},{\"id\":\"TBL-075\",\"type\":\"table\",\"name\":\"f",
+            "duration_ms": 32,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "strong",
+              "exact_match": true,
+              "top_dense_cosine": 0.8909,
+              "dense_z": 6.117
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: trace_lineage",
+            "duration_ms": 1,
+            "input_tokens": 2352,
+            "output_tokens": 34,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1187,
+              "other": 188
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "trace_lineage",
+            "arguments": {
+              "depth": 2,
+              "node_id": "TBL-029",
+              "direction": "downstream"
+            },
+            "summary": "{\"root_id\":\"TBL-029\",\"direction\":\"downstream\",\"depth\":2,\"nodes\":[{\"id\":\"TBL-047\",\"type\":\"table\",\"name\":\"int_campaign_touchpoints\",\"layer\":\"intermediate\",\"status\":null,\"distance\":1},{\"id\":\"TBL-062\",\"type\":\"table\",\"name\":\"dim_campaign\",\"layer\":\"mart\",\"status\":null,\"distance\":1},{\"id\":\"RPT-0005\",\"type\"",
+            "duration_ms": 1,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 3029,
+            "output_tokens": 341,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 3135,
+              "other": 302
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 2,
+        "input_tokens": 7392,
+        "output_tokens": 398,
+        "cost_usd": 0.0,
+        "latency_ms": 40
+      }
+    },
+    {
+      "label": "Past work",
+      "item_id": "dev-L4-04",
+      "category": "L4",
+      "question": "Did the data team ever build something for the same buyer appearing more than once in our contact database?",
+      "result": {
+        "question": "Did the data team ever build something for the same buyer appearing more than once in our contact database?",
+        "config_name": "full",
+        "answer": {
+          "answer": "Yes, the data team has previously worked on identifying customers appearing multiple times in the contact database. Specifically, request REQ-0070 resulted in report RPT-0115, which analyzed customers created twice across systems. Additionally, request REQ-0042 resulted in report RPT-0103, which focused on double customer entries per dealer.",
+          "answer_ids": [
+            "REQ-0070",
+            "RPT-0115",
+            "REQ-0042",
+            "RPT-0103"
+          ],
+          "evidence_ids": [
+            "REQ-0070",
+            "RPT-0115",
+            "REQ-0042",
+            "RPT-0103"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: find_similar_past_work",
+            "duration_ms": 1,
+            "input_tokens": 2009,
+            "output_tokens": 27,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 107
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "find_similar_past_work",
+            "arguments": {
+              "description": "buyer appearing more than once in contact database"
+            },
+            "summary": "{\"hits\":[{\"request_id\":\"REQ-0215\",\"title\":\"Analysis of double customer entries across systems\",\"status\":\"open\",\"created_date\":\"2025-12-01\",\"closed_date\":null,\"resulting_report_id\":null,\"duplicate_of_request_id\":null,\"rank\":1},{\"request_id\":\"REQ-0070\",\"title\":\"Customers created twice across systems\",",
+            "duration_ms": 30,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.7254,
+              "dense_z": 3.5763
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 2446,
+            "output_tokens": 166,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1199,
+              "other": 242
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 1,
+        "input_tokens": 4455,
+        "output_tokens": 193,
+        "cost_usd": 0.0,
+        "latency_ms": 36
+      }
+    },
+    {
+      "label": "Impact",
+      "item_id": "dev-L5-03",
+      "category": "L5",
+      "question": "If I change the schema of int_service_orders_enriched, which reports break and who needs to know?",
+      "result": {
+        "question": "If I change the schema of int_service_orders_enriched, which reports break and who needs to know?",
+        "config_name": "full",
+        "answer": {
+          "answer": "Changing the schema of `int_service_orders_enriched` (TBL-038) will impact 60 reports and 11 metrics. Due to the high number of affected stakeholders, a broadcast notification is required. The top owners to contact include Danielle Johnson (EMP-001), John Leblanc (EMP-027), Wendy Rice (EMP-004), Megan Parsons (EMP-022), and Brian Silva (EMP-062). Additionally, you must notify the heads of all affected departments: EMP-031 (Aftersales), EMP-005 (Data & Analytics), EMP-053 (Marketing), EMP-001 (Operations), EMP-041 (Finance), and EMP-057 (Supply Chain).",
+          "answer_ids": [
+            "EMP-001",
+            "EMP-027",
+            "EMP-004",
+            "EMP-022",
+            "EMP-062",
+            "EMP-031",
+            "EMP-005",
+            "EMP-053",
+            "EMP-041",
+            "EMP-057"
+          ],
+          "evidence_ids": [
+            "TBL-038",
+            "RPT-0028",
+            "RPT-0034",
+            "RPT-0055",
+            "RPT-0018",
+            "RPT-0163",
+            "RPT-0208",
+            "RPT-0216",
+            "RPT-0209",
+            "RPT-0153",
+            "RPT-0048",
+            "RPT-0020",
+            "RPT-0021",
+            "RPT-0171",
+            "RPT-0238",
+            "RPT-0073",
+            "RPT-0092",
+            "RPT-0130",
+            "RPT-0210",
+            "RPT-0060",
+            "RPT-0085",
+            "RPT-0096"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2012,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 97
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "int_service_orders_enriched"
+            },
+            "summary": "{\"query\":\"int_service_orders_enriched\",\"hits\":[{\"id\":\"TBL-038\",\"type\":\"table\",\"name\":\"int_service_orders_enriched\",\"department\":\"Data & Analytics\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Repair orders with standard labour hours, booking channel and a flag for repeat repairs.\",\"rank\":1}",
+            "duration_ms": 30,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "strong",
+              "exact_match": true,
+              "top_dense_cosine": 0.8416,
+              "dense_z": 5.4117
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: impact_analysis",
+            "duration_ms": 1,
+            "input_tokens": 2376,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1369,
+              "other": 195
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "impact_analysis",
+            "arguments": {
+              "table_id": "TBL-038"
+            },
+            "summary": "{\"table_id\":\"TBL-038\",\"notify_mode\":\"broadcast\",\"notify_total_count\":28,\"notify_omitted_count\":18,\"affected_report_count\":60,\"affected_metric_count\":11,\"affected_tables\":[\"TBL-039\",\"TBL-049\",\"TBL-066\",\"TBL-068\",\"TBL-077\",\"TBL-080\"],\"affected_reports\":[{\"report_id\":\"RPT-0028\",\"name\":\"Leadership KPIs ",
+            "duration_ms": 15,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 4921,
+            "output_tokens": 452,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 7250,
+              "other": 278
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 2,
+        "input_tokens": 9309,
+        "output_tokens": 496,
+        "cost_usd": 0.0,
+        "latency_ms": 53
+      }
+    },
+    {
+      "label": "Unanswerable",
+      "item_id": "dev-L6-01",
+      "category": "L6",
+      "question": "How much does Jill Rhodes earn?",
+      "result": {
+        "question": "How much does Jill Rhodes earn?",
+        "config_name": "full",
+        "answer": {
+          "answer": "I cannot provide information about employee salaries, as this data is not available in the metadata.",
+          "answer_ids": [],
+          "evidence_ids": [],
+          "abstained": true
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 1996,
+            "output_tokens": 17,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 31
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "Jill Rhodes"
+            },
+            "summary": "{\"query\":\"Jill Rhodes\",\"hits\":[{\"id\":\"TBL-077\",\"type\":\"table\",\"name\":\"fct_customer_surveys\",\"department\":\"Marketing\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Survey responses with NPS and CSAT scores and promoter and detractor flags.\",\"rank\":1},{\"id\":\"RPT-0097\",\"type\":\"report\",\"name\":\"F",
+            "duration_ms": 27,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.5266,
+              "dense_z": 3.4825
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2326,
+            "output_tokens": 17,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1176,
+              "other": 112
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "Jill Rhodes"
+            },
+            "summary": "{\"query\":\"Jill Rhodes\",\"hits\":[{\"id\":\"TBL-077\",\"type\":\"table\",\"name\":\"fct_customer_surveys\",\"department\":\"Marketing\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Survey responses with NPS and CSAT scores and promoter and detractor flags.\",\"rank\":1},{\"id\":\"RPT-0097\",\"type\":\"report\",\"name\":\"F",
+            "duration_ms": 29,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.5266,
+              "dense_z": 3.4825
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2656,
+            "output_tokens": 16,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2352,
+              "other": 193
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "employee"
+            },
+            "summary": "{\"query\":\"employee\",\"hits\":[{\"id\":\"TBL-039\",\"type\":\"table\",\"name\":\"int_service_retention_base\",\"department\":\"Data & Analytics\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Per vehicle and dealer, whether the owner came back for servicing within the expected interval.\",\"rank\":1},{\"id\":\"RPT-0",
+            "duration_ms": 29,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "weak",
+              "exact_match": false,
+              "top_dense_cosine": 0.5859,
+              "dense_z": 2.8447
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 3024,
+            "output_tokens": 40,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 3722,
+              "other": 272
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 3,
+        "input_tokens": 10002,
+        "output_tokens": 90,
+        "cost_usd": 0.0,
+        "latency_ms": 94
+      }
+    },
+    {
+      "label": "Mixed: data behind a metric",
+      "item_id": "dev-MX-01",
+      "category": "MX",
+      "question": "I want to question the source data behind Aged Stock Share. Who are the current owners of its source tables?",
+      "result": {
+        "question": "I want to question the source data behind Aged Stock Share. Who are the current owners of its source tables?",
+        "config_name": "full",
+        "answer": {
+          "answer": "The source table for the Aged Stock Share metric (MET-030) is fct_inventory_snapshot (TBL-071). Its upstream dependencies include int_calendar_spine (TBL-032), int_parts_movements (TBL-040), and int_inventory_daily (TBL-042). The current owners for these tables are Collin Jordan (EMP-110) for TBL-071, John Leblanc (EMP-027) for TBL-032, Joseph Bowers (EMP-055) for TBL-040, and Rodney Owens (EMP-066) for TBL-042.",
+          "answer_ids": [
+            "EMP-110",
+            "EMP-027",
+            "EMP-055",
+            "EMP-066"
+          ],
+          "evidence_ids": [
+            "MET-030",
+            "TBL-071",
+            "TBL-032",
+            "TBL-040",
+            "TBL-042"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2011,
+            "output_tokens": 27,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 108
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "Aged Stock Share",
+              "asset_type": "metric"
+            },
+            "summary": "{\"query\":\"Aged Stock Share\",\"hits\":[{\"id\":\"MET-030\",\"type\":\"metric\",\"name\":\"Aged Stock Share\",\"department\":\"Supply Chain\",\"status\":null,\"replaced_by_report_id\":null,\"snippet\":\"Share of stock value held for more than 90 days.\",\"rank\":1},{\"id\":\"MET-027\",\"type\":\"metric\",\"name\":\"Backorder Rate\",\"departm",
+            "duration_ms": 31,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "strong",
+              "exact_match": true,
+              "top_dense_cosine": 0.8836,
+              "dense_z": 4.1377
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: trace_lineage",
+            "duration_ms": 1,
+            "input_tokens": 2337,
+            "output_tokens": 29,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1172,
+              "other": 217
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "trace_lineage",
+            "arguments": {
+              "direction": "upstream",
+              "node_id": "MET-030"
+            },
+            "summary": "{\"root_id\":\"MET-030\",\"direction\":\"upstream\",\"depth\":3,\"nodes\":[{\"id\":\"TBL-071\",\"type\":\"table\",\"name\":\"fct_inventory_snapshot\",\"layer\":\"mart\",\"status\":null,\"distance\":1},{\"id\":\"TBL-032\",\"type\":\"table\",\"name\":\"int_calendar_spine\",\"layer\":\"intermediate\",\"status\":null,\"distance\":2},{\"id\":\"TBL-040\",\"type",
+            "duration_ms": 1,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 2709,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2118,
+              "other": 319
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "TBL-071"
+            },
+            "summary": "{\"asset_id\":\"TBL-071\",\"original_owner_id\":\"EMP-110\",\"resolved\":true,\"resolved_owner_id\":\"EMP-110\",\"hops\":0,\"path\":[{\"employee_id\":\"EMP-110\",\"full_name\":\"Collin Jordan\",\"status\":\"active\",\"via\":\"owner\"}],\"fallback_contact_id\":null,\"reason\":\"active_owner\",\"truncated\":false}",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 2835,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2389,
+              "other": 399
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "TBL-032"
+            },
+            "summary": "{\"asset_id\":\"TBL-032\",\"original_owner_id\":\"EMP-027\",\"resolved\":true,\"resolved_owner_id\":\"EMP-027\",\"hops\":0,\"path\":[{\"employee_id\":\"EMP-027\",\"full_name\":\"John Leblanc\",\"status\":\"active\",\"via\":\"owner\"}],\"fallback_contact_id\":null,\"reason\":\"active_owner\",\"truncated\":false}",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 2962,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2659,
+              "other": 479
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "TBL-040"
+            },
+            "summary": "{\"asset_id\":\"TBL-040\",\"original_owner_id\":\"EMP-055\",\"resolved\":true,\"resolved_owner_id\":\"EMP-055\",\"hops\":0,\"path\":[{\"employee_id\":\"EMP-055\",\"full_name\":\"Joseph Bowers\",\"status\":\"active\",\"via\":\"owner\"}],\"fallback_contact_id\":null,\"reason\":\"active_owner\",\"truncated\":false}",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 3088,
+            "output_tokens": 22,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 2930,
+              "other": 560
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "TBL-042"
+            },
+            "summary": "{\"asset_id\":\"TBL-042\",\"original_owner_id\":\"EMP-024\",\"resolved\":true,\"resolved_owner_id\":\"EMP-066\",\"hops\":1,\"path\":[{\"employee_id\":\"EMP-024\",\"full_name\":\"Tracey Garcia\",\"status\":\"left\",\"via\":\"owner\"},{\"employee_id\":\"EMP-066\",\"full_name\":\"Rodney Owens\",\"status\":\"active\",\"via\":\"successor\"}],\"fallback_c",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 3251,
+            "output_tokens": 232,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 3294,
+              "other": 641
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 6,
+        "input_tokens": 19193,
+        "output_tokens": 376,
+        "cost_usd": 0.0,
+        "latency_ms": 43
+      }
+    },
+    {
+      "label": "Mixed: replaced report",
+      "item_id": "dev-MX-02",
+      "category": "MX",
+      "question": "New Vehicle Sales Tracker seems abandoned. Which report took over, and who looks after it now?",
+      "result": {
+        "question": "New Vehicle Sales Tracker seems abandoned. Which report took over, and who looks after it now?",
+        "config_name": "full",
+        "answer": {
+          "answer": "The New Vehicle Sales Tracker (RPT-0008) is deprecated and has been replaced by the active report New Vehicle Sales Tracker v2 (RPT-0068). Linda Wolfe (EMP-006) is the current owner of the new report.",
+          "answer_ids": [
+            "RPT-0068",
+            "EMP-006"
+          ],
+          "evidence_ids": [
+            "RPT-0008"
+          ],
+          "abstained": false
+        },
+        "steps": [
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: search_assets",
+            "duration_ms": 1,
+            "input_tokens": 2008,
+            "output_tokens": 19,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 0,
+              "other": 94
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "search_assets",
+            "arguments": {
+              "query": "New Vehicle Sales Tracker"
+            },
+            "summary": "{\"query\":\"New Vehicle Sales Tracker\",\"hits\":[{\"id\":\"RPT-0008\",\"type\":\"report\",\"name\":\"New Vehicle Sales Tracker\",\"department\":\"Sales\",\"status\":\"deprecated\",\"replaced_by_report_id\":\"RPT-0068\",\"snippet\":\"The number of brand-new vehicles handed over to customers. Built for the sales leadership team, wi",
+            "duration_ms": 31,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": {
+              "match_quality": "strong",
+              "exact_match": true,
+              "top_dense_cosine": 0.8583,
+              "dense_z": 4.0736
+            }
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "tool calls: resolve_owner",
+            "duration_ms": 1,
+            "input_tokens": 2431,
+            "output_tokens": 24,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1458,
+              "other": 190
+            },
+            "signal": null
+          },
+          {
+            "kind": "tool",
+            "name": "resolve_owner",
+            "arguments": {
+              "asset_id": "RPT-0068"
+            },
+            "summary": "{\"asset_id\":\"RPT-0068\",\"original_owner_id\":\"EMP-006\",\"resolved\":true,\"resolved_owner_id\":\"EMP-006\",\"hops\":0,\"path\":[{\"employee_id\":\"EMP-006\",\"full_name\":\"Linda Wolfe\",\"status\":\"active\",\"via\":\"owner\"}],\"fallback_contact_id\":null,\"reason\":\"active_owner\",\"truncated\":false}",
+            "duration_ms": 0,
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "input_chars": null,
+            "signal": null
+          },
+          {
+            "kind": "llm",
+            "name": null,
+            "arguments": null,
+            "summary": "answer",
+            "duration_ms": 1,
+            "input_tokens": 2561,
+            "output_tokens": 102,
+            "input_chars": {
+              "system": 3138,
+              "tools": 4738,
+              "tool_results": 1728,
+              "other": 272
+            },
+            "signal": null
+          }
+        ],
+        "stopped_reason": "final",
+        "stripped_ids": [],
+        "tool_calls": 2,
+        "input_tokens": 7000,
+        "output_tokens": 145,
+        "cost_usd": 0.0,
+        "latency_ms": 37
+      }
+    }
+  ]
+}
