@@ -46,3 +46,12 @@ def test_publishing_creates_a_docker_space_and_uploads_the_folder(tmp_path):
     assert upload == "upload_folder" and uploaded["repo_type"] == "space"
     assert uploaded["folder_path"] == str(staged)
     assert "token" not in created and "token" not in uploaded  # from the login cache only
+
+
+def test_outside_a_git_checkout_staging_walks_the_folder_without_caches(tmp_path, monkeypatch):
+    # A ZIP download has no .git; the files are then the folder's, minus bytecode.
+    (tmp_path / "src" / "__pycache__").mkdir(parents=True)
+    (tmp_path / "src" / "a.py").write_text("x = 1\n", encoding="utf-8")
+    (tmp_path / "src" / "__pycache__" / "a.cpython-313.pyc").write_bytes(b"\0")
+    monkeypatch.setattr(deploy_space, "ROOT", tmp_path)
+    assert deploy_space._tracked("src") == ["src/a.py"]

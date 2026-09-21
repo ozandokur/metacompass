@@ -31,9 +31,18 @@ SPACE_README = ROOT / "deploy" / "hf_space_README.md"
 
 
 def _tracked(folder: str) -> list[str]:
-    listing = subprocess.run(
-        ["git", "ls-files", "--", folder], cwd=ROOT, check=True, capture_output=True, text=True
-    ).stdout
+    """The folder's tracked files; without git (a ZIP download), its files minus bytecode."""
+    try:
+        listing = subprocess.run(
+            ["git", "ls-files", "--", folder], cwd=ROOT, check=True, capture_output=True,
+            text=True,
+        ).stdout  # fmt: skip
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return sorted(
+            path.relative_to(ROOT).as_posix()
+            for path in (ROOT / folder).rglob("*")
+            if path.is_file() and "__pycache__" not in path.parts
+        )
     return [line for line in listing.splitlines() if line]
 
 

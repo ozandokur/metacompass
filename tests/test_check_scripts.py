@@ -122,3 +122,20 @@ def test_env_example_must_leave_secret_values_empty(tmp_path):
 def test_real_env_example_is_clean():
     root = Path(__file__).resolve().parents[1]
     assert check_all.check_env_example(root / ".env.example") == []
+
+
+def test_outside_a_git_checkout_the_file_listing_says_so(tmp_path):
+    # V2 found it: from a ZIP download (no .git) the scans crashed with a git traceback.
+    (tmp_path / "a.py").write_text("x = 1\n", encoding="utf-8")
+    try:
+        cft.list_repo_files(tmp_path)
+    except cft.NotAGitCheckout as error:
+        assert "git" in str(error)
+    else:
+        raise AssertionError("expected NotAGitCheckout")
+
+
+def test_the_secret_scan_fails_cleanly_outside_a_git_checkout(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(check_all, "ROOT", tmp_path)
+    assert check_all.run_secret_scan() is False
+    assert "not a git checkout" in capsys.readouterr().out

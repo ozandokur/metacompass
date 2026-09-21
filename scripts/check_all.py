@@ -17,7 +17,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from check_forbidden_terms import list_repo_files, read_text_or_none
+from check_forbidden_terms import NotAGitCheckout, list_repo_files, read_text_or_none
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -73,7 +73,12 @@ def check_env_example(path: Path) -> list[str]:
 
 
 def run_secret_scan() -> bool:
-    files = list_repo_files(ROOT)
+    try:
+        files = list_repo_files(ROOT)
+    except NotAGitCheckout:
+        # A download without .git: say why the scan cannot run instead of a git traceback.
+        print("secret scan: cannot run, not a git checkout (clone the repository instead)")
+        return False
     hits = find_secrets(files, ROOT)
     for hit in hits:
         print(f"{hit.path}:{hit.line}: possible secret ({hit.kind})")

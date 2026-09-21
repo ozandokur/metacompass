@@ -485,6 +485,21 @@ altında, durmaya gerek yok.
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.
 
+## CV maddesi taslağı (spec §17.3; rakamlar yalnızca results.md'den, koşumlar bitince)
+
+> **MetaCompass — BI Metadata Agent** · [GitHub] [Demo] [Video]
+> *Python, BM25 + dense retrieval (RRF), NetworkX, FastAPI, Streamlit, Docker*
+> - Built a framework-free, six-tool agent that answers ownership, lineage and change-impact
+>   questions over a synthetic BI catalog, with deterministic multi-hop ownership resolution
+>   and a grounding guard that removes any ID no tool returned.
+> - Designed a 100-question evaluation with independent gold answers and deliberately
+>   unanswerable questions; pre-registered the reading rules, and reported per-category
+>   accuracy with bootstrap CIs, abstention precision/recall and leave-one-out ablations
+>   {A0 genel doğruluk ± std ve bir ablation bulgusu buraya, results.md'den}.
+> - Ran the whole evaluation on a free-tier LLM quota: chose the model by a pre-registered
+>   measurement, fingerprinted the frozen code on every result line, and audited the raw
+>   results before any report.
+
 ## Kararlar ve gerekçeleri
 - 2026-09-20 · **Ozan: plan küçültme (c) kapalı, ablation planı aynen duruyor.** Kota gerçeği
   Lite olmayan Flash'ta RPD 20 olduğu için **Dal B**: model seçimi ölçülerek yapılır, kural

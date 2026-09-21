@@ -35,14 +35,21 @@ def load_terms(path: Path) -> list[str]:
     return terms
 
 
+class NotAGitCheckout(Exception):
+    """The scans list the files git would commit, which needs a git checkout (not a ZIP)."""
+
+
 def list_repo_files(root: Path) -> list[Path]:
     """Files git would commit, relative to root, sorted for stable output."""
-    result = subprocess.run(
-        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
-        cwd=root,
-        check=True,
-        capture_output=True,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as error:
+        raise NotAGitCheckout(f"{root} is not a git checkout; the scans need git") from error
     names = [n for n in result.stdout.decode("utf-8").split("\0") if n]
     # A tracked file deleted from the working tree is still listed; skip it.
     return sorted(Path(n) for n in set(names) if (root / n).is_file())
@@ -91,7 +98,11 @@ def main(argv: list[str] | None = None) -> int:
         print(f"warning: forbidden terms file is empty ({args.terms}); scan skipped")
         return 0
 
-    files = list_repo_files(args.root)
+    try:
+        files = list_repo_files(args.root)
+    except NotAGitCheckout as error:
+        print(f"forbidden terms: cannot run, {error}")
+        return 1
     hits = find_term_hits(files, args.root, terms)
     for hit in hits:
         print(f"{hit.path}:{hit.line}: forbidden term #{hit.term_index}")
