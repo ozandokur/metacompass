@@ -1,8 +1,8 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 — dev iterasyonları bitti (3/3 kullanıldı), **yapılandırma donduruldu**, test
-koşumu başlıyor · Son güncelleme: 2026-09-20 · Son kapı: 2026-09-20, 489 test.
+Aktif faz: 6 (test koşumu) **V0 kararını bekliyor: Q-V0-1** · Faz 7 tamam · Faz 8 yerel kısım
+tamam, Space yayını sürüyor · Son güncelleme: 2026-09-21 · Kapı: 84d044d geçti (569 test).
 
 ## Dondurulmuş değerler
 **DONDURULDU 2026-09-20, test koşumundan önce.** Test koşumu başladıktan sonra biri değişirse
@@ -422,6 +422,52 @@ altında, durmaya gerek yok.
   (kendim başlatmadım). Temiz venv'de `requirements.txt` kurulumu — paket indirmesi, onay
   bekliyor. Deploy/push — onay bekliyor.
 
+- [V0, 2026-09-21] **Donmuş ağaç parmak izi** (50594e4). `runinfo.frozen_tree_hash`: `agent`,
+  `tools`, `retrieval`, `data` (vocab dahil), `graph.py`, `config.py`'nin eval sabitleri (AST ile:
+  büyük harfli sabitler, `AgentConfig`, `output_char_cap`, varsayılan embedding modeli; yol
+  sabitleri ve uygulama ayarları hariç) + **geçici karar:** `eval/configs.py`, `eval/scoring.py`,
+  `eval/test_set.json` (koşum ortasında değişirlerse ölçüm aynı şekilde bölünür; fc05ccc'den beri
+  üçü de aynı). Runner her satıra yazıyor ve farklı hash'li dosyaya eklemeyi reddediyor.
+  **Ölçüm:** fc05ccc = `b4025ab1103ea7c9`; b1eed88 ve sonrası = `5f0ee29ab437ea65`. Tek fark
+  `agent/quota.py`'deki demo rezervi (b1eed88, test koşumu ortasında benim eklediğim):
+  `QuotaLimits.reserve`, `daily_limit()`'te `- reserve`, bir hata mesajı. Eval koşumlarında
+  `reserve=0` idi; `daily_limit` her durumda aynı değeri, mesaj aynı metni veriyordu; guard
+  yalnızca isteğin *ne zaman* gideceğine karar veriyor, cevabın ne olacağına değil. Ozan'ın
+  talimatıyla rezerv kaldırıldı → `quota.py` ve testleri fc05ccc ile bayt bayt aynı, ağaç
+  hash'i yine `b4025ab1103ea7c9`. Geriye dönük: her satıra **üretildiği commit'in** hash'i
+  yazıldı (`frozen_tree_hash_backfilled: true`): r1'de 23 satır `b4025ab…` + 77 satır
+  `5f0ee29…`, r2'de 81 satır `5f0ee29…`. Runner r1'i reddediyor (denendi, istek harcanmadı) →
+  **Q-V0-1.**
+- [V1, 2026-09-21] `check_all --slow`: yeşil, 562 test (yalnız `live` hariç), kapsam **%99**
+  (1.715 satırın 22'si). Push öncesi son ağaçta tekrar koşulacak.
+- [V4, 2026-09-21] Determinizm: sıfırdan iki üretim bayt bayt aynı; **eval'in kullandığı
+  `data/` sıfırdan üretimle aynı**; taze veriden yeniden üretilen data card commit'lenmiş
+  `docs/data_card.md` ile birebir aynı. Hash'ler (sha256 ilk 16): `_meta.json` da787003e393a91d ·
+  employees 3d602794b01e45c1 · metrics 2d2373ca17b12e56 · report_table_edges bce30d60af696a19 ·
+  reports 852b83e0c094dd1a · requests e298121e2f2a98d5 · table_table_edges 4feb6052639c4357 ·
+  tables 60cd673b7173ed53.
+- [V5, 2026-09-21] Docker (motor açıktı): derleme **405 sn** (soğuk, indirmeler dahil), imaj
+  **2,69 GB**. `.env` olmadan `docker run -p 7860:7860`: `/_stcore/health` → `ok` 4 sn'de, `/` →
+  200, ilk sayfa tarayıcıda 2,3 sn'de çizildi, hazır cevap 369 ms. Konteyner içi
+  `scripts/smoke_check.py`: 7 tablo, embedding önbelleği, 8 hazır cevap, `get_record` → PASS.
+  `id` → uid=1000(user). `ls`: `.env`, `docs/plan`, `docs/learn` yok. Serbest metin kutusu yok,
+  "yerelde kendi anahtarınla" yönlendirmesi var.
+- [V6, 2026-09-21] `scripts/audit_eval.py` (12ee4cb): dosya başına tek kimlik, dosya adıyla
+  uyuşma, tekrarlı soru yok, her saklanan puan yeniden puanlamayla aynı, kota tutarlılığı (bir
+  günün satırlarındaki model çağrısı o günün isteklerini belirgin aşarsa → paylaşılan önbellek
+  işareti). `report.py` denetim kırmızıyken results.md yazmıyor. **Sonuç:** 181 cevap, 181 puan
+  yeniden üretildi, tekrar yok, kota tutarlı, llm_error 0; tek FAIL: r1'de iki kimlik (Q-V0-1).
+- [V7, 2026-09-21] `scripts/scan_history.py` (169ce52): tüm referanslardan erişilen her blob,
+  her commit mesajı, her yol; sır desenleri, yasaklı terimler ve `.env`'deki anahtarın kendisi.
+  99 commit: **temiz.** Hiçbir bulguda değer yazdırılmıyor.
+- [Faz 8, 2026-09-21] Space'te model anahtarı yok (Ozan): anahtar yokken serbest metin kutusu hiç
+  görünmüyor, yerine README'nin "Run it locally" bölümüne yönlendirme var (321f4e9).
+  `scripts/deploy_space.py`: yalnızca uygulamanın ihtiyacı olan dosyalar + Space README'si,
+  `huggingface_hub` ile, token login önbelleğinden. Demo rezervi kaldırıldı (V0 ile birlikte).
+- [Faz 9, 2026-09-21] README taslağı (84d044d): §16 yapısı; sonuç tablosu işaretli blokta,
+  yalnızca `report.py --readme-snippet` yazar, `--check-readme` (V9) elle değiştirilmiş sayıyı
+  yakalar. Koşumlar bitince dolacak.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
@@ -766,6 +812,13 @@ altında, durmaya gerek yok.
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Q-V0-1 — EVAL'İ DURDURUYOR:** A0'ın 158 satırı (r1'in 77'si, r2'nin 81'i) b1eed88
+  koduyla (`5f0ee29…`) üretildi; donmuş commit `b4025ab…`. Fark yalnızca `reserve=0` iken etkisiz
+  olan demo rezervi (V0 kaydında ayrıntı). Seçenekler: **(a)** 158 satırı eşdeğer kabul et —
+  `runinfo`'ya gerekçesiyle tek bir açık eşdeğerlik kaydı (`5f0ee29… ≡ b4025ab…`), runner ve
+  denetim bunu tanır, results.md "Threats"e bir satır; **(b)** 158 satırı sil ve yeniden koş
+  (~560 istek ≈ 1,1 gün; ayrıca determinizm olmadığı için aynı cevaplar gelmeyecek). Öneri: (a).
+  Karar gelene kadar runner r1'i reddediyor (kota harcanmıyor).
 - [ ] **Q-F8-1 — engelleyici değil:** Docker Desktop açılırsa yerel `docker build`/`run` ve imaj
   boyutu ölçümü yapılır. Temiz venv testi için PyPI indirmesi (torch CPU dahil, yüzlerce MB)
   onayı gerekiyor.
