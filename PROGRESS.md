@@ -454,8 +454,9 @@ altında, durmaya gerek yok.
   `eval/results/replay_verification.json`'da; results.md "Threats to validity"deki satır bu
   dosyadan üretiliyor. **V6 yeniden: PASSED** (181 cevap). Koşum kaldığı yerden devam ediyor.
 - [Faz 6, 2026-09-22] **A0 ×3 tamamlandı: 300/300 cevap** (r2'nin kalan 19'u + r3'ün 100'ü,
-  bugün 408 istek). V6: PASSED, llm_error 0. A1 aynı gün kalan kotayla başladı. Puanlar koşumlar
-  bitene kadar okunmuyor.
+  bugün 408 istek). V6: PASSED, llm_error 0. A1 aynı gün kalan kotayla başladı: 49/100, gün 499
+  istekle kapandı; V6 gün sonu: PASSED (349 cevap). Puanlar koşumlar bitene kadar okunmuyor.
+  Kalan plan: A1 51 · A2 100 · A4 100 · A3 40 · A5 25 = 316 cevap ≈ 2,3 gün.
 - [Q-F8-2 / V11, 2026-09-22] **Hafif demo profili** (6f67862). Serbest metin kapalıyken demo arama
   yapmıyor: 8 cevap önbellekten, kayıt görüntüleyici yalnızca `get_record`. Bu yüzden
   `service.build_demo_components` yalnızca store + graf + kayıt aracını kuruyor (retriever ve
