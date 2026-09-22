@@ -106,3 +106,16 @@ def test_without_a_model_the_api_says_so_and_still_serves_records(components):
     assert asked.status_code == 503
     assert "model" in asked.json()["detail"]
     assert record.status_code == 200
+
+
+def test_demo_components_generate_missing_data_and_serve_records(tmp_path):
+    # Q-F8-2: the hosted demo starts from a clone without data/ and without the embedding
+    # stack; the record viewer needs only the store and the graph.
+    from metacompass.service import build_demo_components
+
+    demo = build_demo_components(tmp_path / "data")
+    assert (tmp_path / "data" / "raw" / "reports.csv").is_file()  # generated on first use
+    record_id = next(iter(demo.store.reports))
+    payload, _ = demo.registry.call("get_record", {"record_id": record_id})
+    assert "error" not in payload
+    assert not (tmp_path / "data" / "cache").exists()  # no index was built

@@ -10,23 +10,38 @@ free-tier daily quota (D25); it is off unless a model is configured, and limited
 and per day. The app imports the agent directly instead of calling the API, so a deploy is
 one process.
 
+Without a model the app is the light demo profile (Q-F8-2): it builds only the store and the
+graph for the record viewer, generating the data on first use, and never imports the agent,
+the retrievers, the embedding model or torch. That is what lets it run on a free host that
+installs app/requirements.txt only. The heavy parts load when a free-text question needs them.
+
 Three environment variables exist for the smoke test: METACOMPASS_DEMO_CACHE (the answers
 file), METACOMPASS_DATA_DIR and METACOMPASS_EMBEDDER ("hash" skips loading the model).
 """
 
 import json
 import os
+import sys
 from datetime import date
 from pathlib import Path
 
 import streamlit as st
 
-from metacompass.agent.loop import Agent
-from metacompass.config import PROJECT_ROOT, load_settings
-from metacompass.retrieval.embedders import HashEmbedder, SentenceTransformerEmbedder
-from metacompass.service import Components, build_components, live_llm
-
 APP_DIR = Path(__file__).resolve().parent
+try:
+    import metacompass  # noqa: F401  installed with `pip install -e .`
+except ModuleNotFoundError:
+    # A host that installs only app/requirements.txt runs the package from the source tree.
+    sys.path.insert(0, str(APP_DIR.parent / "src"))
+
+from metacompass.config import PROJECT_ROOT, load_settings  # noqa: E402
+from metacompass.service import (  # noqa: E402
+    Components,
+    build_components,
+    build_demo_components,
+    live_llm,
+)
+
 CACHE_FILE = Path(os.environ.get("METACOMPASS_DEMO_CACHE", APP_DIR / "cached_answers.json"))
 DATA_DIR = Path(os.environ.get("METACOMPASS_DATA_DIR", PROJECT_ROOT / "data"))
 EMBEDDER = os.environ.get("METACOMPASS_EMBEDDER", "model")
@@ -43,12 +58,21 @@ def prepared() -> dict:
 
 @st.cache_resource
 def components() -> Components:
+    """The full system for free-text questions: retrievers and the embedding model."""
+    from metacompass.retrieval.embedders import HashEmbedder, SentenceTransformerEmbedder
+
     embedder = (
         HashEmbedder(dim=64)
         if EMBEDDER == "hash"
         else SentenceTransformerEmbedder(load_settings().embedding_model)
     )
     return build_components(DATA_DIR, embedder)
+
+
+@st.cache_resource
+def records() -> Components:
+    """The store and the graph for the record viewer; data generated on first use."""
+    return build_demo_components(DATA_DIR)
 
 
 @st.cache_resource
@@ -120,7 +144,7 @@ def record_viewer() -> None:
     record_id = st.session_state.get("record")
     if not record_id:
         return
-    payload, _ = components().registry.call("get_record", {"record_id": record_id})
+    payload, _ = records().registry.call("get_record", {"record_id": record_id})
     with st.expander(f"Record {record_id}", expanded=True):
         st.json(payload)
 
@@ -161,6 +185,8 @@ def free_text(llm) -> None:
     if not allowed:
         st.sidebar.caption(reason)
     elif st.sidebar.button("Ask", key="ask") and question.strip():
+        from metacompass.agent.loop import Agent
+
         with st.spinner("The agent is working…"):
             result = Agent(llm, components().registry).run(question.strip())
         st.session_state["asked"] = st.session_state.get("asked", 0) + 1

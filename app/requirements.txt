@@ -1,0 +1,13 @@
+# The light demo profile (Q-F8-2): what the app needs without a model. Streamlit Community
+# Cloud reads the dependency file next to the entrypoint before the one at the repository
+# root, so this file keeps torch, sentence-transformers and the embedding model out of the
+# hosted demo. The app runs the package from ../src. Versions match requirements.txt.
+# Measured with scripts/check_demo_profile.py (V11): these are all the app imports.
+streamlit==1.64.0
+pandas==3.0.6
+numpy==2.5.3
+pydantic==2.13.5
+networkx==3.6.1
+Faker==40.39.0
+rank-bm25==0.2.2
+python-dotenv==1.2.3
