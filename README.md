@@ -129,6 +129,19 @@ AI Studio key as `LLM_API_KEY`, and your free-tier limits (`LLM_RPM_LIMIT`,
 `LLM_RPD_LIMIT`, `LLM_TPM_LIMIT`). Questions then spend your own daily quota, five per
 session. The same agent is served over HTTP by `uvicorn metacompass.api:app`.
 
+### Optional: run it with Docker
+
+```bash
+docker build -t metacompass .
+docker run -p 7860:7860 metacompass
+```
+
+The image (about 2.7 GB: CPU-only torch and the embedding model, with the data and the
+document embeddings prepared at build time) serves the same app on port 7860. It is what a
+Hugging Face Docker Space would run; `scripts/deploy_space.py` publishes it to one, which
+needs a Hugging Face PRO account. The hosted demo uses the light profile instead:
+`app/requirements.txt` installs only what the app needs without a model (about 390 MB).
+
 ## Limitations
 
 These were left out on purpose; each line says what a production version would need.

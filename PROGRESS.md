@@ -453,6 +453,24 @@ altında, durmaya gerek yok.
   (köken kaybolmasın diye; Ozan'ın listesine ek). Sayılar
   `eval/results/replay_verification.json`'da; results.md "Threats to validity"deki satır bu
   dosyadan üretiliyor. **V6 yeniden: PASSED** (181 cevap). Koşum kaldığı yerden devam ediyor.
+- [Q-F8-2 / V11, 2026-09-22] **Hafif demo profili** (6f67862). Serbest metin kapalıyken demo arama
+  yapmıyor: 8 cevap önbellekten, kayıt görüntüleyici yalnızca `get_record`. Bu yüzden
+  `service.build_demo_components` yalnızca store + graf + kayıt aracını kuruyor (retriever ve
+  embedder yok) ve veri yoksa ilk kullanımda üretiyor (seed 42); ajan ve model istemcisi yalnızca
+  canlı soru yolunda import ediliyor; uygulama paket kurulu değilse `../src`'yi yola ekliyor.
+  Donmuş yola dokunulmadı (hiçbir modül import anında torch yüklemiyordu, ölçüldü).
+  `app/requirements.txt` (ölçülen gerçek ihtiyaç, `requirements.txt` sürümleriyle): streamlit,
+  pandas, numpy, pydantic, networkx, Faker, rank-bm25, python-dotenv. Streamlit Community Cloud
+  bağımlılık dosyasını önce giriş dosyasının klasöründe arıyor (dokümandan doğrulandı), yani bu
+  dosya kökteki ağır `requirements.txt`'nin önüne geçiyor. Yerel paket kurulumu belgelenmemiş →
+  `src` yol eklemesi. Python: desteklenenler güvenlik güncellemesi alan sürümler, varsayılan
+  3.12; **3.13** seçildi (CI/yerelle aynı). Test: taze yorumlayıcıda boş veri klasöründen hazır
+  cevap + kayıt görüntüleyici → torch / sentence_transformers / transformers yüklenmiyor.
+  **V11** (`scripts/check_demo_profile.py`): HEAD'in arşivi, yalnızca `app/requirements.txt` ile
+  temiz venv → kurulum **143 sn**, venv **390 MB** (tam kurulum 1,4 GB) · AppTest: 8 hazır soru,
+  kayıt görüntüleyici çalışıyor, serbest metin kutusu yok · ağır paketler ne yüklü ne kurulu ·
+  gerçek Streamlit: sağlık **3,0 sn**'de, sayfa hemen · tarayıcıda çizim ve bir hazır soru
+  doğrulandı. **PASSED.**
 - **Ders (2026-09-22):** Donmuş yola koşum sırasında giren değişikliği (benim eklediğim demo
   rezervi) V0 mekanizması yakaladı. Mekanizma olmasaydı bu fark hiç görülmezdi: kod davranışça
   etkisizdi, testler yeşildi, satırlar sıradan görünüyordu. Kanıt ise argümanla değil ölçümle
@@ -865,6 +883,8 @@ altında, durmaya gerek yok.
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
+- [ ] **Q-F8-3 — Ozan'ın elinde:** Streamlit Community Cloud'da Deploy (ayarlar gün sonu
+  raporunda). URL gelince V8 (Streamlit Cloud'a uyarlanmış) koşulur ve README'ye eklenir.
 - [x] **Q-F8-2 — kapandı 2026-09-22 (Ozan):** HF PRO yok; demo Streamlit Community Cloud'da,
   hafif demo profiliyle (serbest metin kapalıyken torch / sentence-transformers yüklenmez).
   HF deploy script'i PRO'su olan için kalıyor; README'de "isteğe bağlı: Docker".
