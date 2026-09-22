@@ -258,3 +258,76 @@ def test_a_file_made_under_other_frozen_code_is_refused(
     assert dry_run(generated_dir, tmp_path) == 2
     assert "aaaaaaaaaaaaaaaa" in capsys.readouterr().err
     assert (tmp_path / "dev_A0_r1.jsonl").read_text(encoding="utf-8") == before
+
+
+class CountingStub(FakeLLM):
+    """A provider that answers every question with an abstention and counts its calls."""
+
+    def __init__(self, model: str):
+        super().__init__([], then=run_eval.dry_run_llm().then)
+        self.model = model
+        self.calls = 0
+
+    def check_model(self):
+        return None
+
+    def chat(self, messages, tools, json_mode=False):
+        self.calls += 1
+        return super().chat(messages, tools, json_mode)
+
+
+def run(generated_dir, tmp_path, model: str, *extra) -> int:
+    # The model is part of the cache key, so a model name of its own keeps each test's cache
+    # apart from every other test that writes to the same data copy.
+    return run_eval.main(
+        ["--set", "test", "--config", "A0", "--repeat", "1", "--embedder", "hash",
+         "--data", str(generated_dir), "--limit", "2", "--model", model,
+         "--env-file", str(tmp_path / "no.env"), "--quota-log", str(tmp_path / "quota.json"),
+         *extra]
+    )  # fmt: skip
+
+
+def test_cache_only_never_calls_the_model_and_records_each_miss(
+    generated_dir, tmp_path, monkeypatch
+):
+    # Q-V0-1: replaying answers from the cache must not spend a single request.
+    def no_provider(settings):
+        raise AssertionError("cache-only must not build a provider")
+
+    monkeypatch.setattr(run_eval, "make_llm", no_provider)
+    out = tmp_path / "replay"
+    assert (
+        run(generated_dir, tmp_path, "never-cached-model", "--cache-only", "--out-dir", str(out))
+        == 0
+    )
+    rows = (out / "replay_misses.jsonl").read_text(encoding="utf-8").splitlines()
+    misses = [json.loads(row) for row in rows]
+    assert len(misses) == 2 and all(m["repeat"] == 1 for m in misses)
+    assert not (out / "test_A0_r1.jsonl").exists()
+
+
+def test_cache_only_replays_a_cached_run_exactly(generated_dir, tmp_path, monkeypatch):
+    stub = CountingStub("replayed-model")
+    monkeypatch.setattr(run_eval, "make_llm", lambda settings: stub)
+    first, replay = tmp_path / "first", tmp_path / "replay"
+    assert run(generated_dir, tmp_path, "replayed-model", "--out-dir", str(first)) == 0
+    calls = stub.calls
+    assert (
+        run(generated_dir, tmp_path, "replayed-model", "--cache-only", "--out-dir", str(replay))
+        == 0
+    )
+    assert stub.calls == calls  # nothing reached the model
+
+    def answers(folder):
+        rows = (folder / "test_A0_r1.jsonl").read_text(encoding="utf-8").splitlines()
+        return [json.loads(row)["result"]["answer"] for row in rows]
+
+    assert answers(replay) == answers(first)
+
+
+def test_cache_only_refuses_to_write_into_the_results(generated_dir, tmp_path, capsys):
+    code = run(
+        generated_dir, tmp_path, "any-model", "--cache-only", "--out-dir", str(run_eval.RESULTS)
+    )
+    assert code == 2
+    assert "results" in capsys.readouterr().err

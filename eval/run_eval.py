@@ -20,6 +20,12 @@ The live model is always wrapped as CachedLLM(QuotaGuardedLLM(provider)): repeat
 is free, and the guard throttles to the RPM/TPM limits and stops at the daily limit.
 `--llm fake` runs the whole pipeline with a scripted model that always abstains.
 
+--cache-only (Q-V0-1) answers from the LLM cache and never reaches the network: the first
+request the cache does not hold ends that question as a replay miss, recorded in
+replay_misses.jsonl, and the run goes on with the next one. It proves by measurement, at no
+quota, that today's frozen code still sends exactly the requests an earlier run sent. It
+writes only to an --out-dir outside eval/results.
+
 An answer that ended in llm_error (the provider failed three times) is not written: it is
 an abstention the agent never chose, and on an unanswerable question it would score as a
 correct one. The question stays unanswered and the next run asks it again; three such
@@ -63,6 +69,25 @@ class ProviderDown(Exception):
     """Several questions in a row ended in llm_error: stop and look, do not carry on."""
 
 
+class ReplayMiss(QuotaExhausted):
+    """--cache-only met a request the cache does not hold.
+
+    It is a QuotaExhausted on purpose: with a network budget of zero a miss is the same
+    stop condition, and the agent loop passes that exception through at once instead of
+    retrying it as a failed call.
+    """
+
+
+class CacheOnly:
+    """The provider of a --cache-only run: every request that reaches it is a replay miss."""
+
+    def __init__(self, model: str | None) -> None:
+        self.model = model  # part of the cache key: it must name the model that was cached
+
+    def chat(self, messages, tools, json_mode=False):
+        raise ReplayMiss("the request is not in the cache")
+
+
 def load_set(set_name: str) -> list[dict]:
     path = ROOT / "eval" / f"{set_name}_set.json"
     return json.loads(path.read_text(encoding="utf-8"))["items"]
@@ -91,15 +116,25 @@ def foreign_identities(path: Path, base_line: dict) -> set[tuple]:
     return found - {mine}
 
 
-def answer_all(agent, items: list[dict], *, path: Path, base_line: dict) -> int:
+def answer_all(
+    agent, items: list[dict], *, path: Path, base_line: dict, misses: Path | None = None
+) -> int:
     """Answer and score each question, appending its line before the next one starts.
 
     QuotaExhausted passes through: the question being asked is simply not written, and the
-    next run asks it again.
+    next run asks it again. In a --cache-only run (`misses` given) a replay miss is written
+    there instead and the run goes on.
     """
     answered = failures = 0
     for item in items:
-        result = agent.run(item["question"])
+        try:
+            result = agent.run(item["question"])
+        except ReplayMiss:
+            if misses is None:
+                raise
+            with misses.open("a", encoding="utf-8", newline="\n") as out:
+                out.write(json.dumps({"item_id": item["id"], "repeat": base_line["repeat"]}) + "\n")
+            continue
         if result.stopped_reason == "llm_error":
             failures += 1
             if failures == MAX_LLM_ERRORS_IN_A_ROW:
@@ -155,6 +190,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--env-file", type=Path, default=PROJECT_ROOT / ".env")
     parser.add_argument("--limit", type=int, default=None, help="first N questions only")
     parser.add_argument(
+        "--cache-only", action="store_true",
+        help="answer from the LLM cache only; never call the model (needs --out-dir)",
+    )  # fmt: skip
+    parser.add_argument(
         "--resume", action=argparse.BooleanOptionalAction, default=True,
         help="skip questions already answered (default); --no-resume refuses to touch a file",
     )  # fmt: skip
@@ -169,6 +208,10 @@ def main(argv: list[str] | None = None) -> int:
         # One flag, so a candidate model reaches the client, the run identity and every line.
         settings = settings.model_copy(update={"llm_model": args.model})
     out_dir = args.out_dir or (SCRATCH if dry_run or args.set == "dev" else RESULTS)
+    if args.cache_only and (args.out_dir is None or args.out_dir.resolve() == RESULTS.resolve()):
+        print("refused: --cache-only writes a replay for comparison, never into eval/results; "
+              "give an --out-dir elsewhere", file=sys.stderr)  # fmt: skip
+        return 2
     paths = {r: out_dir / f"{args.set}_{code}_r{r}.jsonl" for r in range(1, args.repeat + 1)}
     if not args.resume:
         taken = [p for p in paths.values() if completed_ids(p)]
@@ -192,8 +235,12 @@ def main(argv: list[str] | None = None) -> int:
                   file=sys.stderr)  # fmt: skip
             return 2
     try:
-        provider = dry_run_llm() if dry_run else make_llm(settings)
-        if not dry_run:
+        if args.cache_only:
+            provider = CacheOnly(settings.llm_model)  # no client, no network, no model check
+        elif dry_run:
+            provider = dry_run_llm()
+        else:
+            provider = make_llm(settings)
             provider.check_model()  # a wrong model name fails here, not on every question
     except (ValueError, ProviderError) as missing:
         print(f"refused: {missing}", file=sys.stderr)
@@ -212,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
     sha = git_sha()
 
     guarded = provider
-    if not dry_run:
+    if not dry_run and not args.cache_only:
         # One guard for the whole run, so its minute window carries across repeats.
         limits = QuotaLimits(
             rpm=settings.llm_rpm_limit,
@@ -235,8 +282,9 @@ def main(argv: list[str] | None = None) -> int:
             "git_sha": sha, "date": date.today().isoformat(),
         }  # fmt: skip
         agent = Agent(llm, registry, prices=prices)
+        misses = out_dir / "replay_misses.jsonl" if args.cache_only else None
         try:
-            answered = answer_all(agent, todo, path=path, base_line=base_line)
+            answered = answer_all(agent, todo, path=path, base_line=base_line, misses=misses)
         except ProviderDown as down:
             print(f"stopped: {down}. The unanswered questions stay open for the next run.",
                   file=sys.stderr)  # fmt: skip
