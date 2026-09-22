@@ -1,0 +1,24 @@
+{
+  "old_hash": "5f0ee29ab437ea65",
+  "frozen_hash": "b4025ab1103ea7c9",
+  "files": {
+    "test_A0_r1.jsonl": {
+      "checked": 77,
+      "identical": 77,
+      "differs": {},
+      "missed": []
+    },
+    "test_A0_r2.jsonl": {
+      "checked": 81,
+      "identical": 81,
+      "differs": {},
+      "missed": []
+    }
+  },
+  "totals": {
+    "checked": 158,
+    "identical": 158,
+    "differs": 0,
+    "missed": 0
+  }
+}
