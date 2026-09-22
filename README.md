@@ -3,7 +3,8 @@
 **A tool-using agent for BI metadata questions that knows when to abstain.**
 
 [![tests](https://github.com/ozandokur/metacompass/actions/workflows/tests.yml/badge.svg)](https://github.com/ozandokur/metacompass/actions/workflows/tests.yml)
-<!-- live demo link: added once the demo is hosted -->
+· [Live demo](https://metacompass.streamlit.app)
+⏳ Asleep after a quiet day? Click "Yes, get this app back up!" and give it about a minute.
 
 All data in this project is synthetic: a fictional car company, *Northwind Motors*, generated
 by code from a fixed seed. The evaluation is running on a free-tier quota; the table below
@@ -106,9 +107,10 @@ designed around, and it is recorded rather than hidden:
 - **665 answers instead of 1,030.** The full system runs three times on the test set and
   every ablation once. Ablation differences are read against the full system's
   repeat-to-repeat spread and the share of questions its repeats disagree about.
-- **The demo** answers 8 prepared questions from a cache, with no model call. It has no
-  model key, because its visitors would spend the daily quota the evaluation needs; to ask
-  your own questions, run it locally with your own key.
+- **The demo** answers 8 prepared questions from a cache, with no model call, on Streamlit
+  Community Cloud's free tier. It has no model key, because its visitors would spend the daily
+  quota the evaluation needs, and so it installs only what the app needs without a model:
+  no torch, no embedding model. To ask your own questions, run it locally with your own key.
 
 ## Run it locally
 

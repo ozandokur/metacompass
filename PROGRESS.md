@@ -475,6 +475,18 @@ altında, durmaya gerek yok.
   kayıt görüntüleyici çalışıyor, serbest metin kutusu yok · ağır paketler ne yüklü ne kurulu ·
   gerçek Streamlit: sağlık **3,0 sn**'de, sayfa hemen · tarayıcıda çizim ve bir hazır soru
   doğrulandı. **PASSED.**
+- [V8, 2026-09-22] **Streamlit Community Cloud: https://metacompass.streamlit.app** (Ozan dağıttı,
+  Python 3.13, secrets boş). Tarayıcıda: sayfa açılıyor (uygulama bir iframe'de, `/~/+/`) ·
+  **8 hazır sorunun 8'i** doğru soruyu ve cevap kartını gösteriyor, her biri 0,37–0,50 sn'de,
+  ajan izi hepsinde var, Unanswerable'da abstain uyarısı çıkıyor · **kayıt görüntüleyici**:
+  `RPT-0068` çipi 1,4 sn'de kaydı açtı (ilk kullanımda veri üretimi dahil olabilir) ·
+  **serbest metin kutusu yok**, "yerelde kendi anahtarınla çalıştır" yönlendirmesi var ·
+  **ilk açılış**: uyanık uygulamada sayfadan uygulamanın çizilmesine 4,0 sn; günün ilk
+  ziyaretinde dış sayfa 13,8 sn'de yüklendi, uygulama ~30 sn içinde çizildi (tam ölçülemedi).
+  **Uyku/uyanma** (Streamlit dokümanı): 12 saat trafik yoksa uyur; ziyaretçi "Yes, get this app
+  back up!" butonuyla uyandırır (herkes uyandırabilir); uyanma süresi belgelenmemiş, uygulama ilk
+  uyuduğunda ölçülecek. Uyanınca `data/` yeniden üretilir (ilk kayıt görüntülemesinde ~2 sn) —
+  tasarım gereği. Tarayıcıda buton etiketleri gizli bölmede geç çiziliyor; DOM'da etiketler yerinde.
 - **Ders (2026-09-22):** Donmuş yola koşum sırasında giren değişikliği (benim eklediğim demo
   rezervi) V0 mekanizması yakaladı. Mekanizma olmasaydı bu fark hiç görülmezdi: kod davranışça
   etkisizdi, testler yeşildi, satırlar sıradan görünüyordu. Kanıt ise argümanla değil ölçümle
@@ -545,20 +557,47 @@ altında, durmaya gerek yok.
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.
 
-## CV maddesi taslağı (spec §17.3; rakamlar yalnızca results.md'den, koşumlar bitince)
+## CV maddesi (son hâline yakın; rakamlar yalnızca results.md'den, koşumlar bitince)
 
-> **MetaCompass — BI Metadata Agent** · [GitHub] [Demo] [Video]
-> *Python, BM25 + dense retrieval (RRF), NetworkX, FastAPI, Streamlit, Docker*
-> - Built a framework-free, six-tool agent that answers ownership, lineage and change-impact
->   questions over a synthetic BI catalog, with deterministic multi-hop ownership resolution
->   and a grounding guard that removes any ID no tool returned.
+> **MetaCompass — BI Metadata Agent** · [GitHub](https://github.com/ozandokur/metacompass) ·
+> [Demo](https://metacompass.streamlit.app)
+> *Python · BM25 + dense retrieval (RRF) · NetworkX · FastAPI · Streamlit · Docker · Gemini API*
+> - Built a framework-free, six-tool LLM agent that answers ownership, lineage and
+>   change-impact questions over a synthetic BI catalog, with deterministic multi-hop ownership
+>   resolution and a grounding guard that strips any ID no tool returned.
 > - Designed a 100-question evaluation with independent gold answers and deliberately
->   unanswerable questions; pre-registered the reading rules, and reported per-category
->   accuracy with bootstrap CIs, abstention precision/recall and leave-one-out ablations
->   {A0 genel doğruluk ± std ve bir ablation bulgusu buraya, results.md'den}.
-> - Ran the whole evaluation on a free-tier LLM quota: chose the model by a pre-registered
->   measurement, fingerprinted the frozen code on every result line, and audited the raw
->   results before any report.
+>   unanswerable questions; pre-registered the reading rules and reported per-category accuracy
+>   with bootstrap CIs, abstention precision/recall and leave-one-out ablations
+>   {A0 genel doğruluk ± std ve bir ablation bulgusu: results.md'den}.
+> - Ran the whole study on a free-tier LLM quota: chose the model by a pre-registered
+>   measurement, fingerprinted the measured code on every result line, and proved a mid-run
+>   infrastructure change harmless by replaying all affected answers from the LLM cache.
+
+## GitHub "About" önerisi (Ozan girecek)
+
+- **Description:** A tool-using LLM agent for BI metadata — ownership, lineage and change
+  impact — that knows when to abstain. Synthetic data, pre-registered evaluation.
+- **Website:** https://metacompass.streamlit.app
+- **Topics (8):** `llm-agent` · `tool-calling` · `hybrid-search` · `data-lineage` ·
+  `metadata-management` · `llm-evaluation` · `streamlit` · `python`
+
+## Demo GIF senaryosu (`assets/demo.gif`, Ozan kaydeder; hedef 15–20 sn, < 5 MB)
+
+Hazırlık: uygulama uyanık ve açık, kenar çubuğu görünür, pencere ~1280×720. Kayıttan önce bir
+kez bir çipe tıkla (uyandıktan sonraki ilk kayıt görüntülemesi veriyi üretir, ~1–2 sn). Kayıt:
+ScreenToGif veya LICEcap, 10–12 fps, yalnızca uygulama alanı.
+
+| zaman | yap | bekle | ekranda |
+|---|---|---|---|
+| 0 s | başla, boş ana sayfa | 1 s | başlık, "Synthetic data", kenar çubuğunda 8 soru |
+| 1 s | **Impact**'e tıkla | 3 s | broadcast cevabı: 60 rapor, departman başkanları çip olarak |
+| 4 s | **Agent trace** başlığını aç | 3 s | `search_assets` → `impact_analysis` adımları (gerekirse biraz aşağı kaydır) |
+| 7 s | cevap çiplerinden **EMP-031**'e tıkla | 3 s | "Record EMP-031": Head of Aftersales kaydı |
+| 10 s | **Unanswerable**'a tıkla | 4 s | maaş sorusu, sarı "Abstained" uyarısı |
+| ~15 s | bitir | | |
+
+Dosya `assets/demo.gif` olarak konunca README'deki yer tutucu `![demo](assets/demo.gif)` olur;
+`tests/test_readme.py` 5 MB sınırını ve bağlantıyı kontrol ediyor.
 
 ## Kararlar ve gerekçeleri
 - 2026-09-20 · **Ozan: plan küçültme (c) kapalı, ablation planı aynen duruyor.** Kota gerçeği
