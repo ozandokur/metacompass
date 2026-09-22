@@ -1,9 +1,9 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 (test koşumu) **V0 kararını bekliyor: Q-V0-1** · Faz 7 tamam · Faz 8: yerel kısım
-ve V1–V7 tamam, Space **Q-F8-2**'yi bekliyor (Docker Space ücretli) · Son güncelleme: 2026-09-21 ·
-Kapı: 1a9ea81 `--slow` geçti (573 test, kapsam %99).
+Aktif faz: 6 (test koşumu) — Q-V0-1 önbellekten yeniden oynatmayla kapandı, A0 devam ediyor ·
+Faz 7 tamam · Faz 8: V1–V7 tamam, demo Streamlit Community Cloud'a (Q-F8-2) hazırlanıyor ·
+Son güncelleme: 2026-09-22.
 
 ## Dondurulmuş değerler
 **DONDURULDU 2026-09-20, test koşumundan önce.** Test koşumu başladıktan sonra biri değişirse
@@ -439,6 +439,26 @@ altında, durmaya gerek yok.
   yazıldı (`frozen_tree_hash_backfilled: true`): r1'de 23 satır `b4025ab…` + 77 satır
   `5f0ee29…`, r2'de 81 satır `5f0ee29…`. Runner r1'i reddediyor (denendi, istek harcanmadı) →
   **Q-V0-1.**
+- [Q-V0-1, 2026-09-22] **Önbellekten yeniden oynatma ile eşdeğerlik kanıtı (Ozan'ın (c) kararı).**
+  `run_eval.py --cache-only` (128acfb): sağlayıcı yok, ağ yok; önbellekte olmayan ilk istek o
+  soruyu "replay_miss" yapar ve koşum sürer (miss, `QuotaExhausted` alt sınıfı: donmuş döngü onu
+  yeniden denemeden geçirir; döngüye dokunulmadı). Donmuş ağaçla (`b4025ab…`) A0 r1 ve r2 aynı
+  tuzlarla (repeat-1/2) önbellekten yeniden oynatıldı, **kota harcanmadı**. Karşılaştırma
+  (`eval/verify_replay.py`; cevap metni, `answer_ids`, `evidence_ids`, `abstained`,
+  `stopped_reason`, her tool çağrısı ve argümanları, çağrı sayısı, token sayıları; süreler ve
+  tarihler hariç): **158 satırın 158'i birebir aynı, 0 fark, 0 ıskalama.** Kontrol grubu:
+  dondurma koduyla üretilmiş 23 satır da birebir aynı. Satırlar orijinal hâliyle kaldı (süreler
+  dahil; yeniden oynatma süresi p50/p95'e girmez), yalnızca `frozen_tree_hash` → `b4025ab…`,
+  eklenen alanlar `equivalence: cache_replay_verified` ve `frozen_tree_hash_produced: 5f0ee29…`
+  (köken kaybolmasın diye; Ozan'ın listesine ek). Sayılar
+  `eval/results/replay_verification.json`'da; results.md "Threats to validity"deki satır bu
+  dosyadan üretiliyor. **V6 yeniden: PASSED** (181 cevap). Koşum kaldığı yerden devam ediyor.
+- **Ders (2026-09-22):** Donmuş yola koşum sırasında giren değişikliği (benim eklediğim demo
+  rezervi) V0 mekanizması yakaladı. Mekanizma olmasaydı bu fark hiç görülmezdi: kod davranışça
+  etkisizdi, testler yeşildi, satırlar sıradan görünüyordu. Kanıt ise argümanla değil ölçümle
+  geldi: önbellek anahtarı isteğin tamamını içerdiği için yeniden oynatma, "aynı kod aynı
+  istekleri üretiyor mu" sorusunu sıfır kotayla ve bire bir cevaplıyor. Kural: test koşumu
+  bitene kadar donmuş yola hiçbir değişiklik yok; altyapı ihtiyacı varsa donmuş yolun dışına.
 - [V1, 2026-09-21] `check_all --slow`: yeşil. Son ağaçta (1a9ea81): **573 test** (yalnız `live`
   hariç), kapsam **%99** (1.715 satırın 22'si), 251 sn.
 - [V4, 2026-09-21] Determinizm: sıfırdan iki üretim bayt bayt aynı; **eval'in kullandığı
@@ -845,24 +865,11 @@ altında, durmaya gerek yok.
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
 ## Açık sorular (Ozan'ın cevabı bekleniyor)
-- [ ] **Q-F8-2 — PARA / DEPLOY:** Docker Space ücretsiz değil. Seçenekler: **(a)** HF PRO, ayda
-  $9 (Dockerfile ve `deploy_space.py` hazır, hemen yayınlanır) · **(b)** Streamlit Community
-  Cloud: ücretsiz, herkese açık GitHub reposundan aynı Streamlit uygulaması; sen GitHub'la giriş
-  yapıp repoyu bağlarsın; 2,7 GB'a kadar bellek, 12 saat trafik yoksa uyur; uygulamaya "veri yoksa
-  ilk açılışta üret" eklemek gerekir (küçük değişiklik) · **(c)** HF *static* Space: ücretsiz,
-  soğuk başlangıç yok; 8 hazır cevap + iz + kayıt görüntüleyici tek bir statik HTML sayfası
-  olarak (kayıtlar önceden JSON'a dökülür). Yeni bir ön yüz demek, kapsam kararı. Öneri: (b) —
-  spec'in Streamlit uygulaması değişmeden, sıfır para.
-- [ ] **Q-V0-1 — EVAL'İ DURDURUYOR:** A0'ın 158 satırı (r1'in 77'si, r2'nin 81'i) b1eed88
-  koduyla (`5f0ee29…`) üretildi; donmuş commit `b4025ab…`. Fark yalnızca `reserve=0` iken etkisiz
-  olan demo rezervi (V0 kaydında ayrıntı). Seçenekler: **(a)** 158 satırı eşdeğer kabul et —
-  `runinfo`'ya gerekçesiyle tek bir açık eşdeğerlik kaydı (`5f0ee29… ≡ b4025ab…`), runner ve
-  denetim bunu tanır, results.md "Threats"e bir satır; **(b)** 158 satırı sil ve yeniden koş
-  (~560 istek ≈ 1,1 gün; ayrıca determinizm olmadığı için aynı cevaplar gelmeyecek). Öneri: (a).
-  Karar gelene kadar runner r1'i reddediyor (kota harcanmıyor).
-- [ ] **Q-F8-1 — engelleyici değil:** Docker Desktop açılırsa yerel `docker build`/`run` ve imaj
-  boyutu ölçümü yapılır. Temiz venv testi için PyPI indirmesi (torch CPU dahil, yüzlerce MB)
-  onayı gerekiyor.
+- [x] **Q-F8-2 — kapandı 2026-09-22 (Ozan):** HF PRO yok; demo Streamlit Community Cloud'da,
+  hafif demo profiliyle (serbest metin kapalıyken torch / sentence-transformers yüklenmez).
+  HF deploy script'i PRO'su olan için kalıyor; README'de "isteğe bağlı: Docker".
+- [x] **Q-V0-1 — kapandı 2026-09-22 (Ozan: önbellekten yeniden oynatma):** 158/158 birebir.
+- [x] **Q-F8-1 — kapandı 2026-09-21:** Docker ve PyPI indirmesi onaylandı; V2, V3, V5 yapıldı.
 - [x] **Q-QUOTA-1 — kapandı 2026-09-20 (Ozan):** plan küçültme kapalı; Dal B uygulandı.
 - [x] **Q-ENV-1 — kapandı:** `.env` seçilen modele ve RPD 500'e güncellendi; guard gerçek
   limiti 429'dan öğreniyor.

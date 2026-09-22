@@ -498,6 +498,21 @@ def readme_differences(readme: Path, snippet: list[str]) -> list[str]:
     return [line for line in [*block, *snippet] if (line in block) != (line in snippet)]
 
 
+def replay_note(verification: dict) -> list[str]:
+    """The threat-to-validity line on the mid-run infrastructure change (Q-V0-1), with the
+    counts of eval/results/replay_verification.json."""
+    t = verification["totals"]
+    return [
+        "- **Infrastructure changed during the test run.** A demo quota reserve was added to "
+        "the quota guard and removed again while the full system was running. The frozen tree "
+        f"hash on every line caught it. The {t['checked']} lines written in between were "
+        "replayed from the LLM cache with the frozen code: "
+        f"{t['identical']} matched exactly on answer, IDs, abstention, stop reason, every tool "
+        f"call and token counts; {t['differs']} differed and {t['missed']} missed the cache, and "
+        "those were answered again. The kept lines carry equivalence: cache_replay_verified."
+    ]
+
+
 def _test_set_notes(items: list[dict]) -> list[str]:
     """Limits of the question set itself, counted from the set file."""
     l3 = Counter(item["gold_spec"]["depth"] for item in items if item["category"] == "L3")
@@ -539,6 +554,7 @@ def render_results(
     tokens: dict | None = None,
     model_choice: dict | None = None,
     iterations: dict | None = None,
+    replay: dict | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -603,6 +619,7 @@ def render_results(
     section("Operational", agent_report.operational_section(full, quota) if has_full else None)
     section("Error analysis", agent_report.error_analysis(full, items) if has_full else None)
     notes = _test_set_notes(items) if items and set_name == "test" else []
+    notes += replay_note(replay) if replay else []
     section("Threats to validity", [*agent_report.THREATS, *notes])
     return "\n".join(lines)
 
@@ -653,6 +670,8 @@ def main(argv: list[str] | None = None) -> int:
     tokens = json.loads(tokens_path.read_text(encoding="utf-8")) if tokens_path.is_file() else None
     choice_path = results / "model_choice.json"
     choice = json.loads(choice_path.read_text(encoding="utf-8")) if choice_path.is_file() else None
+    replay_path = results / "replay_verification.json"
+    replay = json.loads(replay_path.read_text(encoding="utf-8")) if replay_path.is_file() else None
     iterations_path = results / "prompt_iterations.json"
     iterations = (
         json.loads(iterations_path.read_text(encoding="utf-8"))
@@ -670,6 +689,7 @@ def main(argv: list[str] | None = None) -> int:
         tokens,
         choice,
         iterations,
+        replay,
     )
     if args.check_readme:
         differences = readme_differences(args.readme, readme_snippet(runs, items))

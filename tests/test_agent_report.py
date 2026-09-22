@@ -445,3 +445,12 @@ def test_the_readme_block_is_replaced_in_place(tmp_path):
     report.write_readme_snippet(readme, ["| new |"])
     text = readme.read_text(encoding="utf-8")
     assert "old" not in text and "| new |" in text and text.endswith("kept\n")
+
+
+def test_threats_state_the_infrastructure_change_and_its_replay_proof():
+    verification = {"totals": {"checked": 158, "identical": 158, "differs": 0, "missed": 0}}
+    text = "\n".join(report.replay_note(verification))
+    assert "158" in text and "cache" in text and "frozen" in text
+    page = report.render_results(None, replay=verification)
+    threats = page.split("## Threats to validity")[1]
+    assert "158" in threats
