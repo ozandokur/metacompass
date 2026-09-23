@@ -600,6 +600,11 @@ Dosya `assets/demo.gif` olarak konunca README'deki yer tutucu `![demo](assets/de
 `tests/test_readme.py` 5 MB sınırını ve bağlantıyı kontrol ediyor.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-23 · **Ozan: video yok (şimdilik).** README ve CV maddesinde video linki/yeri
+  bulunmuyordu, spec'ten çıkarıldı (Faz 9 görev 4, §16 şablonu, faz tablosu, §19 listesi).
+  Yerine: koşumlar bitince README'nin son hâli ve rakamlı CV maddesi hazırlanacak, sonra DUR.
+  GIF'i Ozan koyacak; `assets/demo.gif` eklenince README'deki yer tutucu bağlantıya dönüşür ve
+  `tests/test_readme.py` 5 MB sınırını kontrol eder.
 - 2026-09-20 · **Ozan: plan küçültme (c) kapalı, ablation planı aynen duruyor.** Kota gerçeği
   Lite olmayan Flash'ta RPD 20 olduğu için **Dal B**: model seçimi ölçülerek yapılır, kural
   önce yazılır, Lite yalnızca birincil ölçütte açıkça öndeyse seçilir. Ayrıca: kota limitleri
