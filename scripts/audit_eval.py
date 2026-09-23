@@ -21,6 +21,9 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
 
+# The Windows console is not UTF-8 here; the report holds ≥, ± and ·.
+sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "eval"))
 from configs import CATEGORIES, REPEATS  # noqa: E402
