@@ -584,6 +584,13 @@ altında, durmaya gerek yok.
   Tek geçici hata: r2 L4-001'de bir model çağrısı 2,8 sn sonra `OSError(22)` ile düştü, döngünün
   yeniden denemesi ikinci seferde geçti; iz bunu `error: OSError` adımı olarak gösteriyor.
   Tahmin: A0 yarın biter (19 + 100 = 119 cevap ≈ 420 istek), sonra A1.
+  Durum 2026-09-23 sonu: A0 300/300 tamam. Paylaşılan önbellek tuzuyla üretilmiş A1/A2/A4
+  satırları silindikten sonra A1 yeni tuzla baştan koşuldu: **`test_A1_r1` 97/100**, gün
+  kotayla kapandı (320 istek, 810k token; guard'ın saydığı istekler). Gün içinde sağlayıcı bir
+  kez de "aşırı yüklü" dönemine girdi, ilk deneme kota harcamadan durdu, 600 sn sonraki ikinci
+  deneme geçti. Kalan plan: A1 3 · A2 100 · A4 100 · A3 40 · A5 25. Denetim (V6) yeşil,
+  `test_A1_r1` tek kimlik taşıyor, `frozen_tree_hash` hâlâ `b4025ab1103ea7c9` (bugünkü
+  değişiklikler app/scripts/tests/README'de, dondurulmuş yola dokunmadı).
 - Disiplin: test satırlarının puanlarına koşum bitene kadar bakılmıyor, sistemde hiçbir değişiklik
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.
