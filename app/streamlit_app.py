@@ -15,12 +15,17 @@ graph for the record viewer, generating the data on first use, and never imports
 the retrievers, the embedding model or torch. That is what lets it run on a free host that
 installs app/requirements.txt only. The heavy parts load when a free-text question needs them.
 
+A URL can name what to show: ?q=impact opens that prepared answer, &trace=open unfolds its
+agent trace, &record=EMP-031 opens the record viewer. It makes a state shareable, and it is
+how the demo GIF's frames are taken without clicking through the app.
+
 Three environment variables exist for the smoke test: METACOMPASS_DEMO_CACHE (the answers
 file), METACOMPASS_DATA_DIR and METACOMPASS_EMBEDDER ("hash" skips loading the model).
 """
 
 import json
 import os
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -49,6 +54,25 @@ SESSION_LIMIT = 5  # free-text questions per browser session (spec §10.2)
 TRACE_OUTPUT_CHARS = 1500  # of each tool output shown in the trace
 REPO_URL = "https://github.com/ozandokur/metacompass"
 RESULTS_URL = f"{REPO_URL}/blob/main/eval/results.md"
+
+
+def slug(label: str) -> str:
+    """The label of a prepared question as it appears in a URL."""
+    return re.sub(r"[^a-z0-9]+", "-", label.lower()).strip("-")
+
+
+def deep_link_state(params: dict, labels: list[str]) -> dict:
+    """What the URL asks the app to show, as session state. Unknown values are ignored."""
+    state: dict = {}
+    wanted = params.get("q")
+    for number, label in enumerate(labels):
+        if wanted and slug(label) == wanted:
+            state["shown"] = {"kind": "prepared", "number": number}
+    if params.get("record"):
+        state["record"] = params["record"]
+    if params.get("trace") == "open":
+        state["trace_open"] = True
+    return state
 
 
 @st.cache_data
@@ -116,7 +140,7 @@ def show(question: str, result: dict, note: str, view: str) -> None:
     replayed = view.startswith("prepared")
     timing = "" if replayed else f"{result['latency_ms']} ms · "
     st.caption(f"{timing}{result['tool_calls']} tool calls · {tokens} tokens · {note}")
-    with st.expander("Agent trace", expanded=False):
+    with st.expander("Agent trace", expanded=st.session_state.get("trace_open", False)):
         for number, step in enumerate(result["steps"], start=1):
             if step["kind"] == "tool":
                 st.markdown(f"**{number}. {step['name']}** · {step['duration_ms']} ms")
@@ -207,6 +231,11 @@ def about() -> None:
 
 def main() -> None:
     st.set_page_config(page_title="MetaCompass", layout="wide")
+    if not st.session_state.get("url_read"):
+        # Only on the first run of a session: later clicks must not snap back to the URL.
+        st.session_state["url_read"] = True
+        labels = [entry["label"] for entry in prepared()["questions"]]
+        st.session_state.update(deep_link_state(dict(st.query_params), labels))
     st.markdown("## MetaCompass · BI metadata agent")
     st.markdown("`Synthetic data` — fictional company *Northwind Motors*; no real data anywhere.")
     sidebar()
