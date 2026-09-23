@@ -565,6 +565,12 @@ altında, durmaya gerek yok.
   cevabı *paylaşması* ile her birinin kendi cevabını *çekmesi* farklı şeylerdir. Kota tasarrufu
   ile bağımsız örnekleme çatıştığında ölçüm kazanır.
 
+- [Faz 9, 2026-09-23] **Demo GIF'i ekran kaydı olmadan üretildi.** Kareler barındırılan demodan
+  script'le alınıyor (`scripts/capture_frames.py`), GIF'i Pillow kuruyor
+  (`scripts/build_demo_gif.py`, 7 test). Ayrıntı ve iki tıkanmanın çözümü: "Demo GIF" bölümü.
+  Sığan ayar: tam genişlik 1280×720, 3 ara kare, 256 renk → **0,67 MB** (sınır 5 MB).
+  Yan ürün: uygulamada derin bağlantılar (`?q=`, `&trace=open`, `&record=`), b646c06.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
@@ -606,25 +612,54 @@ altında, durmaya gerek yok.
 - **Topics (8):** `llm-agent` · `tool-calling` · `hybrid-search` · `data-lineage` ·
   `metadata-management` · `llm-evaluation` · `streamlit` · `python`
 
-## Demo GIF senaryosu (`assets/demo.gif`, Ozan kaydeder; hedef 15–20 sn, < 5 MB)
+## Demo GIF (`assets/demo.gif`) — üretildi, 2026-09-23
 
-Hazırlık: uygulama uyanık ve açık, kenar çubuğu görünür, pencere ~1280×720. Kayıttan önce bir
-kez bir çipe tıkla (uyandıktan sonraki ilk kayıt görüntülemesi veriyi üretir, ~1–2 sn). Kayıt:
-ScreenToGif veya LICEcap, 10–12 fps, yalnızca uygulama alanı.
+Ekran kaydı yok: kareler `scripts/capture_frames.py` ile barındırılan demodan alınıyor,
+`scripts/build_demo_gif.py` (Pillow) bunları GIF'e çeviriyor. İkisi de yeniden çalıştırılabilir.
 
-| zaman | yap | bekle | ekranda |
-|---|---|---|---|
-| 0 s | başla, boş ana sayfa | 1 s | başlık, "Synthetic data", kenar çubuğunda 8 soru |
-| 1 s | **Impact**'e tıkla | 3 s | broadcast cevabı: 60 rapor, departman başkanları çip olarak |
-| 4 s | **Agent trace** başlığını aç | 3 s | `search_assets` → `impact_analysis` adımları (gerekirse biraz aşağı kaydır) |
-| 7 s | cevap çiplerinden **EMP-031**'e tıkla | 3 s | "Record EMP-031": Head of Aftersales kaydı |
-| 10 s | **Unanswerable**'a tıkla | 4 s | maaş sorusu, sarı "Abstained" uyarısı |
-| ~15 s | bitir | | |
+**Kareler** (`assets/frames/NN_ad.png`, hepsi 1280×720, 60–77 KB):
 
-Dosya `assets/demo.gif` olarak konunca README'deki yer tutucu `![demo](assets/demo.gif)` olur;
-`tests/test_readme.py` 5 MB sınırını ve bağlantıyı kontrol ediyor.
+| kare | adres | karede görünmesi gereken |
+|---|---|---|
+| 01_start | `/` | boş ana sayfa, kenar çubuğunda 8 hazır soru |
+| 02_impact | `?q=impact` | "60 reports", Answer çiplerinde başkanlar (EMP-031 dahil) |
+| 03_trace | `?q=impact&trace=open` | Agent trace açık: `search_assets` → `impact_analysis` |
+| 04_record | `?q=impact&record=EMP-031` | Record EMP-031, "Head of Aftersales" |
+| 05_abstain | `?q=unanswerable` | sarı "Abstained: the metadata does not hold this answer." |
+
+Her kare için script, o karenin göstermesi gereken metin sayfada belirene kadar bekliyor
+(`document.body.innerText`), sonra ilgili bölümü kadraja kaydırıyor. Böylece "etiketler geç
+çizilmiş" kare üretmiyor; metin gelmezse hata veriyor.
+
+**İki tıkanma ve çözümü.** (1) Baş bölgesiz Edge'in `--screenshot`'ı Streamlit'i yarım
+çiziyor, çünkü sayfa websocket üzerinden doluyor; çözüm tarayıcıyı DevTools protokolü
+üzerinden sürmek (websocket istemcisi `websockets`, zaten pinli; tornado artık Streamlit
+bağımlılığı değil). (2) Streamlit Community Cloud asıl uygulamayı `/~/+/` adresindeki bir
+iframe'e koyuyor; dış kabuğun `body`'si boş. Script iç adresi kullanıyor: hem metin okunuyor
+hem de kareler Cloud çubuğu ve rozeti olmadan yalnızca uygulamayı gösteriyor.
+
+**Kareleri elde etmek için uygulamaya derin bağlantı eklendi** (`?q=`, `&trace=open`,
+`&record=`; b646c06). Yan faydası: bir cevabın durumu paylaşılabilir hâle geldi. URL oturumda
+bir kez okunuyor, sonraki tıklamalar URL'ye geri sıçramıyor.
+
+**GIF ayarı.** Merdiven: tam genişlik → 1100 → 960 → daha az ara kare → daha küçük palet.
+**En üst basamak sığdı: tam genişlik (1280×720), gap başına 3 ara kare, 256 renk → 0,67 MB**
+(sınır 5 MB). Süreler 1200 / 2500 / 2500 / 2500 / 3000 ms, ara kareler 80 ms, toplam 12,66 sn,
+17 kare, `loop=0`, `optimize=True`. Palet tek ve ortak (kare başına palet renk titremesi
+yapardı), dither kapalı: düz arayüz görüntülerinde hem yanlış görünüyor hem de GIF'in
+sıkıştırdığı düz alanları bozduğu için dosyayı büyütüyor.
+
+Testler (`tests/test_build_demo_gif.py`, 7 test): kareler yerinde ve sırada · **farklı boyutlu
+kare `FrameSizeMismatch` ile reddediliyor, sessizce yeniden boyutlandırılmıyor** · zaman
+çizelgesi her kareyi kendi süresince tutuyor · ara kare sayısı ayarı çizelgeyi kısaltıyor ·
+üretilen dosya GIF, sonsuz döngü, sınırın altında · hiçbir basamak sığmazsa `TooBig`.
 
 ## Kararlar ve gerekçeleri
+- 2026-09-23 · **Ozan: GIF'i ekran kaydıyla değil, alınan ekran görüntülerinden üret.** Beş
+  durum, sabit 1280×720, hepsi aynı boyutta; boyut farkında script hata versin, sessizce
+  yeniden boyutlandırmasın. Gerekçe (benim okumam): ekran kaydı her tekrarda başka çıkar ve
+  elle düzeltilir; kare + script yeniden üretilebilir ve tek kare değiştirilebilir. Uygulama
+  tarafındaki bedeli derin bağlantılar oldu — tıklama zinciri yerine adres.
 - 2026-09-23 · **Ozan: video yok (şimdilik).** README ve CV maddesinde video linki/yeri
   bulunmuyordu, spec'ten çıkarıldı (Faz 9 görev 4, §16 şablonu, faz tablosu, §19 listesi).
   Yerine: koşumlar bitince README'nin son hâli ve rakamlı CV maddesi hazırlanacak, sonra DUR.

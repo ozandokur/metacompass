@@ -10,7 +10,11 @@ All data in this project is synthetic: a fictional car company, *Northwind Motor
 by code from a fixed seed. The evaluation is running on a free-tier quota; the table below
 fills in as the runs finish.
 
-<!-- demo GIF: assets/demo.gif, recorded by hand -->
+![demo](assets/demo.gif)
+
+*Five states of the hosted demo: an impact question answered with the reports and the
+people to notify, the agent trace behind it, a record opened from a chip, and a question
+the agent refuses to answer.*
 
 ## Results (100-question test set, synthetic data)
 
