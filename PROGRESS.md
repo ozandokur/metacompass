@@ -549,6 +549,22 @@ altında, durmaya gerek yok.
   günlük koşum sarmalayıcısı 503'te günü bırakmak yerine 10 dakikada bir yeniden deniyor.
   Kota kaydında yeni gözlenen limit: `GenerateRequestsPerMinutePerProjectPerModel-FreeTier` = 15.
 
+- [Faz 6, 2026-09-23] **Ablation'lar tam sistemin önbelleğinden cevap alıyordu; düzeltildi ve
+  etkilenen satırlar silindi.** Önbellek tuzu yalnızca tekrarı içeriyordu (`repeat-1`), yani A0 r1,
+  A1 r1 ve A2 r1 aynı tuzu paylaşıyordu. A1 yalnızca retrieval modunu değiştirdiği için ilk isteği
+  A0'ınkiyle birebir aynı; tool çıktıları da aynı çıktığında bütün konuşma önbellekten geliyordu.
+  **Ölçüm:** A1'in 63 cevabının **49'unda tool izi A0 r1 ile birebir aynı**, 20'sinde cevap metni de
+  aynı; bazı cevaplar 42–140 ms sürmüş (ağ yok). Üstelik bu eşitsizdi: A3/A4/A5 farklı prompt veya
+  tool listesi kullandığı için paylaşamıyordu. Karar (puanlara bakmadan, yapısal gerekçeyle):
+  `cache_salt` artık konfigürasyonu da içeriyor (`A1-repeat-1`), her konfigürasyon kendi cevabını
+  modelden alıyor; testle sabitlendi (9a1a84e). Paylaşılan tuzla üretilmiş satırlar silindi: A1 65,
+  A2 1, A4 1. A0'ın 300 satırı etkilenmedi: tekrarların tuzları zaten ayrıydı ve A0 kaynak taraftı
+  (r1↔r2 karşılaştırması da ayrı önbellek dosyaları ve gerçek gecikmelerle doğrulanmıştı).
+  Maliyet: A1 ve A2 yeniden koşulacak (~250 istek), günün kotasından karşılanıyor.
+  **Ders:** Önbellek anahtarı "aynı girdi" demektir; ama ölçümde iki koşumun aynı girdiden aynı
+  cevabı *paylaşması* ile her birinin kendi cevabını *çekmesi* farklı şeylerdir. Kota tasarrufu
+  ile bağımsız örnekleme çatıştığında ölçüm kazanır.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
