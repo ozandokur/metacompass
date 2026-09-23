@@ -540,6 +540,15 @@ altında, durmaya gerek yok.
   yalnızca `report.py --readme-snippet` yazar, `--check-readme` (V9) elle değiştirilmiş sayıyı
   yakalar. Koşumlar bitince dolacak.
 
+- [Faz 6, 2026-09-23] **Sağlayıcı aşırı yüklü (503), kota değil.** Günün ilk koşumu hiç cevap
+  üretemeden durdu: "still rate limited after 5 retries". Tek ham istekle bakıldı: HTTP **503**,
+  "This model is currently experiencing high demand." Yani günün 500 isteği el değmemiş; guard
+  503'ü geçici kota gibi ele alıp 1-2-4-8-16 sn geri çekiliyor ve 5 denemede pes ediyor
+  (`quota.py` donmuş, koşum bitene kadar dokunulmuyor). İki düzeltme donmuş yolun dışında:
+  runner artık "kota doldu" ile "sağlayıcı reddetti"yi ayrı yazıyor (`stop_message`, testli) ve
+  günlük koşum sarmalayıcısı 503'te günü bırakmak yerine 10 dakikada bir yeniden deniyor.
+  Kota kaydında yeni gözlenen limit: `GenerateRequestsPerMinutePerProjectPerModel-FreeTier` = 15.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.

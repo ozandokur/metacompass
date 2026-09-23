@@ -155,6 +155,25 @@ def answer_all(
     return answered
 
 
+def stop_message(stop: Exception, left: int, repeat: int) -> str:
+    """What to print when the guard stops a run, told apart by why it stopped.
+
+    The guard raises QuotaExhausted for the day's limit and for a 429 or 503 that never
+    clears. Only the first means the day is spent; calling an overloaded model a spent quota
+    would hide the real reason and waste the rest of the day.
+    """
+    rest = f"{left} questions left in repeat {repeat}."
+    if "used up" in str(stop):
+        return (
+            f"stopped on the free-tier quota ({stop}); {rest} Run the same command again "
+            "after the reset (midnight Pacific)."
+        )
+    return (
+        f"stopped: the provider kept refusing ({stop}); {rest} The day's quota is untouched; "
+        "run the same command again when the model is not overloaded."
+    )
+
+
 def cache_salt(set_name: str, repeat: int) -> str:
     """What separates cached answers between runs (CachedLLM.key covers it).
 
@@ -291,8 +310,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         except (QuotaExhausted, RateLimited) as stop:
             left = len(todo) - (len(completed_ids(path)) - len(done))
-            print(f"stopped on the free-tier quota ({stop}); {left} questions left in repeat "
-                  f"{repeat}. Run the same command again after the reset (midnight Pacific).")  # fmt: skip
+            print(stop_message(stop, left, repeat))
             return 0
         print(f"repeat {repeat}: answered {answered}")
     return 0

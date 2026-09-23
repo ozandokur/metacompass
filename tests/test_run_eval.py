@@ -331,3 +331,23 @@ def test_cache_only_refuses_to_write_into_the_results(generated_dir, tmp_path, c
     )
     assert code == 2
     assert "results" in capsys.readouterr().err
+
+
+def test_a_provider_that_keeps_refusing_is_not_reported_as_the_daily_quota(tmp_path, capsys):
+    # The guard raises QuotaExhausted both when the day is used up and when a 503 or a 429
+    # never clears. Only the first means the day is gone; saying so of the second would hide
+    # an overloaded model behind a spent quota.
+    class Refusing:
+        def run(self, question):
+            raise QuotaExhausted("still rate limited after 5 retries")
+
+    lines = items(1)
+    path = tmp_path / "test_A0_r1.jsonl"
+    with pytest.raises(QuotaExhausted):
+        run_eval.answer_all(Refusing(), lines, path=path, base_line={"repeat": 1})
+    assert run_eval.stop_message(QuotaExhausted("daily quota X used up"), 5, 1).startswith(
+        "stopped on the free-tier quota"
+    )
+    other = run_eval.stop_message(QuotaExhausted("still rate limited after 5 retries"), 5, 1)
+    assert "quota" not in other.split(";")[0]
+    assert "refus" in other or "overload" in other
