@@ -174,15 +174,17 @@ def stop_message(stop: Exception, left: int, repeat: int) -> str:
     )
 
 
-def cache_salt(set_name: str, repeat: int) -> str:
+def cache_salt(set_name: str, repeat: int, config: str) -> str:
     """What separates cached answers between runs (CachedLLM.key covers it).
 
-    The three test repeats exist to measure run-to-run variance, so each one must ask the
-    model again: sharing a cache would return repeat 1's answers and make every standard
-    deviation 0.00. Dev iterations share one cache on purpose, so re-running a dev question
-    costs no quota.
+    Every test run answers for itself: each repeat, and each configuration inside a repeat.
+    Repeats must, or the run-to-run spread would be 0.00. Configurations must too: A1 and A2
+    change only the retrieval mode, so their first request is the same as the full system's,
+    and a shared cache handed them its answer instead of asking the model again (measured on
+    2026-09-23: 49 of 63 A1 answers had A0's exact tool trace). Dev iterations share one cache
+    on purpose, so re-running a dev question costs no quota.
     """
-    return "dev" if set_name == "dev" else f"repeat-{repeat}"
+    return "dev" if set_name == "dev" else f"{config}-repeat-{repeat}"
 
 
 def dry_run_llm() -> FakeLLM:
@@ -294,7 +296,9 @@ def main(argv: list[str] | None = None) -> int:
         llm = guarded
         if not dry_run:
             llm = CachedLLM(
-                guarded, args.data / "cache" / "llm", cache_salt=cache_salt(args.set, repeat)
+                guarded,
+                args.data / "cache" / "llm",
+                cache_salt=cache_salt(args.set, repeat, code),
             )
         base_line = {
             "set": args.set, "config": code, "repeat": repeat, **identity,

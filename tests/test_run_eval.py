@@ -235,9 +235,12 @@ def test_each_repeat_gets_its_own_cache_so_the_spread_is_real(generated_dir, tmp
     )  # fmt: skip
     assert code == 0
     assert len(calls) == 2  # one question, two repeats, two calls: no cache hit across repeats
-    assert run_eval.cache_salt("test", 1) != run_eval.cache_salt("test", 2)
+    assert run_eval.cache_salt("test", 1, "A0") != run_eval.cache_salt("test", 2, "A0")
+    # Nor do two configurations of one repeat: an ablation whose first request happens to
+    # match the full system's would otherwise replay its answer instead of asking again.
+    assert run_eval.cache_salt("test", 1, "A0") != run_eval.cache_salt("test", 1, "A1")
     # Dev iterations deliberately share one cache: re-running a dev question is free.
-    assert run_eval.cache_salt("dev", 1) == run_eval.cache_salt("dev", 2)
+    assert run_eval.cache_salt("dev", 1, "A0") == run_eval.cache_salt("dev", 2, "A0")
 
 
 def test_every_line_carries_the_frozen_tree_hash(generated_dir, tmp_path):
@@ -351,3 +354,20 @@ def test_a_provider_that_keeps_refusing_is_not_reported_as_the_daily_quota(tmp_p
     other = run_eval.stop_message(QuotaExhausted("still rate limited after 5 retries"), 5, 1)
     assert "quota" not in other.split(";")[0]
     assert "refus" in other or "overload" in other
+
+
+def test_an_ablation_does_not_replay_the_full_systems_cached_answers(
+    generated_dir, tmp_path, monkeypatch
+):
+    # A1 only changes the retrieval mode, so its first request is the same as A0's. With a
+    # shared cache it would get A0's answer back; each configuration must ask for its own.
+    stub = CountingStub("shared-cache-model")
+    monkeypatch.setattr(run_eval, "make_llm", lambda settings: stub)
+    common = ["--set", "test", "--repeat", "1", "--embedder", "hash", "--data", str(generated_dir),
+              "--limit", "2", "--model", "shared-cache-model",
+              "--env-file", str(tmp_path / "no.env"), "--quota-log", str(tmp_path / "quota.json")]  # fmt: skip
+    assert run_eval.main([*common, "--config", "A0", "--out-dir", str(tmp_path / "a0")]) == 0
+    after_full = stub.calls
+    assert after_full > 0
+    assert run_eval.main([*common, "--config", "A1", "--out-dir", str(tmp_path / "a1")]) == 0
+    assert stub.calls > after_full  # the ablation asked the model itself
