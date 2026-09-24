@@ -571,6 +571,33 @@ altında, durmaya gerek yok.
   Sığan ayar: tam genişlik 1280×720, 3 ara kare, 256 renk → **0,67 MB** (sınır 5 MB).
   Yan ürün: uygulamada derin bağlantılar (`?q=`, `&trace=open`, `&record=`), b646c06.
 
+- [Faz 8, 2026-09-24] **V12 — önbellek izolasyon denetimi** (`scripts/audit_cache_isolation.py`,
+  12 test). Her konfigürasyon için: cevap · sağlayıcıya giden istek · istek/cevap · medyan
+  gecikme · hiç istek harcamamış cevap · 500 ms altı cevap. **FAIL koşulu:** bir config'in
+  istek/cevap oranı A0'ınkinin yarısının *altındaysa*. `report.py` sayfayı bu denetim yeşil
+  olmadan yazmıyor (V6'dan hemen sonra), sayılar da sayfaya "Each configuration answered from
+  the model (V12)" bölümü olarak giriyor; ayrıca "Threats to validity"de tuz olayının ne
+  olduğu ve 67 satırın silinip yeniden koşulduğu yazıyor.
+
+  **İsteği nasıl sayıyorum.** Satırlarda "şu çağrı önbellekten geldi" diye bir alan yok, ama
+  önbellekten dönen çağrı ağa çıkmıyor. Ölçüm: bugüne kadarki bütün `llm` adımlarında en yavaş
+  önbellek çağrısı 19 ms, ağa çıkan en hızlı çağrı 658 ms. Eşik bu boşluğun içinde: 50 ms.
+  Bu iki uç her koşumda yeniden ölçülüp rapora yazılıyor, yani "boşluk geniş" iddiası zamanla
+  sessizce yanlışlanamıyor.
+
+  **Ozan'ın çerçevesine düzeltme: "aynı iz = sızıntı" değil.** Bağımsız koştuğu kanıtlı A1 ile
+  A0, karşılaştırılabilir 100 sorunun **77'sinde** birebir aynı tool izini veriyor. Sebep
+  yapısal: A1 yalnızca retrieval modunu değiştiriyor, modelin ilk isteği A0'ınkiyle bayt bayt
+  aynı, kolay sorularda aynı argümanla aynı çağrı geliyor. Yani iz payını FAIL koşulu yapsaydım
+  denetim her gün kırmızı yanardı ve kapatılırdı. İz payı raporlanan bir sayı, karar veren
+  ölçüt istek/cevap oranı.
+
+  **Günün dersi.** Mekanizma (tuz) doğru kurulmuştu, kapsamı eksikti: anahtar "aynı girdi"yi
+  kapsıyordu ama "aynı ölçüm birimi"ni kapsamıyordu. Dikkati ilk çeken şey imkânsız gecikmelerdi
+  (42–140 ms), ama bu göz kararı bir fark etme; **kendi kendine koşan ölçüt istek/cevap oranı**,
+  çünkü bir config'in modele gerçekten gidip gitmediğini tek başına gösteriyor. Bundan sonra her
+  yeni koşum tipinde (yeni config, yeni set, yeni model) ilk bakılan sayı bu oran.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.

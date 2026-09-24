@@ -31,6 +31,11 @@ RESULTS = ROOT / "eval" / "results"
 NOT_RUN = "⏳ not run"
 MODES = ("bm25", "dense", "hybrid")
 
+# V12 lives with the other audits under scripts/, but the page shows its numbers, so it is
+# imported here rather than only used as a gate in main().
+sys.path.insert(0, str(ROOT / "scripts"))
+import audit_cache_isolation  # noqa: E402
+
 
 def load_retrieval(results_dir: Path = RESULTS) -> dict | None:
     def read(path: Path) -> dict | None:
@@ -543,6 +548,23 @@ def _metadata(runs: list[dict]) -> str:
     )
 
 
+# Found while the run was under way, and the reason V12 exists. It belongs on the page
+# because it changed which raw lines the numbers are computed from.
+CACHE_SHARING_NOTE = [
+    "**Cache sharing between configurations, found and corrected during the run.** The answer "
+    "cache is keyed by the whole request plus a salt, and the salt carried only the repeat "
+    "number. A1 and A2 differ from A0 only after retrieval, so their first request was "
+    "identical to A0's and the cached conversation was handed to them: an ablation could be "
+    "scored on the full system's answers without calling the model. The salt now carries the "
+    "configuration as well, so each one draws its own answers. The 67 lines produced under the "
+    "shared salt (A1 65, A2 1, A4 1) were deleted and re-run; they were deleted on the "
+    "structural argument, before anyone looked at their scores. A0's 300 lines were not "
+    "affected, because the repeats already had separate salts and A0 was the side being copied "
+    "from. `scripts/audit_cache_isolation.py` now checks this before the page is written, and "
+    "the section above is the evidence per configuration."
+]
+
+
 def render_results(
     retrieval: dict | None,
     runs: list[dict] | None = None,
@@ -555,6 +577,7 @@ def render_results(
     model_choice: dict | None = None,
     iterations: dict | None = None,
     replay: dict | None = None,
+    isolated: object | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -616,11 +639,19 @@ def render_results(
     section(
         "Ablation (leave-one-out)", agent_report.ablation_section(runs, items) if runs else None
     )
+    # The ablation is only worth reading if each configuration really asked the model itself.
+    section(
+        "Each configuration answered from the model (V12)",
+        audit_cache_isolation.markdown(isolated) if isolated is not None else None,
+    )
     section("Operational", agent_report.operational_section(full, quota) if has_full else None)
     section("Error analysis", agent_report.error_analysis(full, items) if has_full else None)
     notes = _test_set_notes(items) if items and set_name == "test" else []
     notes += replay_note(replay) if replay else []
-    section("Threats to validity", [*agent_report.THREATS, *notes])
+    threats = [*agent_report.THREATS, *notes]
+    if set_name == "test":
+        threats += ["", *CACHE_SHARING_NOTE]
+    section("Threats to validity", threats)
     return "\n".join(lines)
 
 
@@ -651,6 +682,18 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 "refused: the audit of the raw results failed (scripts/audit_eval.py)",
                 *(f"  {failure}" for failure in failures),
+                sep="\n",
+                file=sys.stderr,
+            )
+            return 1
+    isolated = None
+    if args.set == "test":
+        # V12: and the page is only written while every configuration paid for its own answers.
+        isolated = audit_cache_isolation.isolation(args.results_dir)
+        if isolated.failures:
+            print(
+                "refused: the configurations are not isolated (scripts/audit_cache_isolation.py)",
+                *(f"  {failure}" for failure in isolated.failures),
                 sep="\n",
                 file=sys.stderr,
             )
@@ -690,6 +733,7 @@ def main(argv: list[str] | None = None) -> int:
         choice,
         iterations,
         replay,
+        isolated,
     )
     if args.check_readme:
         differences = readme_differences(args.readme, readme_snippet(runs, items))
