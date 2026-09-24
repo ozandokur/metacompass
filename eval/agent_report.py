@@ -19,6 +19,7 @@ from configs import ALL_CATEGORIES, CATEGORIES, CONFIGS, REPEATS
 
 CATEGORY_ORDER = ("L1", "L2", "L3", "L4", "L5", "L6", "MX")
 DASH = "—"
+NOT_RUN = "⏳ not run"  # report.py shows the same marker; one spelling, defined here
 BOOTSTRAP_SAMPLES = 1000
 BOOTSTRAP_SEED = 0
 
@@ -340,6 +341,65 @@ def ablation_section(lines: list[dict], items: list[dict]) -> list[str]:
     return out
 
 
+# What each ablation is there to answer. Written once, next to the code that reads it, so the
+# sentence on the page cannot drift from the configuration it describes.
+ABLATION_QUESTION = {
+    "A1": "what BM25 adds on top of the dense retriever",
+    "A2": "what the dense retriever adds on top of BM25",
+    "A3": "what the `resolve_owner` tool adds over letting the model walk the chain itself",
+    "A4": "what the abstain instructions and the match-quality signal add",
+    "A5": "what the composite `impact_analysis` tool adds over chaining lineage and ownership",
+}
+
+
+def ablation_readings(lines: list[dict], items: list[dict]) -> list[str]:
+    """One sentence per ablation: what it measures, and whether its run can say anything."""
+    full = [line for line in lines if line["config"] == "A0"]
+    baseline = _spread(full)
+    flips = flip_rate(full)
+    out = []
+    for code, config in CONFIGS.items():
+        if code == "A0":
+            continue
+        mine = complete([line for line in lines if line["config"] == code])
+        head = f"- **{code} {config.name}** — {ABLATION_QUESTION[code]}."
+        if not mine:
+            out.append(f"{head} {NOT_RUN}")
+            continue
+        overall = _accuracy(mine)
+        if baseline is None:
+            out.append(
+                f"{head} Overall {overall:.2f}; with fewer than two full-system repeats there is "
+                "no noise estimate to read it against, so nothing is claimed."
+            )
+            continue
+        mean, std = baseline
+        difference = overall - mean
+        effect = abs(difference) >= EFFECT_POINTS and abs(difference) > EFFECT_NOISE_FACTOR * std
+        # The categories this ablation actually ran on are the only ones its flip rate matters in.
+        noisiest = max(
+            (c for c in CATEGORIES[code] if c in flips), key=lambda c: flips[c], default=None
+        )
+        verdict = (
+            f"an effect by the pre-registered rule (at least {EFFECT_POINTS:.2f} and more than "
+            f"{EFFECT_NOISE_FACTOR}x the repeat std of {std:.2f})"
+            if effect
+            else f"inside the noise: the repeat std is {std:.2f}, so this one run does not "
+            f"separate it from the full system"
+        )
+        sentence = (
+            f"{head} Overall {overall:.2f} against the full system's {mean:.2f} "
+            f"({difference:+.2f}), {verdict}."
+        )
+        if noisiest is not None and flips[noisiest] > 0:
+            sentence += (
+                f" Its noisiest category is {noisiest}, where the full system's own repeats "
+                f"disagree about {flips[noisiest]:.0%} of the questions."
+            )
+        out.append(sentence)
+    return out
+
+
 def _what_went_wrong(line: dict, item: dict) -> str:
     result, gold = line["result"], item["gold"]
     given = set(result["answer"]["answer_ids"])
@@ -365,10 +425,133 @@ def _what_went_wrong(line: dict, item: dict) -> str:
     return "; ".join(parts)
 
 
-def error_analysis(lines: list[dict], items: list[dict], per_category: int = 3) -> list[str]:
+# The six kinds a wrong answer can be. The order they are tested in is the order below, and
+# that order is a claim about cause: a lineage call on the wrong node also leaves the gold
+# unseen, so if the ceiling were read first every wrong call would hide behind it.
+ERROR_KINDS = (
+    "missing abstain",  # the question has no answer in the metadata, and it answered anyway
+    "needless abstain",  # the answer was there and it refused
+    "wrong tool or arguments",  # the call the question needs was never made
+    "retrieval ceiling",  # no tool result ever held a gold ID: the model never saw the answer
+    "over-inclusive",  # every gold ID, plus more that are not
+    "right tool, wrong reading",  # it was shown the answer and still gave another one
+)
+
+
+def classify(line: dict, item: dict, shown: dict[str, list[str]] | None = None) -> str:
+    """Which of ERROR_KINDS a wrong answer is. Only call it on lines that scored wrong."""
+    answer, gold = line["result"]["answer"], item["gold"]
+    steps = line["result"]["steps"]
+    seen = shown_ids(line, shown)
+    if gold["should_abstain"]:
+        return "missing abstain"
+    if answer["abstained"]:
+        return "needless abstain"
+    if _correct_call(item, steps) is False:
+        return "wrong tool or arguments"
+    if _gold_unseen(item, steps, seen):
+        return "retrieval ceiling"
+    given, wanted = set(answer["answer_ids"]), set(gold["answer_ids"])
+    if wanted and wanted <= given and given - wanted:
+        return "over-inclusive"
+    return "right tool, wrong reading"
+
+
+def error_kinds(
+    lines: list[dict], items: list[dict], shown: dict[str, list[str]] | None = None
+) -> dict[str, Counter]:
+    """Per category, how many wrong answers of each kind."""
+    by_id = {i["id"]: i for i in items}
+    out: dict[str, Counter] = {}
+    for line in complete(lines):
+        if line["score"]["correct"]:
+            continue
+        counts = out.setdefault(line["category"], Counter())
+        counts[classify(line, by_id[line["item_id"]], shown)] += 1
+    return out
+
+
+def error_kinds_section(
+    lines: list[dict], items: list[dict], shown: dict[str, list[str]] | None = None
+) -> list[str]:
+    """The shape of the failures: what kind, and how much of it retrieval can even reach."""
+    counts = error_kinds(lines, items, shown)
+    by_id = {i["id"]: i for i in items}
+    out = [
+        "| Category | Wrong | " + " | ".join(ERROR_KINDS) + " | Gold never retrieved |",
+        "|" + "---|" * (len(ERROR_KINDS) + 3),
+    ]
+    for category in CATEGORY_ORDER:
+        wrong = [
+            line
+            for line in complete(lines)
+            if line["category"] == category and not line["score"]["correct"]
+        ]
+        if not wrong:
+            continue
+        kinds = counts.get(category, Counter())
+        unseen = sum(
+            _gold_unseen(by_id[line["item_id"]], line["result"]["steps"], shown_ids(line, shown))
+            for line in wrong
+        )
+        cells = [str(kinds.get(kind, 0)) for kind in ERROR_KINDS]
+        out.append(
+            f"| {category} | {len(wrong)} | " + " | ".join(cells) + f" | {unseen} of {len(wrong)} |"
+        )
+    return [
+        *out,
+        "",
+        "The kinds are read in the order of the columns, and that order is a claim about cause: "
+        "a lineage call on the wrong node also leaves the gold unseen, so the wrong call is "
+        "blamed before the ceiling. **Gold never retrieved** is the line between the agent and "
+        "the search under it: those wrong answers were never shown the gold by any tool, so no "
+        "prompt could have fixed them. The rest are the agent's own.",
+        "",
+        _basis(lines, shown),
+    ]
+
+
+BASIS_REPLAYED = (
+    "What the model was shown is measured by replaying every stored tool call against the "
+    "same tools and data (`scripts/replay_tool_outputs.py`): no model call, no quota, and the "
+    "payload that comes back is the one the agent sent on, size cap included."
+)
+
+
+def _basis(lines: list[dict], shown: dict[str, list[str]] | None) -> str:
+    """Which evidence the ceiling number rests on, and whether it rests on it everywhere."""
+    if shown is None:
+        return BASIS_TRACE
+    covered, total = replay_coverage(lines, shown)
+    if covered == total:
+        return BASIS_REPLAYED
+    return (
+        f"{BASIS_REPLAYED} {total - covered} of {total} answers are not in the replay file yet "
+        f"and are read off the trace instead, which overstates their ceiling; rerun "
+        f"`scripts/replay_tool_outputs.py` once the run stops."
+    )
+
+
+BASIS_TRACE = (
+    "Without the replay file this is read off the trace, which keeps only the first 300 "
+    "characters of each tool result, so it **overstates** the ceiling: an ID further down a "
+    "payload the model did read looks as if it was never retrieved. Run "
+    "`scripts/replay_tool_outputs.py`."
+)
+
+
+def error_analysis(
+    lines: list[dict],
+    items: list[dict],
+    per_category: int = 3,
+    shown: dict[str, list[str]] | None = None,
+) -> list[str]:
     """Up to three failures per category, picked from the raw lines in ID order."""
     items_by_id = {i["id"]: i for i in items}
-    out = ["| Question | Repeat | Question text | What went wrong |", "|---|---|---|---|"]
+    out = [
+        "| Question | Kind | Raw line | Question text | What went wrong |",
+        "|---|---|---|---|---|",
+    ]
     for category in CATEGORY_ORDER:
         failures = sorted(
             (
@@ -385,10 +568,32 @@ def error_analysis(lines: list[dict], items: list[dict], per_category: int = 3) 
             seen.add(line["item_id"])
             item = items_by_id[line["item_id"]]
             question = item["question"].replace("|", "/")
+            raw = f"`{line['set']}_{line['config']}_r{line['repeat']}.jsonl`"
             out.append(
-                f"| {line['item_id']} | {line['repeat']} | {question} | {_what_went_wrong(line, item)} |"
+                f"| {line['item_id']} | {classify(line, item, shown)} | {raw} | {question} | "
+                f"{_what_went_wrong(line, item)} |"
             )
     return out
+
+
+def retrieval_ceiling_note(
+    lines: list[dict], items: list[dict], shown: dict[str, list[str]] | None = None
+) -> list[str]:
+    """The threat that is not about the agent at all, with the number behind it."""
+    by_id = {i["id"]: i for i in items}
+    wrong = [line for line in complete(lines) if not line["score"]["correct"]]
+    if not wrong:
+        return []
+    unseen = sum(
+        _gold_unseen(by_id[line["item_id"]], line["result"]["steps"], shown_ids(line, shown))
+        for line in wrong
+    )
+    return [
+        f"- **A retrieval ceiling sits under the agent's score.** {unseen} of its {len(wrong)} "
+        f"wrong answers were never shown a gold ID by any tool, so no prompt or reasoning "
+        f"change could have reached them; that part of the gap measures the retriever, not the "
+        f"agent. The split per category is in the error analysis."
+    ]
 
 
 THREATS = [
@@ -441,20 +646,42 @@ def _correct_call(item: dict, steps: list[dict]) -> bool | None:
     )
 
 
-def _gold_unseen(item: dict, steps: list[dict]) -> bool:
-    """True when no gold ID appears in any tool result of this answer.
+def shown_ids(line: dict, shown: dict[str, list[str]] | None) -> set[str] | None:
+    """The IDs the model was really shown, from the replay file, or None without it."""
+    if shown is None:
+        return None
+    seen = shown.get(f"{line['config']}/{line['repeat']}/{line['item_id']}")
+    return None if seen is None else set(seen)
 
-    The tool summaries are what the tools returned, so a gold ID missing from all of them
-    means the model was never shown the answer: that is a retrieval miss, not a reasoning one.
+
+def replay_coverage(lines: list[dict], shown: dict[str, list[str]] | None) -> tuple[int, int]:
+    """How many finished answers the replay file covers, of how many. (0, 0) without a file."""
+    done = complete(lines)
+    if shown is None or not done:
+        return 0, len(done)
+    return sum(shown_ids(line, shown) is not None for line in done), len(done)
+
+
+def _gold_unseen(item: dict, steps: list[dict], seen: set[str] | None = None) -> bool:
+    """True when the tools never put a gold ID in front of the model.
+
+    With `seen` — the IDs recovered by replaying the stored calls
+    (scripts/replay_tool_outputs.py) — this is exact. Without it the only evidence is the
+    trace, which keeps 300 characters of each tool result, so an ID further down the payload
+    looks as though it was never retrieved and the count comes out too high.
     """
     gold = item["gold"]["answer_ids"]
     if not gold:
         return False
+    if seen is not None:
+        return not any(gold_id in seen for gold_id in gold)
     text = " ".join(step.get("summary") or "" for step in steps if step["kind"] == "tool")
     return not any(gold_id in text for gold_id in gold)
 
 
-def diagnostics(lines: list[dict], items: list[dict]) -> dict:
+def diagnostics(
+    lines: list[dict], items: list[dict], shown: dict[str, list[str]] | None = None
+) -> dict:
     """Per category, numbers that explain a score without changing it (from the raw lines):
     over_inclusive_rate          answers with every gold ID and more besides
     tool_args_correct (L3, L5)   the trace called the right tool with the right arguments;
@@ -479,7 +706,9 @@ def diagnostics(lines: list[dict], items: list[dict]) -> dict:
         wrong = [line for line in done if not line["score"]["correct"]]
         stats["wrong_answers"] = len(wrong)
         stats["wrong_with_gold_unseen"] = sum(
-            1 for line in wrong if _gold_unseen(by_id[line["item_id"]], line["result"]["steps"])
+            1
+            for line in wrong
+            if _gold_unseen(by_id[line["item_id"]], line["result"]["steps"], shown_ids(line, shown))
         )
         calls = [
             (line, _correct_call(by_id[line["item_id"]], line["result"]["steps"])) for line in done
@@ -501,8 +730,10 @@ def diagnostics(lines: list[dict], items: list[dict]) -> dict:
     return out
 
 
-def diagnostics_section(lines: list[dict], items: list[dict]) -> list[str]:
-    rows = diagnostics(lines, items)
+def diagnostics_section(
+    lines: list[dict], items: list[dict], shown: dict[str, list[str]] | None = None
+) -> list[str]:
+    rows = diagnostics(lines, items, shown)
     out = [
         "These numbers explain the scores above; they do not change the scores.",
         "",

@@ -37,3 +37,10 @@ def test_the_final_page_may_not_say_not_run(tmp_path):
     assert check_report.unfinished(page) == ["not answered yet"]
     page.write_text("## Agent\n\n| L1 | 15 | 0.80 ± 0.02 | |\n", encoding="utf-8")
     assert check_report.unfinished(page) == []
+
+
+def test_the_final_gate_wants_every_answer_replayed():
+    """A final page must read its retrieval ceiling from the replayed output for all of it."""
+    covered, total = check_report.replay_gap()
+    assert total > 0
+    assert covered <= total

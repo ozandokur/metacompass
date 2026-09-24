@@ -6,11 +6,13 @@ Regenerates eval/results.md into a temporary file and compares it with the commi
 a line that differs means somebody edited the page instead of the raw results, or the page
 is stale. It also checks that the pre-registered reading rules still hash to their pin.
 With --final it additionally refuses a page that still says "not run" or "not answered yet",
-which is what the report must look like once every planned answer is in.
+and a replay file that does not cover every answer: a final page must compute its retrieval
+ceiling from the replayed tool output for all of it, not for most of it.
 """
 
 import argparse
 import difflib
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -24,6 +26,7 @@ import report  # noqa: E402
 
 RESULTS_PAGE = ROOT / "eval" / "results.md"
 UNFINISHED_MARKERS = (report.NOT_RUN, "not answered yet")
+RESULTS_DIR = ROOT / "eval" / "results"
 
 
 class GeneratorRefused(Exception):
@@ -57,6 +60,19 @@ def unfinished(page: Path) -> list[str]:
     return [marker for marker in UNFINISHED_MARKERS if marker in text]
 
 
+def replay_gap(results: Path = RESULTS_DIR, set_name: str = "test") -> tuple[int, int]:
+    """Answers the replay file covers, of the answers there are."""
+    import agent_report
+
+    shown_path = results / f"shown_ids_{set_name}.json"
+    shown = (
+        json.loads(shown_path.read_text(encoding="utf-8"))["shown"]
+        if shown_path.is_file()
+        else None
+    )
+    return agent_report.replay_coverage(report.load_runs(results, set_name), shown)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Check that the results page is generated.")
     parser.add_argument("--final", action="store_true", help="also require every answer to be in")
@@ -77,6 +93,13 @@ def main(argv: list[str] | None = None) -> int:
     if args.final:
         for marker in unfinished(RESULTS_PAGE):
             print(f"FAIL the page still says {marker!r}")
+            failures += 1
+        covered, total = replay_gap()
+        if covered != total:
+            print(
+                f"FAIL the replay file covers {covered} of {total} answers; "
+                "run scripts/replay_tool_outputs.py"
+            )
             failures += 1
     print("report check: " + ("PASSED" if not failures else "FAILED"))
     return 0 if not failures else 1

@@ -28,7 +28,7 @@ from metacompass.config import MATCH_SIGNAL, TAU, TAU_Z
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULTS = ROOT / "eval" / "results"
-NOT_RUN = "⏳ not run"
+NOT_RUN = agent_report.NOT_RUN
 MODES = ("bm25", "dense", "hybrid")
 
 # V12 lives with the other audits under scripts/, but the page shows its numbers, so it is
@@ -578,6 +578,7 @@ def render_results(
     iterations: dict | None = None,
     replay: dict | None = None,
     isolated: object | None = None,
+    shown: dict[str, list[str]] | None = None,
 ) -> str:
     runs = runs or []
     full = [line for line in runs if line["config"] == "A0"]
@@ -624,7 +625,7 @@ def render_results(
     )
     section(
         "Diagnostics (not scores)",
-        agent_report.diagnostics_section(full, items) if has_full else None,
+        agent_report.diagnostics_section(full, items, shown) if has_full else None,
     )
     if has_full:
         precision, recall, false_rate = agent_report.abstention(full, {i["id"]: i for i in items})
@@ -637,7 +638,16 @@ def render_results(
     else:
         section("Abstention", None)
     section(
-        "Ablation (leave-one-out)", agent_report.ablation_section(runs, items) if runs else None
+        "Ablation (leave-one-out)",
+        [
+            *agent_report.ablation_section(runs, items),
+            "",
+            "### What each ablation says",
+            "",
+            *agent_report.ablation_readings(runs, items),
+        ]
+        if runs
+        else None,
     )
     # The ablation is only worth reading if each configuration really asked the model itself.
     section(
@@ -645,8 +655,22 @@ def render_results(
         audit_cache_isolation.markdown(isolated) if isolated is not None else None,
     )
     section("Operational", agent_report.operational_section(full, quota) if has_full else None)
-    section("Error analysis", agent_report.error_analysis(full, items) if has_full else None)
+    section(
+        "Error analysis",
+        [
+            "### What the failures are",
+            "",
+            *agent_report.error_kinds_section(full, items, shown),
+            "",
+            "### Representative failures",
+            "",
+            *agent_report.error_analysis(full, items, shown=shown),
+        ]
+        if has_full
+        else None,
+    )
     notes = _test_set_notes(items) if items and set_name == "test" else []
+    notes += agent_report.retrieval_ceiling_note(full, items, shown) if has_full and items else []
     notes += replay_note(replay) if replay else []
     threats = [*agent_report.THREATS, *notes]
     if set_name == "test":
@@ -715,6 +739,14 @@ def main(argv: list[str] | None = None) -> int:
     choice = json.loads(choice_path.read_text(encoding="utf-8")) if choice_path.is_file() else None
     replay_path = results / "replay_verification.json"
     replay = json.loads(replay_path.read_text(encoding="utf-8")) if replay_path.is_file() else None
+    shown_path = results / f"shown_ids_{args.set}.json"
+    # The IDs each answer's model was really shown; without it the page says the ceiling
+    # number is read off the truncated trace and overstates itself (see agent_report).
+    shown = (
+        json.loads(shown_path.read_text(encoding="utf-8"))["shown"]
+        if shown_path.is_file()
+        else None
+    )
     iterations_path = results / "prompt_iterations.json"
     iterations = (
         json.loads(iterations_path.read_text(encoding="utf-8"))
@@ -734,6 +766,7 @@ def main(argv: list[str] | None = None) -> int:
         iterations,
         replay,
         isolated,
+        shown,
     )
     if args.check_readme:
         differences = readme_differences(args.readme, readme_snippet(runs, items))

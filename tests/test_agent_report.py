@@ -454,3 +454,125 @@ def test_threats_state_the_infrastructure_change_and_its_replay_proof():
     page = report.render_results(None, replay=verification)
     threats = page.split("## Threats to validity")[1]
     assert "158" in threats
+
+
+# ------------------------------------------------------------ error classification (phase 8)
+
+
+CLASSIFY_ITEMS = [
+    {"id": "L1-001", "category": "L1", "subtype": "exact", "question": "q",
+     "gold": {"answer_ids": ["RPT-0001"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L3-001", "category": "L3", "subtype": "report_upstream", "question": "q",
+     "gold_spec": {"type": "upstream_tables", "node_id": "RPT-0009", "depth": 2},
+     "gold": {"answer_ids": ["TBL-001"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L6-001", "category": "L6", "subtype": "salary", "question": "q",
+     "gold": {"answer_ids": [], "forbidden_ids": [], "should_abstain": True}},
+]  # fmt: skip
+BY_ID = {i["id"]: i for i in CLASSIFY_ITEMS}
+
+
+def classified(item_id, *, answer_ids=(), abstained=False, summaries=(), calls=()):
+    one = line(item_id, False, abstained=abstained)
+    one["result"]["answer"]["answer_ids"] = list(answer_ids)
+    one["result"]["steps"] = [{"kind": "llm", "summary": "answer", "name": None}] + [
+        {"kind": "tool", "name": name, "arguments": args, "summary": text}
+        for name, args, text in calls
+    ] + [{"kind": "tool", "name": "search_assets", "arguments": {}, "summary": text}
+         for text in summaries]  # fmt: skip
+    return one
+
+
+def kind(one, item_id):
+    return agent_report.classify(one, BY_ID[item_id])
+
+
+def test_answering_a_question_that_should_abstain_is_its_own_kind():
+    assert kind(classified("L6-001", answer_ids=["EMP-001"]), "L6-001") == "missing abstain"
+
+
+def test_abstaining_on_an_answerable_question_is_its_own_kind():
+    assert kind(classified("L1-001", abstained=True), "L1-001") == "needless abstain"
+
+
+def test_the_wrong_call_is_blamed_before_retrieval():
+    """Asking lineage about the wrong node also leaves the gold unseen; the cause is the
+    call, so the wrong call has to be read first or every such error hides as a ceiling."""
+    wrong_node = classified(
+        "L3-001",
+        calls=[("trace_lineage", {"node_id": "RPT-0002", "direction": "upstream", "depth": 2},
+                '{"nodes":["TBL-777"]}')],
+    )  # fmt: skip
+    assert kind(wrong_node, "L3-001") == "wrong tool or arguments"
+
+
+def test_a_gold_the_tools_never_showed_is_a_retrieval_ceiling():
+    missed = classified("L1-001", answer_ids=["RPT-0009"], summaries=['{"hits":["RPT-0009"]}'])
+    assert kind(missed, "L1-001") == "retrieval ceiling"
+
+
+def test_the_right_call_with_a_wrong_answer_is_a_reading_error():
+    seen = classified(
+        "L3-001",
+        answer_ids=["TBL-500"],
+        calls=[("trace_lineage", {"node_id": "RPT-0009", "direction": "upstream", "depth": 2},
+                '{"nodes":["TBL-001"]}')],
+    )  # fmt: skip
+    assert kind(seen, "L3-001") == "right tool, wrong reading"
+
+
+def test_every_gold_plus_extras_is_over_inclusive():
+    extra = classified(
+        "L1-001", answer_ids=["RPT-0001", "RPT-0002"], summaries=['{"hits":["RPT-0001"]}']
+    )
+    assert kind(extra, "L1-001") == "over-inclusive"
+
+
+def test_the_page_counts_the_kinds_and_the_ceiling_share_per_category():
+    lines = [
+        # Refused although the search did put the answer in front of it.
+        classified("L1-001", abstained=True, summaries=['{"hits":["RPT-0001"]}']),
+        # Never shown the gold at all: the ceiling, not the agent.
+        classified("L1-001", answer_ids=["RPT-0009"], summaries=['{"hits":["RPT-0009"]}']),
+    ]
+    body = "\n".join(agent_report.error_kinds_section(lines, CLASSIFY_ITEMS))
+    assert "needless abstain" in body and "retrieval ceiling" in body
+    # One of the two wrong L1 answers never saw its gold.
+    assert "1 of 2" in body
+
+
+def test_every_error_row_says_its_kind_and_where_the_raw_line_is():
+    lines = [classified("L1-001", abstained=True)]
+    table = "\n".join(agent_report.error_analysis(lines, CLASSIFY_ITEMS))
+    assert "needless abstain" in table
+    assert "test_A0_r1.jsonl" in table
+
+
+def test_each_ablation_gets_one_sentence_read_against_the_noise():
+    lines = full_runs() + [line("L1-001", False, config="A1"), line("L1-002", False, config="A1"),
+                           line("L6-001", True, config="A1", abstained=True)]  # fmt: skip
+    readings = "\n".join(agent_report.ablation_readings(lines, ITEMS))
+    assert "A1" in readings and "dense-only" in readings
+    # The sentence has to say what the yardstick was, not just the difference.
+    assert "repeat std" in readings
+    # An ablation with no lines yet says so instead of being read as a zero.
+    a3 = next(row for row in readings.splitlines() if "A3" in row)
+    assert agent_report.NOT_RUN in a3
+
+
+def test_the_ceiling_is_judged_on_the_replayed_output_not_the_truncated_trace():
+    """The trace keeps 300 characters of each tool result, so an ID further down looks as if
+    it was never retrieved. With the replayed IDs the same line is read correctly."""
+    one = classified("L1-001", answer_ids=["RPT-0009"], summaries=['{"hits":["RPT-0500"]}'])
+    assert agent_report.classify(one, BY_ID["L1-001"]) == "retrieval ceiling"
+    shown = {"A0/1/L1-001": ["RPT-0500", "RPT-0001"]}  # the gold was in the payload after all
+    assert agent_report.classify(one, BY_ID["L1-001"], shown) == "right tool, wrong reading"
+
+
+def test_the_page_says_which_basis_the_ceiling_number_has():
+    lines = [classified("L1-001", answer_ids=["RPT-0009"], summaries=['{"hits":["RPT-0500"]}'])]
+    replayed = "\n".join(
+        agent_report.error_kinds_section(lines, CLASSIFY_ITEMS, {"A0/1/L1-001": []})
+    )
+    assert "replaying" in replayed
+    guessed = "\n".join(agent_report.error_kinds_section(lines, CLASSIFY_ITEMS))
+    assert "overstates" in guessed
