@@ -598,6 +598,32 @@ altında, durmaya gerek yok.
   çünkü bir config'in modele gerçekten gidip gitmediğini tek başına gösteriyor. Bundan sonra her
   yeni koşum tipinde (yeni config, yeni set, yeni model) ilk bakılan sayı bu oran.
 
+- [Faz 8, 2026-09-24] **"Gold never retrieved" sayısı yanlıştı; kotasız düzeltildi.** İz, her
+  tool çıktısının yalnızca ilk **300 karakterini** saklıyor. "Gold hiç getirilmedi" bunun üzerinden
+  okunuyordu, yani modelin gerçekten okuduğu bir payload'ın aşağısındaki ID "hiç getirilmedi"
+  sayılıyordu. **Ölçüm:** tam sistemin 66 yanlış cevabının 57'si aramaya yıkılıyordu; gerçek sayı
+  **45**. En büyük saptırma L5'te: 12 hatanın 12'si "retrieval tavanı" görünüyordu, hiçbiri değil —
+  model ihtiyacı olan herkesi görmüş, cevabına fazladan kişi eklemiş (**12/12 fazla kapsayıcı**).
+  Yani o kategoride sorun arama değil, cevabın kapsamı. Çözüm `scripts/replay_tool_outputs.py`:
+  saklı tool çağrılarını (ad + argüman tam duruyor) aynı registry'den yeniden çağırıp modelin
+  gördüğü ID'leri kaydediyor. Deterministik, kota harcamıyor, dönen payload agent'ın modele
+  ilettiğinin aynısı (çıktı üst sınırı dahil). Neden izdeki kısaltmayı büyütmedim: `agent/` donmuş
+  yolda ve büyütmek yalnızca gelecek satırları düzeltirdi, elimdeki 500 satırı değil.
+- [Faz 8, 2026-09-24] **Hata analizi yeniden yazıldı.** Her yanlış cevap altı türden birine
+  giriyor: eksik abstain · gereksiz abstain · yanlış tool/argüman · retrieval tavanı · fazla
+  kapsayıcı · doğru tool yanlış yorum. Sıra bir **neden iddiası**: yanlış düğüme lineage çağrısı da
+  gold'u göstermez, o yüzden yanlış çağrı tavandan önce okunuyor; tersi olsaydı her yanlış çağrı
+  tavanın arkasına saklanırdı. Örnekler kategori başına 3 ve **tür çeşitliliğine göre** seçiliyor
+  (ID sırasında ilk üç, L1'de aynı türü üç kez gösteriyordu). Her ablation'a tek cümle: ne katıyor,
+  fark A0'ın tekrar std'si ve flip_rate karşısında ne anlama geliyor.
+- [Faz 8, 2026-09-24] **`scripts/day_end.py`** — gün sonu rutini tek komut: V6 · V12 · replay ·
+  results.md · V9 · V7. Sıra testle sabit (sayfa, çelişmemesi gereken denetimlerden ve sayılarını
+  bastığı replay'den sonra yazılıyor). Push ve commit yapmıyor: kırmızı bir kontrolün ne anlama
+  geldiği karar, script'in işi onu görünür kılmak. `--final` ile V10 --final de ekleniyor.
+  Koşum sürerken replay dosyası doğal olarak geride kalıyor; sayfa bunu satır sayısıyla **söylüyor**,
+  sessizce eski yönteme düşmüyor, ve `check_report --final` eksik replay'li bir final sayfayı
+  reddediyor.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
@@ -611,6 +637,9 @@ altında, durmaya gerek yok.
   Tek geçici hata: r2 L4-001'de bir model çağrısı 2,8 sn sonra `OSError(22)` ile düştü, döngünün
   yeniden denemesi ikinci seferde geçti; iz bunu `error: OSError` adımı olarak gösteriyor.
   Tahmin: A0 yarın biter (19 + 100 = 119 cevap ≈ 420 istek), sonra A1.
+  Durum 2026-09-24 sonu: **A0 300/300 · A1 100/100 · A2 100/100 · A4 23/100.** Gün 500 istekle
+  kapandı. Kalan: A4 77 · A3 40 · A5 25 = 142 cevap ≈ 455 istek, yarının kotasına sığması bekleniyor.
+  Gün sonu rutini yeşil (V6 · V12 · replay · results.md · V9 · V7).
   Durum 2026-09-23 sonu: A0 300/300 tamam. Paylaşılan önbellek tuzuyla üretilmiş A1/A2/A4
   satırları silindikten sonra A1 yeni tuzla baştan koşuldu: **`test_A1_r1` 97/100**, gün
   kotayla kapandı (320 istek, 810k token; guard'ın saydığı istekler). Gün içinde sağlayıcı bir

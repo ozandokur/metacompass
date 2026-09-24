@@ -151,10 +151,10 @@ The free tier limits requests per project **and per model**, so each candidate a
 | A1 dense-only | 1 | all | 100 | 100 |
 | A2 bm25-only | 1 | all | 100 | 100 |
 | A3 llm-walks-chain | 1 | L2, L5, MX | 40 | 0 |
-| A4 no-abstain | 1 | all | 100 | 2 |
+| A4 no-abstain | 1 | all | 100 | 23 |
 | A5 no-composite-impact | 1 | L5, MX | 25 | 0 |
 
-Model: `gemini-3.1-flash-lite`, on the Google AI Studio free tier: the runs cost nothing, and the limits are 15 requests/min, 500 requests/day and 1,000,000 input tokens/min. Quota used: 2157 requests over 5 days (5,555,528 tokens).
+Model: `gemini-3.1-flash-lite`, on the Google AI Studio free tier: the runs cost nothing, and the limits are 15 requests/min, 500 requests/day and 1,000,000 input tokens/min. Quota used: 2218 requests over 5 days (5,687,918 tokens).
 
 The limits shaped the plan (D25): the full system runs three times, every ablation once, and a run the daily quota stops resumes the next day where it left off. Ablation differences are therefore read against the full system's repeat-to-repeat spread (the ≈ mark below). This records measuring under a constraint; it is not a gap in the method.
 
@@ -234,7 +234,7 @@ These numbers explain the scores above; they do not change the scores.
 | A1 dense-only | 0.87 | 1.00 | 0.93 | 0.67 | 0.60 ≈ | 1.00 | 0.87 | 0.86 | +0.08 ▲ | 0.79/1.00 | 0.05 | 0.00 | 2.11 | 7866 | 91727 |
 | A2 bm25-only | 0.67 | 0.93 ≈ | 0.93 | 0.40 | 0.70 | 1.00 | 0.60 | 0.75 | -0.03 ▼ | 0.54/1.00 | 0.15 | 0.00 | 2.44 | 8975 | 39792 |
 | A3 llm-walks-chain | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
-| A4 no-abstain | 1.00 ▲ | — | — | — | — | — | — | 1.00 | +0.22 ▲ | —/— | 0.00 | 0.00 | 1.00 | 3954 | 65951 |
+| A4 no-abstain | 0.80 | 1.00 | — | — | — | — | — | 0.87 | +0.09 ▲ | —/— | 0.00 | 0.00 | 1.87 | 6190 | 27326 |
 | A5 no-composite-impact | — | — | — | — | — | — | — | — | — | — | — | — | — | — | — |
 
 Ablations ran once each (free tier, D25). Marks follow the pre-registered rules: ▲/▼ is an effect — in a category column, the ablation's 95% CI does not overlap the full system's; in Δ Overall, the difference is at least 3 points and more than 2 times the full system's repeat std. ≈ marks a difference within one std of the full system's repeats, which is not read as an effect. With fewer than two full-system repeats there is no yardstick and nothing is marked. Read every mark next to the flip rate of that category above: where the full system's own repeats disagree about many questions, one ablation run cannot say anything about that category.
@@ -244,7 +244,7 @@ Ablations ran once each (free tier, D25). Marks follow the pre-registered rules:
 - **A1 dense-only** — what BM25 adds on top of the dense retriever. Overall 0.86 against the full system's 0.78 (+0.08), an effect by the pre-registered rule (at least 0.03 and more than 2x the repeat std of 0.00).
 - **A2 bm25-only** — what the dense retriever adds on top of BM25. Overall 0.75 against the full system's 0.78 (-0.03), an effect by the pre-registered rule (at least 0.03 and more than 2x the repeat std of 0.00).
 - **A3 llm-walks-chain** — what the `resolve_owner` tool adds over letting the model walk the chain itself. ⏳ not run
-- **A4 no-abstain** — what the abstain instructions and the match-quality signal add. Overall 1.00 against the full system's 0.78 (+0.22), an effect by the pre-registered rule (at least 0.03 and more than 2x the repeat std of 0.00).
+- **A4 no-abstain** — what the abstain instructions and the match-quality signal add. Overall 0.87 against the full system's 0.78 (+0.09), an effect by the pre-registered rule (at least 0.03 and more than 2x the repeat std of 0.00).
 - **A5 no-composite-impact** — what the composite `impact_analysis` tool adds over chaining lineage and ownership. ⏳ not run
 
 ## Each configuration answered from the model (V12)
@@ -254,17 +254,17 @@ Ablations ran once each (free tier, D25). Marks follow the pre-registered rules:
 | A0 | 300 | 969 | 3.23 | 11.1 s | 0 | 0 |
 | A1 | 100 | 308 | 3.08 | 31.2 s | 0 | 0 |
 | A2 | 100 | 347 | 3.47 | 16.6 s | 0 | 0 |
-| A4 | 2 | 4 | 2.00 | 38.5 s | 0 | 0 |
+| A4 | 23 | 66 | 2.87 | 14.7 s | 0 | 0 |
 
 A request is a model call that reached the provider: a cached one returns without a network round trip, so the line is drawn at 50 ms. In these runs the slowest cache-served call took 19 ms and the fastest call that reached the provider 658 ms, which is the gap the threshold sits in. *Free* counts answers that spent no request at all, which is what a configuration scored on another's cached answers would look like. A configuration under half of A0's rate per answer is refused.
 
-Questions answered by more than one configuration where two produced the same tool trace: **87 of 100**. This is deliberately not a failure condition. A1 only swaps the retrieval mode, so the model's first request is the full system's byte for byte and the same call often follows; the share above was measured on runs that each spent their own requests. What cannot be explained is a configuration that answered without spending any.
+Questions answered by more than one configuration where two produced the same tool trace: **89 of 100**. This is deliberately not a failure condition. A1 only swaps the retrieval mode, so the model's first request is the full system's byte for byte and the same call often follows; the share above was measured on runs that each spent their own requests. What cannot be explained is a configuration that answered without spending any.
 
 ## Operational
 
 | Tools/q | Tool error rate | p50 ms | p95 ms | Tokens/q | Quota used (all runs) | Stop reasons |
 |---|---|---|---|---|---|---|
-| 2.22 | 0.00 | 11146 | 35090 | 8378 | 2157 requests over 5 days (5,555,528 tokens) | final 297, tool_budget 3 |
+| 2.22 | 0.00 | 11146 | 35090 | 8378 | 2218 requests over 5 days (5,687,918 tokens) | final 297, tool_budget 3 |
 
 ## Error analysis
 
@@ -293,10 +293,10 @@ What the model was shown is measured by replaying every stored tool call against
 | L2-008 | retrieval ceiling | `test_A0_r1.jsonl` | Who owns Monthly Company Revenue? | missing EMP-060; stopped: final, 2 tool calls |
 | L4-001 | needless abstain | `test_A0_r1.jsonl` | Find earlier analysis requests similar to this: prospects met in person at exhibitions and open days, and whether they buy. | abstained on an answerable question; stopped: final, 1 tool calls |
 | L4-005 | needless abstain | `test_A0_r1.jsonl` | Did the data team ever build something for a complete picture of each car owner across purchases and repairs? | abstained on an answerable question; stopped: final, 2 tool calls |
-| L4-006 | needless abstain | `test_A0_r1.jsonl` | Before I start: was there a previous request about how far we have got with regulator-ordered fixes? | abstained on an answerable question; stopped: final, 1 tool calls |
-| L5-002 | over-inclusive | `test_A0_r1.jsonl` | If I change the schema of fct_parts_sales, which reports break and who needs to know? | stopped: final, 2 tool calls |
-| L5-003 | over-inclusive | `test_A0_r1.jsonl` | What is the blast radius of modifying TBL-063? | stopped: final, 1 tool calls |
-| L5-006 | over-inclusive | `test_A0_r1.jsonl` | If I change the schema of int_parts_movements, which reports break and who needs to know? | stopped: final, 2 tool calls |
+| L4-007 | retrieval ceiling | `test_A0_r1.jsonl` | Find earlier analysis requests similar to this: a periodic summary of what we earned and spent for top management. | missing REQ-0243, REQ-0244, REQ-0254; stopped: final, 1 tool calls |
+| L5-002 | over-inclusive | `test_A0_r1.jsonl` | If I change the schema of fct_parts_sales, which reports break and who needs to know? | every gold ID and 15 more: RPT-0004, RPT-0026, RPT-0029, RPT-0051, RPT-0053 …; stopped: final, 2 tool calls |
+| L5-003 | over-inclusive | `test_A0_r1.jsonl` | What is the blast radius of modifying TBL-063? | every gold ID and 4 more: RPT-0053, RPT-0099, RPT-0118, RPT-0156; stopped: final, 1 tool calls |
+| L5-006 | over-inclusive | `test_A0_r1.jsonl` | If I change the schema of int_parts_movements, which reports break and who needs to know? | every gold ID and 19 more: RPT-0027, RPT-0029, RPT-0053, RPT-0067, RPT-0080 …; stopped: final, 2 tool calls |
 | L6-010 | missing abstain | `test_A0_r1.jsonl` | Was there ever a request about insurance claims after road accidents? | answered instead of abstaining; stopped: final, 1 tool calls |
 | MX-002 | right tool, wrong reading | `test_A0_r1.jsonl` | I want to question the source data behind Backorder Rate. Who are the current owners of its source tables? | missing EMP-005; stopped: final, 4 tool calls |
 | MX-012 | retrieval ceiling | `test_A0_r1.jsonl` | Someone once requested negotiations still under way and when they might be won. Which report came out of it, and who maintains it now? | missing EMP-043; stopped: final, 4 tool calls |

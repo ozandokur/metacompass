@@ -576,3 +576,35 @@ def test_the_page_says_which_basis_the_ceiling_number_has():
     assert "replaying" in replayed
     guessed = "\n".join(agent_report.error_kinds_section(lines, CLASSIFY_ITEMS))
     assert "overstates" in guessed
+
+
+def test_the_examples_show_the_kinds_rather_than_the_first_three_ids():
+    """Three failures per category, chosen to cover the kinds: the first three by ID would
+    have shown the same kind three times here and hidden the other two."""
+    items = [
+        {"id": f"L1-{n:03d}", "category": "L1", "subtype": "exact", "question": "q",
+         "gold": {"answer_ids": ["RPT-0001"], "forbidden_ids": [], "should_abstain": False}}
+        for n in range(1, 6)
+    ]  # fmt: skip
+    lines = []
+    for n in (1, 2, 3):  # three of the same kind, lowest IDs
+        one = classified(f"L1-{n:03d}", abstained=True)
+        one["item_id"] = f"L1-{n:03d}"
+        lines.append(one)
+    for n, ids in ((4, ["RPT-0001", "RPT-0500"]), (5, ["RPT-0009"])):
+        one = classified(f"L1-{n:03d}", answer_ids=ids, summaries=['{"hits":["RPT-0001"]}'])
+        one["item_id"] = f"L1-{n:03d}"
+        lines.append(one)
+    table = "\n".join(agent_report.error_analysis(lines, items))
+    kinds = {row.split("|")[2].strip() for row in table.splitlines() if row.startswith("| L1-")}
+    assert len(kinds) == 3, table
+
+
+def test_an_over_inclusive_answer_says_what_it_added():
+    """Naming only the missing IDs explains nothing when nothing is missing."""
+    one = classified(
+        "L1-001", answer_ids=["RPT-0001", "RPT-0500", "RPT-0600"],
+        summaries=['{"hits":["RPT-0001"]}'],
+    )  # fmt: skip
+    text = agent_report._what_went_wrong(one, BY_ID["L1-001"])
+    assert "2 more" in text and "RPT-0500" in text

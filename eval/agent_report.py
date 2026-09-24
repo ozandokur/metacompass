@@ -413,12 +413,22 @@ def _what_went_wrong(line: dict, item: dict) -> str:
     elif result["answer"]["abstained"]:
         parts.append("abstained on an answerable question")
     else:
-        missing = sorted(set(gold["answer_ids"]) - given)
+        wanted = set(gold["answer_ids"])
+        missing = sorted(wanted - given)
         forbidden = sorted(set(gold["forbidden_ids"]) & given)
+        extra = sorted(given - wanted - set(gold["forbidden_ids"]))
         if missing:
             parts.append("missing " + ", ".join(missing[:5]) + (" …" if len(missing) > 5 else ""))
         if forbidden:
             parts.append("gave forbidden " + ", ".join(forbidden))
+        # Without this an over-inclusive answer, which is most of L5, explains nothing: it is
+        # wrong precisely because of the IDs it added, and none of them is missing or forbidden.
+        if extra and not missing:
+            parts.append(
+                f"every gold ID and {len(extra)} more: "
+                + ", ".join(extra[:5])
+                + (" …" if len(extra) > 5 else "")
+            )
     if result["stripped_ids"]:
         parts.append("invented IDs removed: " + ", ".join(result["stripped_ids"]))
     parts.append(f"stopped: {result['stopped_reason']}, {result['tool_calls']} tool calls")
@@ -561,11 +571,23 @@ def error_analysis(
             ),
             key=lambda line: (line["item_id"], line["repeat"]),
         )
-        seen: set[str] = set()
-        for line in failures:
-            if line["item_id"] in seen or len(seen) == per_category:
-                continue
-            seen.add(line["item_id"])
+        # Representative, not simply the lowest IDs: take the first failure of each kind
+        # first, then fill up in ID order. Three examples of the same kind would hide the
+        # rest of the shape of the category.
+        chosen: list[dict] = []
+        kinds_taken: set[str] = set()
+        questions_taken: set[str] = set()
+        for pass_by_kind in (True, False):
+            for line in failures:
+                if len(chosen) == per_category or line["item_id"] in questions_taken:
+                    continue
+                kind = classify(line, items_by_id[line["item_id"]], shown)
+                if pass_by_kind and kind in kinds_taken:
+                    continue
+                kinds_taken.add(kind)
+                questions_taken.add(line["item_id"])
+                chosen.append(line)
+        for line in sorted(chosen, key=lambda one: (one["item_id"], one["repeat"])):
             item = items_by_id[line["item_id"]]
             question = item["question"].replace("|", "/")
             raw = f"`{line['set']}_{line['config']}_r{line['repeat']}.jsonl`"
