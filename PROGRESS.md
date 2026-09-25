@@ -624,6 +624,16 @@ altında, durmaya gerek yok.
   sessizce eski yönteme düşmüyor, ve `check_report --final` eksik replay'li bir final sayfayı
   reddediyor.
 
+- [Disiplin ihlali, 2026-09-25] **Koşum bitmeden kısmi test puanlarını gördüm.**
+  `eval/report.py --check-readme`'yi "snippet mekanizması hâlâ çalışıyor mu" diye çalıştırdım;
+  çıktı farkları satır satır bastığı için A2/A3/A4'ün kısmi kategori puanları ekrana geldi.
+  Niyet bu değildi ama sonuç bu. **Ne yapmadım:** o andan sonra sistemde hiçbir değişiklik yok —
+  prompt, eşik, config, donmuş yol hepsi aynı; `frozen_tree_hash` `b4025ab1103ea7c9` olarak
+  duruyor ve zaten değişseydi runner yeni satır yazmayı reddederdi. **Ders:** "sonuçlara bakma"
+  disiplinini yalnızca niyetle değil, komut seçimiyle korumak gerekiyor; `--check-readme` sonuç
+  tablosu basan bir komut ve koşum sırasında çalıştırılmamalı. Gün sonu rutininde yok, oraya da
+  eklenmeyecek; yalnızca final adımında koşulacak.
+
 ## Devam eden
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
@@ -640,6 +650,17 @@ altında, durmaya gerek yok.
   Durum 2026-09-24 sonu: **A0 300/300 · A1 100/100 · A2 100/100 · A4 23/100.** Gün 500 istekle
   kapandı. Kalan: A4 77 · A3 40 · A5 25 = 142 cevap ≈ 455 istek, yarının kotasına sığması bekleniyor.
   Gün sonu rutini yeşil (V6 · V12 · replay · results.md · V9 · V7).
+  Durum 2026-09-25 sonu (sıra Ozan'ın kararıyla A3 → A5 → A4): **A3 40/40 · A5 25/25 bitti,
+  A4 83/100.** Kalan: **A4 17 cevap**. Rapor üretilmedi (Ozan: kota son cevaba yetmezse rapor yok),
+  gün sonu rutini yeşil.
+  **Oran tahmini ve düzeltmesi.** A3 ilk 10 cevapta 4,40 → 40 cevapta **4,85** istek/cevap
+  (`resolve_owner` yok, model zinciri kendi yürüyor; 40 cevabın 4'ü tool bütçesine takıldı).
+  A5 için "o da bir tool kaybediyor, oran benzer çıkar" dedim; **yanlış çıktı: 3,92**, ve ilk 10
+  cevapta 3,10'du. Kesilme değil: A5'in 25 cevabının hiçbiri tool bütçesine takılmadı, ortalama
+  tool çağrısı 2,18 — aynı kategorilerde A0'ın 2,76'sının altında. Yani `impact_analysis` yokken
+  model zinciri kurmak yerine daha kısa yoldan cevaplıyor. Cevabın kalitesine etkisi puan sorusu,
+  koşum bitmeden bakılmadı. Ders: "tool'u kaldırınca model daha çok çalışır" bir varsayım, kural
+  değil; ablation maliyetini komşu ablation'dan değil kendi ilk cevaplarından tahmin et.
   Durum 2026-09-23 sonu: A0 300/300 tamam. Paylaşılan önbellek tuzuyla üretilmiş A1/A2/A4
   satırları silindikten sonra A1 yeni tuzla baştan koşuldu: **`test_A1_r1` 97/100**, gün
   kotayla kapandı (320 istek, 810k token; guard'ın saydığı istekler). Gün içinde sağlayıcı bir
