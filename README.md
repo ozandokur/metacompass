@@ -31,7 +31,6 @@ the agent refuses to answer.*
 Read two things off this table before anything else. **An ablation beats the full system:** **A1 dense-only** (0.86) against A0's 0.78. Switching that part off bought accuracy rather than costing it, so on this question set the full system carries a component it has not earned.
 
 **The ± is zero because the 3 repeats never disagreed** — same score on every question, at different latencies, so these were real calls. At temperature 0 this model is reproducible here, which also means the run has no measured noise floor to judge a one-run ablation against; the ablation marks in [eval/results.md](eval/results.md) rest on the pre-registered point bar alone.
-
 <!-- results:end -->
 
 A0 is the full system, three repeats (mean ± std); A1–A5 each switch one part off and run

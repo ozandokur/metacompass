@@ -521,7 +521,14 @@ def _readme_readings(runs: list[dict]) -> list[str]:
             f"floor to judge a one-run ablation against; the ablation marks in "
             f"[eval/results.md](eval/results.md) rest on the pre-registered point bar alone."
         )
-    return ["", *[f"{reading}\n" for reading in readings]] if readings else []
+    if not readings:
+        return []
+    # One list entry per line, blank lines included: the README block is compared line by line
+    # against this snippet (V9), so a newline inside an entry would always read as a difference.
+    out: list[str] = []
+    for reading in readings:
+        out += ["", reading]
+    return out
 
 
 def write_readme_snippet(readme: Path, snippet: list[str]) -> None:
@@ -538,7 +545,10 @@ def readme_differences(readme: Path, snippet: list[str]) -> list[str]:
     text = readme.read_text(encoding="utf-8")
     start = text.index(README_START) + len(README_START)
     block = [line for line in text[start : text.index(README_END)].splitlines() if line]
-    return [line for line in [*block, *snippet] if (line in block) != (line in snippet)]
+    # Blank lines are layout on both sides; comparing them would make spacing look like a
+    # result that had changed.
+    wanted = [line for line in snippet if line]
+    return [line for line in [*block, *wanted] if (line in block) != (line in wanted)]
 
 
 def replay_note(verification: dict) -> list[str]:
