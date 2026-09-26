@@ -357,7 +357,8 @@ def ablation_readings(lines: list[dict], items: list[dict]) -> list[str]:
     full = [line for line in lines if line["config"] == "A0"]
     baseline = _spread(full)
     flips = flip_rate(full)
-    out = []
+    out: list[str] = []
+    better: list[tuple[str, str, float, float]] = []
     for code, config in CONFIGS.items():
         if code == "A0":
             continue
@@ -380,13 +381,26 @@ def ablation_readings(lines: list[dict], items: list[dict]) -> list[str]:
         noisiest = max(
             (c for c in CATEGORIES[code] if c in flips), key=lambda c: flips[c], default=None
         )
-        verdict = (
-            f"an effect by the pre-registered rule (at least {EFFECT_POINTS:.2f} and more than "
-            f"{EFFECT_NOISE_FACTOR}x the repeat std of {std:.2f})"
-            if effect
-            else f"inside the noise: the repeat std is {std:.2f}, so this one run does not "
-            f"separate it from the full system"
-        )
+        # With std 0 the "> 2 x std" half of the pre-registered rule cannot fail, so saying the
+        # rule was met would overstate it: what decided is the point bar alone. The rule itself
+        # is not touched — it was fixed before the run — only what the page claims for it.
+        toothless = std == 0
+        if effect and toothless:
+            verdict = (
+                f"over the pre-registered bar, but read it carefully: the repeat std is "
+                f"{std:.2f}, so the rule's noise term could not fail and only the "
+                f"{EFFECT_POINTS:.2f} point bar decided"
+            )
+        elif effect:
+            verdict = (
+                f"an effect by the pre-registered rule (at least {EFFECT_POINTS:.2f} and more "
+                f"than {EFFECT_NOISE_FACTOR}x the repeat std of {std:.2f})"
+            )
+        else:
+            verdict = (
+                f"inside the noise: the repeat std is {std:.2f}, so this one run does not "
+                f"separate it from the full system"
+            )
         sentence = (
             f"{head} Overall {overall:.2f} against the full system's {mean:.2f} "
             f"({difference:+.2f}), {verdict}."
@@ -397,6 +411,21 @@ def ablation_readings(lines: list[dict], items: list[dict]) -> list[str]:
                 f"disagree about {flips[noisiest]:.0%} of the questions."
             )
         out.append(sentence)
+        if difference > 0:
+            better.append((code, config.name, overall, difference))
+    if better:
+        # An ablation scoring above the full system is a result about the design, not a
+        # footnote: the component it removes is not earning its place on this question set.
+        named = "; ".join(
+            f"**{code} {name}** at {value:.2f} ({gap:+.2f})" for code, name, value, gap in better
+        )
+        out += [
+            "",
+            f"**These ablations beat the full system:** {named}. Switching that component off "
+            "did not cost accuracy on this question set, it bought some. Whatever the component "
+            "is for, this run does not show it paying for itself, and the honest reading is "
+            "that the full system carries a part it has not earned.",
+        ]
     return out
 
 
@@ -596,6 +625,152 @@ def error_analysis(
                 f"{_what_went_wrong(line, item)} |"
             )
     return out
+
+
+# What each ID type means when it goes missing from an answer, for the sentence below.
+ID_MEANING = {
+    "EMP": "people to notify",
+    "RPT": "reports that break",
+    "TBL": "tables in the lineage",
+    "REQ": "earlier requests",
+    "MET": "metrics",
+}
+
+
+def missing_id_types(lines: list[dict], items: list[dict]) -> dict[str, int]:
+    """For wrong answers that did answer: how many gold IDs of each type were left out.
+
+    An impact answer can be wrong in two different ways — it can miss a report that breaks or
+    miss a person to tell — and the score alone does not say which.
+    """
+    by_id = {i["id"]: i for i in items}
+    missing: Counter = Counter()
+    for line in complete(lines):
+        if line["score"]["correct"] or line["result"]["answer"]["abstained"]:
+            continue
+        item = by_id.get(line["item_id"])
+        if item is None:
+            continue
+        given = set(line["result"]["answer"]["answer_ids"])
+        for gold_id in set(item["gold"]["answer_ids"]) - given:
+            missing[gold_id.split("-")[0]] += 1
+    return dict(missing)
+
+
+def ablation_shift(
+    lines: list[dict],
+    items: list[dict],
+    code: str,
+    shown: dict[str, list[str]] | None = None,
+) -> list[str]:
+    """Where one ablation's failures differ from the full system's, on its own categories.
+
+    The ablation table gives the score; this says what changed underneath it. Comparing the
+    two on the categories the ablation ran is the only fair comparison, and the full system's
+    figures are its mean over repeats so one unlucky repeat does not set the baseline.
+    """
+    categories = [c for c in CATEGORY_ORDER if c in CATEGORIES[code]]
+    mine = complete([line for line in lines if line["config"] == code])
+    full = complete(
+        [line for line in lines if line["config"] == "A0" and line["category"] in categories]
+    )
+    if not mine or not full:
+        return [NOT_RUN]
+    repeats = len(_by_repeat(full)) or 1
+    kinds_mine = error_kinds(mine, items, shown)
+    kinds_full = error_kinds(full, items, shown)
+    rows = [
+        f"On {', '.join(categories)}, the categories {code} runs, against the full system's "
+        f"{repeats} repeats (its counts are per repeat).",
+        "",
+        "| | Answers | Wrong | " + " | ".join(ERROR_KINDS) + " |",
+        "|" + "---|" * (len(ERROR_KINDS) + 3),
+    ]
+    for label, group, kinds, divisor in (
+        ("A0 full", full, kinds_full, repeats),
+        (f"{code} {CONFIGS[code].name}", mine, kinds_mine, 1),
+    ):
+        wrong = sum(not line["score"]["correct"] for line in group)
+        totals: Counter = Counter()
+        for counts in kinds.values():
+            totals.update(counts)
+        cells = [f"{totals.get(kind, 0) / divisor:.1f}" for kind in ERROR_KINDS]
+        rows.append(
+            f"| {label} | {len(group) / divisor:.0f} | {wrong / divisor:.1f} | "
+            + " | ".join(cells)
+            + " |"
+        )
+
+    missing_mine = missing_id_types(mine, items)
+    missing_full = missing_id_types(full, items)
+    types = sorted(set(missing_mine) | set(missing_full))
+    if types:
+        rows += [
+            "",
+            "Gold IDs left out of an answer that was given, by type "
+            "(again per repeat for the full system):",
+            "",
+            "| | " + " | ".join(f"{t} ({ID_MEANING.get(t, t)})" for t in types) + " |",
+            "|" + "---|" * (len(types) + 1),
+            "| A0 full | "
+            + " | ".join(f"{missing_full.get(t, 0) / repeats:.1f}" for t in types)
+            + " |",
+            f"| {code} {CONFIGS[code].name} | "
+            + " | ".join(str(missing_mine.get(t, 0)) for t in types)
+            + " |",
+        ]
+    # Always the verdict, even when nothing was left out: "no shift" is a reading too.
+    rows += ["", _what_the_component_holds(code, missing_mine, missing_full, repeats)]
+    return rows
+
+
+def _what_the_component_holds(
+    code: str, mine: dict[str, int], full: dict[str, int], repeats: int
+) -> str:
+    """One sentence, from the numbers: which kind of ID the ablation starts dropping.
+
+    Written as a generator rather than as prose so it cannot say something the table does not.
+    """
+    gaps = {kind: mine.get(kind, 0) - full.get(kind, 0) / repeats for kind in set(mine) | set(full)}
+    worst = max(gaps, key=lambda kind: gaps[kind], default=None)
+    if worst is None or gaps[worst] <= 0:
+        return (
+            f"Nothing the {code} answers leave out is more common than in the full system's, so "
+            "on these questions the component is not what the score difference is about."
+        )
+    others = sorted((k for k in gaps if k != worst), key=lambda k: -gaps[k])
+    rest = ", ".join(f"{k} {gaps[k]:+.1f}" for k in others) or "nothing else"
+    return (
+        f"**What the component holds up:** without it the answers leave out "
+        f"{gaps[worst]:+.1f} more {worst} IDs per question set — {ID_MEANING.get(worst, worst)} — "
+        f"against {rest}; that, not the number of tool calls, is what it was doing."
+    )
+
+
+def determinism_note(lines: list[dict]) -> list[str]:
+    """Said only when the repeats never disagreed, because then the noise yardstick is zero."""
+    full = complete([line for line in lines if line["config"] == "A0"])
+    by_repeat = _by_repeat(full)
+    if len(by_repeat) < 2 or flip_rate(full).get("Overall", 1.0) > 0:
+        return []
+    by_question: dict[str, set] = {}
+    for line in full:
+        by_question.setdefault(line["item_id"], set()).add(line["result"]["answer"]["answer"])
+    identical = sum(len(texts) == 1 for texts in by_question.values())
+    return [
+        f"- **The {len(by_repeat)} repeats never disagreed, so the noise yardstick is zero.** "
+        f"Every one of the {len(by_question)} questions scored the same in every repeat, and "
+        f"{identical} of them came back with character-for-character the same answer, at "
+        f"different latencies, so these were real calls and not a cache. At temperature 0 this "
+        f"model is reproducible on this workload. The consequence is uncomfortable and is not "
+        f"hidden: the pre-registered rule for reading an ablation is "
+        f'"at least {EFFECT_POINTS:.2f} **and** more than {EFFECT_NOISE_FACTOR}x the repeat '
+        f'std", and with a std of zero its noise term cannot fail, so every difference of '
+        f"{EFFECT_POINTS:.2f} or more is marked as an effect on the strength of the point bar "
+        f"alone. The two repeats beyond the first cost about two of the five run days and "
+        f"measured a spread of exactly zero; spending them on a second run of each ablation "
+        f"would have bought a real yardstick instead."
+    ]
 
 
 def retrieval_ceiling_note(

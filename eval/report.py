@@ -483,7 +483,45 @@ def readme_snippet(runs: list[dict], items: list[dict]) -> list[str]:
         out.append(
             f"| {code} {config.name} | " + " | ".join(cells) + f" | {cell(mine)} | {abstain} |"
         )
-    return out
+    return out + _readme_readings(runs)
+
+
+def _readme_readings(runs: list[dict]) -> list[str]:
+    """The two things a reader of the table alone would get wrong, stated under it.
+
+    Both are computed, so the README cannot drift from the raw results: a reader who only
+    sees the table would take the full system for the best row and the ± for a real spread.
+    """
+    full = agent_report.complete([line for line in runs if line["config"] == "A0"])
+    spread = agent_report._spread(full)
+    if spread is None:
+        return []
+    readings = []
+    better = []
+    for code, config in agent_report.CONFIGS.items():
+        if code == "A0":
+            continue
+        mine = agent_report.complete([line for line in runs if line["config"] == code])
+        value = agent_report._accuracy(mine) if mine else None
+        if value is not None and value > spread[0]:
+            better.append(f"**{code} {config.name}** ({value:.2f})")
+    if better:
+        readings.append(
+            f"Read two things off this table before anything else. **An ablation beats the "
+            f"full system:** {', '.join(better)} against A0's {spread[0]:.2f}. Switching that "
+            f"part off bought accuracy rather than costing it, so on this question set the "
+            f"full system carries a component it has not earned."
+        )
+    if spread[1] == 0:
+        repeats = len(agent_report._by_repeat(full))
+        readings.append(
+            f"**The ± is zero because the {repeats} repeats never disagreed** — same score on "
+            f"every question, at different latencies, so these were real calls. At temperature "
+            f"0 this model is reproducible here, which also means the run has no measured noise "
+            f"floor to judge a one-run ablation against; the ablation marks in "
+            f"[eval/results.md](eval/results.md) rest on the pre-registered point bar alone."
+        )
+    return ["", *[f"{reading}\n" for reading in readings]] if readings else []
 
 
 def write_readme_snippet(readme: Path, snippet: list[str]) -> None:
@@ -665,12 +703,27 @@ def render_results(
             "### Representative failures",
             "",
             *agent_report.error_analysis(full, items, shown=shown),
+            "",
+            "### What a removed tool changes (A3, A5)",
+            "",
+            "The ablation table gives the score; these say what moved underneath it. Only the "
+            "two configurations that lose a tool are shown: for them 'what does this component "
+            "add' is a question about behaviour, which a score alone does not answer.",
+            "",
+            "#### A3 — without `resolve_owner`",
+            "",
+            *agent_report.ablation_shift(runs, items, "A3", shown),
+            "",
+            "#### A5 — without `impact_analysis`",
+            "",
+            *agent_report.ablation_shift(runs, items, "A5", shown),
         ]
         if has_full
         else None,
     )
     notes = _test_set_notes(items) if items and set_name == "test" else []
     notes += agent_report.retrieval_ceiling_note(full, items, shown) if has_full and items else []
+    notes += agent_report.determinism_note(runs) if has_full else []
     notes += replay_note(replay) if replay else []
     threats = [*agent_report.THREATS, *notes]
     if set_name == "test":

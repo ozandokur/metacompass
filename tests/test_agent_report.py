@@ -608,3 +608,120 @@ def test_an_over_inclusive_answer_says_what_it_added():
     )  # fmt: skip
     text = agent_report._what_went_wrong(one, BY_ID["L1-001"])
     assert "2 more" in text and "RPT-0500" in text
+
+
+# ------------------------------------------------ what one ablation changed (phase 8, A5)
+
+
+SHIFT_ITEMS = [
+    {"id": "L5-001", "category": "L5", "subtype": "individual", "question": "q",
+     "gold": {"answer_ids": ["EMP-001", "EMP-002", "RPT-0001"], "forbidden_ids": [],
+              "should_abstain": False}},
+    {"id": "L5-002", "category": "L5", "subtype": "individual", "question": "q",
+     "gold": {"answer_ids": ["EMP-003", "RPT-0002"], "forbidden_ids": [], "should_abstain": False}},
+    {"id": "L1-001", "category": "L1", "subtype": "exact", "question": "q",
+     "gold": {"answer_ids": ["RPT-0009"], "forbidden_ids": [], "should_abstain": False}},
+]  # fmt: skip
+
+
+def answered(item_id, config, given, correct=False, repeat=1):
+    one = line(item_id, correct, config=config, repeat=repeat)
+    one["result"]["answer"]["answer_ids"] = list(given)
+    one["result"]["steps"] = [{"kind": "llm", "summary": "answer", "name": None}]
+    return one
+
+
+def test_what_an_ablation_left_out_is_counted_by_the_type_of_id():
+    """People and reports are different failures: one is 'who to tell', the other 'what breaks'."""
+    lines = [answered("L5-001", "A5", ["EMP-001", "RPT-0001"])]  # EMP-002 left out
+    missing = agent_report.missing_id_types(lines, SHIFT_ITEMS)
+    assert missing == {"EMP": 1}
+
+
+def test_the_shift_compares_the_ablation_with_the_full_system_on_its_own_categories():
+    lines = [
+        # The full system names everyone on both questions; only L5 counts for A5.
+        answered("L5-001", "A0", ["EMP-001", "EMP-002", "RPT-0001"], correct=True),
+        answered("L5-002", "A0", ["EMP-003", "RPT-0002"], correct=True),
+        answered("L1-001", "A0", ["RPT-0009"], correct=True),
+        # The ablation keeps the reports and drops people.
+        answered("L5-001", "A5", ["EMP-001", "RPT-0001"]),
+        answered("L5-002", "A5", ["RPT-0002"]),
+    ]
+    body = "\n".join(agent_report.ablation_shift(lines, SHIFT_ITEMS, "A5"))
+    assert "A5" in body and "L5" in body
+    assert "EMP" in body
+    assert "L1" not in body  # A5 never ran there, so it says nothing about it
+
+
+def test_the_shift_says_so_when_the_ablation_did_not_run():
+    body = "\n".join(agent_report.ablation_shift(full_runs(), ITEMS, "A5"))
+    assert agent_report.NOT_RUN in body
+
+
+def test_the_sentence_names_the_id_type_that_moved_most():
+    lines = [
+        answered("L5-001", "A0", ["EMP-001", "EMP-002", "RPT-0001"], correct=True),
+        answered("L5-002", "A0", ["EMP-003", "RPT-0002"], correct=True),
+        answered("L5-001", "A5", ["RPT-0001"]),  # two people left out
+        answered("L5-002", "A5", ["RPT-0002"]),  # one more
+    ]
+    body = "\n".join(agent_report.ablation_shift(lines, SHIFT_ITEMS, "A5"))
+    assert "people to notify" in body
+    assert "not the number of tool calls" in body
+
+
+def test_the_sentence_refuses_to_claim_a_shift_that_is_not_there():
+    lines = [
+        answered("L5-001", "A0", ["EMP-001", "EMP-002", "RPT-0001"], correct=True),
+        answered("L5-001", "A5", ["EMP-001", "EMP-002", "RPT-0001"], correct=True),
+        answered("L5-002", "A5", ["EMP-003", "RPT-0002"], correct=True),
+    ]
+    body = "\n".join(agent_report.ablation_shift(lines, SHIFT_ITEMS, "A5"))
+    assert "not what the score difference is about" in body or agent_report.NOT_RUN in body
+
+
+def test_a_zero_noise_estimate_is_said_out_loud_not_used_as_a_pass():
+    """With std 0 the pre-registered '> 2 x std' term cannot fail, so the sentence must say the
+    three-point bar is what decided, instead of implying the noise test was cleared."""
+    identical = []
+    for repeat in (1, 2, 3):
+        identical += [line("L1-001", True, repeat=repeat), line("L1-002", True, repeat=repeat)]
+    runs = identical + [line("L1-001", False, config="A1"), line("L1-002", True, config="A1")]
+    readings = "\n".join(agent_report.ablation_readings(runs, ITEMS))
+    assert "repeat std is 0.00" in readings
+    assert "only the" in readings and "point bar" in readings
+
+
+def test_an_ablation_that_beats_the_full_system_is_stated_not_buried():
+    runs = []
+    for repeat in (1, 2, 3):
+        runs += [line("L1-001", True, repeat=repeat), line("L1-002", False, repeat=repeat)]
+    runs += [line("L1-001", True, config="A1"), line("L1-002", True, config="A1")]
+    body = "\n".join(agent_report.ablation_readings(runs, ITEMS))
+    assert "beat the full system" in body.lower()
+    assert "A1" in body.split("eat the full system")[1]
+
+
+def test_repeats_that_never_disagreed_are_reported_as_a_measurement():
+    runs = []
+    for repeat in (1, 2, 3):
+        runs += [line("L1-001", True, repeat=repeat), line("L1-002", True, repeat=repeat)]
+    note = "\n".join(agent_report.determinism_note(runs))
+    assert "3 repeats" in note
+    assert "character-for-character" in note  # the measurement, not a claim about the model
+    assert "noise term" in note
+
+
+def test_the_note_says_nothing_when_the_repeats_did_disagree():
+    assert agent_report.determinism_note(full_runs()) == []
+
+
+def test_the_readme_table_carries_the_two_readings_a_reader_must_not_miss():
+    runs = []
+    for repeat in (1, 2, 3):
+        runs += [line("L1-001", True, repeat=repeat), line("L1-002", False, repeat=repeat)]
+    runs += [line("L1-001", True, config="A1"), line("L1-002", True, config="A1")]
+    snippet = "\n".join(report.readme_snippet(runs, ITEMS))
+    assert "A1 dense-only" in snippet.split("An ablation beats the full system")[1]
+    assert "never disagreed" in snippet  # and the zero spread is explained, not just shown
