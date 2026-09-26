@@ -1,9 +1,10 @@
 # PROGRESS
 
 ## Durum
-Aktif faz: 6 (test koşumu) — Q-V0-1 önbellekten yeniden oynatmayla kapandı, A0 devam ediyor ·
-Faz 7 tamam · Faz 8: V1–V7 tamam, demo Streamlit Community Cloud'a (Q-F8-2) hazırlanıyor ·
-Son güncelleme: 2026-09-22.
+**Proje tamamlandı — 2026-09-26.** 665/665 cevap koşuldu (A0 ×3, A1, A2, A4 ×1 tam set;
+A3 40, A5 25 kendi kategorilerinde). Sıfır para harcandı. results.md üretildi, V6 · V12 · V10
+--final · V9 · V7 yeşil, `check_all` yeşil, açık soru kalmadı.
+Test seti genel doğruluk **0,78 ± 0,00**; abstain P/R **0,61 / 0,93**; uydurma ID oranı **0,00**.
 
 ## Dondurulmuş değerler
 **DONDURULDU 2026-09-20, test koşumundan önce.** Test koşumu başladıktan sonra biri değişirse
@@ -634,7 +635,97 @@ altında, durmaya gerek yok.
   tablosu basan bir komut ve koşum sırasında çalıştırılmamalı. Gün sonu rutininde yok, oraya da
   eklenmeyecek; yalnızca final adımında koşulacak.
 
-## Devam eden
+## Final durum (2026-09-26)
+
+**Koşum:** 665 cevap, 2.775 istek, 7 gün, **0 USD** (Google AI Studio ücretsiz katmanı, D25).
+Model `gemini-3.1-flash-lite`, prompt v5, donmuş ağaç parmak izi `b4025ab1103ea7c9` — 665 satırın
+hepsinde aynı.
+
+**Tam sistem (A0, 3 tekrar):**
+
+| L1 | L2 | L3 | L4 | L5 | L6 | MX | Genel |
+|---|---|---|---|---|---|---|---|
+| 0,73 | 0,93 | 1,00 | 0,47 | 0,60 | 0,93 | 0,73 | **0,78 ± 0,00** |
+
+Abstain kesinlik/duyarlılık 0,61 / 0,93 · yanlış abstain 0,11 · uydurma ID 0,00 ·
+2,22 tool/soru · 8.378 token/soru · p50 11,1 sn, p95 35,1 sn.
+
+**Ablation'lar:** A1 dense-only 0,86 (**+0,08**) · A2 bm25-only 0,75 (−0,03) ·
+A3 llm-walks-chain 0,70 (−0,08) · A4 no-abstain 0,75 (−0,03) · A5 no-composite-impact 0,48 (**−0,30**).
+
+### Üç rahatsız edici bulgu (rapora yazıldı, yumuşatılmadı)
+
+1. **Hibrit arama kendini ödetmiyor.** A1 BM25'i atıp yalnızca dense bırakıyor ve tam sistemi
+   geçiyor (0,86 > 0,78). Retrieval benchmark'ı nedenini zaten söylüyordu: RRF sıraları
+   ortalıyor, ID içeren sorguda ID'leri hiç görmeyen dense taraf BM25'in birinciliğini aşağı
+   çekiyor (E r@1: bm25 1,00, dense 0,60, hibrit 0,67). README'de hibrit maddesinin yanında
+   bu yazıyor; sessizce kaldırmak yerine raporlandı.
+2. **Üç tekrar sıfır gürültü ölçtü.** 100 sorunun 100'ü üç tekrarda aynı puanı aldı ve
+   **cevap metinleri birebir aynı** çıktı (gecikmeler farklı, yani gerçek çağrılar, önbellek
+   değil). Sonuç: ön kayıttaki "≥ 3 puan **ve** > 2 × std" kuralının gürültü yarısı hiç
+   çalışamadı; her ≥ 0,03 fark tek başına puan barıyla "etki" işaretlendi. Kural değiştirilmedi
+   (koşumdan önce yazılmıştı); sayfa bunu her ablation cümlesinde açıkça söylüyor.
+   İki fazladan tekrar beş günün ikisini yedi ve sıfır ölçtü; o kotayı her ablation'ın ikinci
+   koşumuna harcamak gerçek bir gürültü tabanı satın alırdı.
+3. **L6'da trivial baseline ajanı geçiyor.** `always_abstain` L6'da 1,00, ajan 0,93. Tek
+   başına anlamlı değil (o baseline diğer her kategoride 0,00 alıyor) ama abstain'i
+   "her şeye hayır de" ile ölçmenin sınırını gösteriyor; raporda ikisi yan yana.
+
+### Hata analizinin söylediği
+
+Tam sistemin 66 yanlış cevabının **45'i retrieval tavanı**: hiçbir tool çıktısında gold ID
+modele gösterilmemiş, yani hiçbir prompt bunları kurtaramazdı. Kalan 21'i ajanın kendi hatası.
+Kategori dağılımı: L1 12/12 ve L2 3/3 tavan; L4'ün 24 hatasının 21'i gereksiz abstain;
+**L5'in 12 hatasının 12'si fazla kapsayıcı** (model herkesi görmüş, fazladan kişi eklemiş).
+
+**Kompozit tool ne yapıyor (A5):** `impact_analysis` olmadan 25 cevabın 13'ü yanlış (A0'da 8)
+ve bunların **10'u yanlış tool/argüman** (A0'da 0). Verilen cevaplardan dışarıda kalan kişi
+sayısı **96**, tam sistemde tekrar başına 3. Yani kompozit tool'un katkısı "modeli daha çok
+çalıştırmak" değil — o olmadan model doğru çağrıyı bile kurmuyor ve **haber verilecek insanlar
+cevaptan düşüyor**. A3'te aynı etki çok daha küçük (6'ya karşı 4).
+
+### §19 — Bitti kontrol listesi
+
+**KOD**
+- [x] `src/metacompass` modüler, notebook yok (repoda hiç `.ipynb` yok)
+- [x] `check_all.py --slow` yeşil; kapsam %98 (eşik %85)
+- [x] Veri üretimi deterministik (V4: iki üretim bayt bayt aynı)
+- [x] `requirements.txt` 76 sabit sürüm, temiz venv'de kuruldu (V2: 562 sn)
+- [x] Docker build yerelde çalışıyor (V5: imaj 2,69 GB, sağlık 4 sn)
+- [x] Framework import yok (mimari testi)
+
+**SONUÇLAR**
+- [x] `retrieval_bench.json` gerçek (60 sorgu, 3 mod, LLM'siz)
+- [x] Test seti A0 ×3 + A1–A5 koşuldu — eksiksiz, 665/665
+- [x] `results.md` script üretimi, placeholder yok (V10 `--final` yeşil)
+- [x] Hata analizi ve threats to validity yazılı
+- [x] Ham jsonl'ler ve kota logu commit edildi
+
+**SUNUM**
+- [x] README §16 sırasında
+- [x] İlk ekranda: tek cümle + GIF + sonuç tablosu
+- [x] README rakamları results.md ile birebir (V9 `--check-readme` yeşil)
+- [x] Mimari diyagramı (`docs/architecture.md` + README'de mermaid)
+- [x] Limitations = §2.2
+- [x] Demo açılıyor + soğuk başlangıç notu
+- [x] 8 hazır soru cache'li, dev setinden (test setinden değil)
+- [x] 2–3 dk video — kapsam dışı (Ozan, 2026-09-23)
+
+**HİJYEN**
+- [x] `data/`, `docs/plan/`, `docs/learn/` commit edilmemiş (`.gitignore` ile doğrulandı)
+- [x] Sır yok, `.env.example` boş değerli (V7: 126 commit'lik geçmiş temiz)
+- [x] Yasaklı terim taraması temiz
+- [x] "Synthetic data" notu README ve data card'da
+- [x] Commit geçmişi artımlı ve anlamlı
+- [x] LICENSE var (MIT)
+
+**DIŞARIYA** — bu üçü Ozan'da, kod tarafında yapılacak bir şey kalmadı
+- [ ] GitHub profil README + repo pinned — **Ozan yapacak** (repo ayarı, erişimim yok)
+- [ ] CV maddesi, linkler tıklanıyor — madde hazır (aşağıda); linkleri CV'ye koyunca kontrol et
+- [ ] LinkedIn yazısı — taslak hazır (aşağıda), paylaşım Ozan'ın kararı
+
+
+## Koşum günlüğü (kapandı 2026-09-26)
 - Görev: **test koşumu** (dondurulmuş yapılandırma, `fc05ccc`). Sıra: A0 ×3 → A1, A2, A4 →
   A3, A5 → `eval/report.py` → hata analizi → threats to validity.
   Durum 2026-09-20: `test_A0_r1.jsonl` 23/100, gün kotayla kapandı. Yarın aynı komut:
@@ -672,29 +763,119 @@ altında, durmaya gerek yok.
   yapılmıyor (spec §9.1: test sonucuna bakıp prompt/eşik değiştirmek yasak). Kayıt ediliyor,
   okunmuyor.
 
-## CV maddesi (son hâline yakın; rakamlar yalnızca results.md'den, koşumlar bitince)
+## Teslim paketi (2026-09-26)
 
-> **MetaCompass — BI Metadata Agent** · [GitHub](https://github.com/ozandokur/metacompass) ·
-> [Demo](https://metacompass.streamlit.app)
-> *Python · BM25 + dense retrieval (RRF) · NetworkX · FastAPI · Streamlit · Docker · Gemini API*
-> - Built a framework-free, six-tool LLM agent that answers ownership, lineage and
->   change-impact questions over a synthetic BI catalog, with deterministic multi-hop ownership
->   resolution and a grounding guard that strips any ID no tool returned.
-> - Designed a 100-question evaluation with independent gold answers and deliberately
->   unanswerable questions; pre-registered the reading rules and reported per-category accuracy
->   with bootstrap CIs, abstention precision/recall and leave-one-out ablations
->   {A0 genel doğruluk ± std ve bir ablation bulgusu: results.md'den}.
-> - Ran the whole study on a free-tier LLM quota: chose the model by a pre-registered
->   measurement, fingerprinted the measured code on every result line, and proved a mid-run
->   infrastructure change harmless by replaying all affected answers from the LLM cache.
+### CV maddesi (rakamlar yalnızca results.md'den)
 
-## GitHub "About" önerisi (Ozan girecek)
+> **MetaCompass — BI Metadata Agent** · [GitHub] [Live demo]
+> *Python, BM25 + dense retrieval (RRF), NetworkX, FastAPI, Streamlit, Docker*
+> - Built a framework-free, six-tool LLM agent answering ownership, lineage and change-impact
+>   questions over a synthetic BI catalog: **0.78 accuracy** on a held-out 100-question test
+>   set (3 repeats), **0.93 abstention recall** on unanswerable questions and a grounding guard
+>   that left **0% fabricated IDs**, against trivial baselines of 0.47 (top search hit) and
+>   0.20 (owner on record).
+> - Designed the evaluation before the system: independent gold answers, deterministic
+>   ID-based scoring, reading rules pre-registered and hashed, and five leave-one-out
+>   ablations — which showed the composite impact tool carrying **+0.30 accuracy** and the
+>   hybrid retriever **losing 0.08** to dense-only, reported rather than dropped; 665 runs on
+>   a free tier at **zero cost**.
+
+### LinkedIn yazısı taslağı (İngilizce, ~140 kelime)
+
+> I built MetaCompass, a six-tool LLM agent that answers ownership, lineage and change-impact
+> questions over a synthetic BI catalog — no framework, no vector database, ~150 lines of
+> agent loop.
+>
+> The result I did not expect is the one I want to share. I built hybrid retrieval: BM25 and
+> dense embeddings fused with reciprocal rank fusion, because that is what everyone builds.
+> Then I ran the ablation. Dropping BM25 and keeping dense alone scored **0.86 against the
+> full system's 0.78**. The fusion was not paying for itself. The retrieval benchmark had
+> already told me why: RRF averages ranks, so on a query that names a report ID the dense
+> retriever — which never sees IDs — drags BM25's correct first place down.
+>
+> I kept it in the README and wrote why, instead of quietly deleting the component and
+> claiming the better number.
+>
+> Everything is synthetic, everything is measured, and the evaluation rules were written and
+> hashed before the test run.
+
+### GitHub "About"
 
 - **Description:** A tool-using LLM agent for BI metadata — ownership, lineage and change
   impact — that knows when to abstain. Synthetic data, pre-registered evaluation.
 - **Website:** https://metacompass.streamlit.app
 - **Topics (8):** `llm-agent` · `tool-calling` · `hybrid-search` · `data-lineage` ·
   `metadata-management` · `llm-evaluation` · `streamlit` · `python`
+
+### "Bu projede ne yaptım" — mülakatta anlatacağım sıra (10 madde)
+
+1. **Problemi daralttım.** Katalog ürünü yazmadım; metadata var varsayımıyla üstündeki ajan
+   katmanını çalıştım. Üç soru tipi (sahiplik, lineage, değişim etkisi) artı cevabı olmayan
+   sorular. Kapsam dışı olanları baştan yazdım ve büyütmedim.
+2. **Veriyi kod üretti.** Sabit tohumlu, 7 tablolu sentetik şirket; ayrılmış sahipler, halef
+   zincirleri, geçmiş talepler, ve gerçek katalogları taklit eden bilinçli gürültü.
+3. **Aramayı üç parça kurup LLM'siz ölçtüm.** BM25 (kendi tokenizer'ım), dense (bge-small),
+   RRF; 60 sorgulu ayrı benchmark. E r@1: bm25 1,00 · dense 0,60 · hibrit 0,67.
+4. **"Bilmiyorum" diyebilmesini ölçülebilir bir sinyale bağladım.** `match_quality`, en yakın
+   dense eşleşmenin korpus ortalamasından kaç standart sapma uzakta olduğu (z ≥ 4,25); eşik
+   dev setinde tarandı, test setine bakılmadan donduruldu.
+5. **Deterministik olanı LLM'e bırakmadım.** Sahiplik zinciri ve lineage BFS kod; model
+   yalnızca hangi aracı hangi argümanla çağıracağına karar veriyor. Karşılığı ölçüldü:
+   `resolve_owner` olmadan 0,78 → 0,70.
+6. **Ajan döngüsünü framework'süz yazdım.** Tur sınırı, tool bütçesi, onarım turu, zorlanmış
+   final — her satırını savunabiliyorum, ve izini kullanıcıya gösteriyorum.
+7. **Uydurmaya karşı grounding koydum.** Cevaptaki her ID bir tool çıktısında görülmüş olmak
+   zorunda. 665 cevapta uydurma ID oranı 0,00.
+8. **Ölçümü sistemden önce tasarladım.** Bağımsız kodla gold, ID üzerinden deterministik
+   puanlama (LLM jüri yok), bootstrap CI, trivial baseline'lar, ve **koşumdan önce yazılıp
+   hash'lenen okuma kuralları**.
+9. **Beş ablation koştum ve sonucu satmadım.** En büyük katkı kompozit `impact_analysis`
+   (+0,30); hibrit arama ise **eksi** çıktı (−0,08) ve bunu README'ye yazdım.
+10. **Ölçümün kendisini denetledim.** Donmuş kod parmak izi her satırda; ablation'ların
+    birbirinin önbelleğinden cevap almadığı istek/cevap oranıyla; "gold hiç getirilmedi"
+    sayısını kısaltılmış izin şişirdiğini fark edip tool çağrılarını yeniden oynatarak
+    düzelttim. Bulduğum üç ölçüm hatasını da rapora yazdım.
+
+### En zayıf 3 nokta (biri sorarsa — savunma değil)
+
+1. **"Hibrit arama kurdum" dediğim şey bu veride işe yaramadı.** Dense tek başına tam sistemi
+   0,86'ya 0,78 geçiyor. Yani mimarinin öne çıkardığım parçası kendini ödetmiyor. Nedenini
+   biliyorum (RRF sıraları ortalıyor, ID sorgularında dense taraf BM25'i aşağı çekiyor) ama
+   bunu koşumdan *önce* öngörmedim; benchmark bana söylemişti, ben hibriti yine de varsayılan
+   yaptım. Doğru refleks, ölçüp raporlamak oldu — silip daha iyi sayıyı göstermek değil.
+2. **Gürültü tabanım sıfır çıktı, yani ablation'ları gerçekte gürültüye karşı test edemedim.**
+   Üç tekrar birebir aynı cevapları verdi. Ön kayıttaki "≥ 3 puan ve > 2 × std" kuralının
+   ikinci yarısı hiç çalışamadı; her 3 puanlık fark "etki" sayıldı. Kotanın ikisini fazladan
+   tekrara harcadım ve sıfır bilgi aldım; o kotayı her ablation'ın ikinci koşumuna
+   harcasaydım gerçek bir taban ölçerdim. Bu bir tasarım hatası, sonradan bulduğum bir
+   tesadüf değil.
+3. **Sonuçlar sentetik veride ve kategoriler küçük.** 100 soru toplamda makul ama kategori
+   başına 10–15 soru güven aralığını çok genişletiyor (ör. L5 [0,30–0,90]). Veriyi de
+   soruları da ben ürettim; aynı şablon havuzlarından çıkıyorlar. Genelleme iddiam yok —
+   arkasında durduğum şey yöntem: ölçüm tasarımı, ön kayıt ve denetimler veriden bağımsız.
+
+### Bakım notu — 6 ay sonra bu repoya dönersen
+
+**Önce:** `python -m venv .venv` → `pip install -r requirements.txt` →
+`python -m metacompass.data.generate --seed 42 --out data/` → `python scripts/check_all.py --slow`.
+(`data/` commit edilmiyor, üretimi ~2 sn ve deterministik; `--slow` embedding modelini indirir.)
+
+**Sonuçların hâlâ tutarlı olduğunu görmek için, kota harcamadan:** `python scripts/day_end.py --final`
+— V6 · V12 · tool çıktısı yeniden oynatma · results.md yeniden üretimi · bağlantılar · geçmiş
+taraması · bitmiş sayfa kontrolü. Hepsi yeşilse repo kendi iddialarını doğruluyor.
+
+**Değişmesi muhtemel üç şey:** (1) model adı ve ücretsiz katman limitleri (`.env`) — model
+değişirse eski ve yeni sonuçları aynı tabloda karşılaştırma, `frozen_tree_hash` zaten izin
+vermez; (2) `torch`/`sentence-transformers` sürümü — embedding çıktısı değişirse retrieval
+benchmark'ı yeniden koşulmalı (kotasız); (3) Streamlit sürümü ve Cloud'un `/~/+/` iframe
+adresi — arayüz değişirse GIF kareleri yeniden alınmalı.
+
+**Dokunma:** `src/metacompass/{agent,tools,retrieval,data}`, `graph.py`, `eval/configs.py`,
+`eval/scoring.py`, `eval/test_set.json` ve `config.py`'deki eval sabitleri donmuş yolda.
+Birini değiştirirsen mevcut sonuç dosyalarına yeni satır eklenemez — hata değil, koruma.
+
+**results.md'yi asla elle düzenleme:** `eval/report.py` yazıyor, `scripts/check_report.py`
+elle düzenlemeyi diff ile yakalıyor.
 
 ## Demo GIF (`assets/demo.gif`) — üretildi, 2026-09-23
 
@@ -1074,9 +1255,14 @@ kare `FrameSizeMismatch` ile reddediliyor, sessizce yeniden boyutlandırılmıyo
 - **Tek RNG kaynağı (§4.1):** Tek RNG yerine aşama başına türetilmiş `random.Random` örnekleri
   (hepsi aynı seed'den). Determinizm korunuyor (I17).
 
-## Açık sorular (Ozan'ın cevabı bekleniyor)
-- [ ] **Q-F8-3 — Ozan'ın elinde:** Streamlit Community Cloud'da Deploy (ayarlar gün sonu
-  raporunda). URL gelince V8 (Streamlit Cloud'a uyarlanmış) koşulur ve README'ye eklenir.
+## Açık sorular — **hepsi kapandı (2026-09-26)**
+
+Projenin sonunda açık soru bırakılmadı. Aşağıdakiler kapanış gerekçeleriyle duruyor;
+geçici kararla ilerletilenler, koşum o kararla tamamlandığı için artık kesin.
+
+- [x] **Q-F8-3 — kapandı 2026-09-23:** demo https://metacompass.streamlit.app adresinde
+  yayında, V8 koşuldu, README'ye link ve soğuk başlangıç notu eklendi, GIF'in kareleri de
+  bu adresten alındı.
 - [x] **Q-F8-2 — kapandı 2026-09-22 (Ozan):** HF PRO yok; demo Streamlit Community Cloud'da,
   hafif demo profiliyle (serbest metin kapalıyken torch / sentence-transformers yüklenmez).
   HF deploy script'i PRO'su olan için kalıyor; README'de "isteğe bağlı: Docker".
@@ -1085,28 +1271,18 @@ kare `FrameSizeMismatch` ile reddediliyor, sessizce yeniden boyutlandırılmıyo
 - [x] **Q-QUOTA-1 — kapandı 2026-09-20 (Ozan):** plan küçültme kapalı; Dal B uygulandı.
 - [x] **Q-ENV-1 — kapandı:** `.env` seçilen modele ve RPD 500'e güncellendi; guard gerçek
   limiti 429'dan öğreniyor.
-- [ ] **Q-F5-2b — geçici karar:** üç farklı broadcast kümesi EMP-001'i iki gold'a koyuyor (kural
-  "en fazla bir"); farklı kümeler seçildi. Gerekçe Kararlar'da. Başka tercih varsa set yeniden
-  üretilir (veri değil).
-- [ ] **Q-F5-2c — geçici karar:** broadcast gold'unda yasaklı ID = etkilenmeyen departman başkanları.
-- [ ] **Q-QUOTA-1 — DUR-VE-SOR (kota = D25'in bütçesi; plan bu kotayla yürümüyor):**
-  `gemini-3.7-flash`'ın ücretsiz katman günlük limiti **20 istek** (proje + model başına; 429
-  gövdesinden okundu). Canlı smoke'a göre cevap başına 2–4 LLM çağrısı var (en kısa yol 2,6).
-  | iş | cevap | çağrı (3–4/cevap) | 20/gün ile |
-  |---|---|---|---|
-  | dev pilotu | 30 | 90–120 | 5–6 gün |
-  | 3 prompt iterasyonu | 90 | 270–360 | 14–18 gün |
-  | test planı (A0×3 + A1–A5) | 665 | 2.000–2.660 | 100–133 gün |
-  Seçenekler: (a) AI Studio'nun rate-limit sayfasında (aistudio.google.com/rate-limit) günlük
-  limiti yüksek, Lite olmayan bir Flash modeli varsa ona geçmek (henüz hiçbir sonuç yok, ölçüm
-  zarar görmez; anahtarda gemini-2.5-flash, 3.5/3.6/3.7/3.8-flash var) · (b) ücretli katman,
-  D25'i geri alır: ~785 cevap × ~7,5k input + ~450 output token ≈ 5,9M in + 0,35M out;
-  `gemini-3.7-flash` 31.12.2026'ya kadar $0,75 / $3,75 per 1M → **~$6** (belirsizlikle $5–10) ·
-  (c) ücretsiz kalıp planı küçültmek (ör. A0 ×1 test + ablation'lar kategori alt kümelerinde);
-  ölçümü zayıflatır, results.md'de sınırlama olarak yazılır. Öneri: önce (a) kontrol; yoksa (b).
-- [ ] **Q-ENV-1 — bilgi:** `.env`'deki limitler (15/1.500/1M) gerçek değil; gözlenen RPD 20. Guard
-  `.env`'deki değeri kullanıyor. Sunucunun 429'u yine de koşumu temiz durduruyor (günde bir boşa
-  istek). Gerçek değerleri yazarsan guard 21. isteği hiç göndermez.
+- [x] **Q-F5-2b — kapandı 2026-09-26 (geçici karar kesinleşti):** test seti bu haliyle
+  koşuldu ve donduruldu; sonuçlara bakıldıktan sonra set değiştirilemez (§9.1). Seçimin
+  sonuca etkisi results.md → Threats'te "broadcast örneklemi" maddesinde yazılı.
+- [x] **Q-F5-2c — kapandı 2026-09-26 (aynı gerekçe):** yasaklı ID tanımı koşum boyunca
+  değişmedi; puanlama bu tanımla yapıldı.
+- [x] **Q-QUOTA-1 — kapandı 2026-09-20/26 (seçenek (a) uygulandı, sonra koşum bitti):**
+  Lite olmayan Flash'ın ücretsiz katman limiti gerçekten günde 20 istekti; AI Studio'nun
+  rate-limit sayfasında `gemini-3.1-flash-lite` günde 500 istek veriyordu. Model ölçülerek
+  seçildi (kural önce yazıldı, `eval/results/model_choice.json`), plan küçültülmedi, ücretli
+  katmana geçilmedi. Sonuç: 665 cevap 7 günde, **0 USD**.
+- [x] **Q-ENV-1 — kapandı:** `.env` seçilen modelin gerçek limitleriyle güncellendi
+  (RPM 15 / RPD 500 / TPM 1M); guard bu değerlerle çalıştı ve koşumları her gün temiz durdurdu.
 - [x] **Q-F5-1, Q-F5-2, Q-F5-3, Q-F5-4, Q-D25-1, Q-D25-2 — kapandı 2026-09-19** (Ozan; Kararlar'da).
 - [x] **Q-D25-3 — kapandı:** `functionResponse` rolü `"user"` ilk canlı çağrıda doğrulandı.
 - [x] **`.env`, H5 (forbidden_terms), H6 (remote)** — Ozan 2026-09-19'da hazırladı; kontroller
